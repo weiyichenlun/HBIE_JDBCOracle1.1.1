@@ -10,8 +10,6 @@ import com.hisign.bie.thid.THIDFace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Properties;
-
 /**
  * Created by ZP on 2017/5/12.
  */
@@ -30,11 +28,11 @@ public class HbieUtil {
     private static int plpPort;
     private static int facePort;
     private static int irisPort;
-    private static Properties prop;
 
     static {
         try {
             log.info("HBIEClient init begin...");
+            ipAddr = ConfigUtil.getConfig("host");
         } catch (Exception e) {
         }
     }
