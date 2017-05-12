@@ -35,7 +35,6 @@ public class HbieUtil {
     static {
         try {
             log.info("HBIEClient init begin...");
-
         } catch (Exception e) {
         }
     }
