@@ -7,11 +7,15 @@ import HAFPIS.Utils.ConfigUtil;
 import HAFPIS.Utils.QueryRunnerUtil;
 import HAFPIS.domain.SrchDataRec;
 import HAFPIS.domain.SrchTaskBean;
+import com.hisign.bie.MatcherException;
+import com.hisign.bie.SearchResults;
+import com.hisign.bie.hsfp.HSFPTenFp;
 import org.apache.commons.dbutils.QueryRunner;
 import org.apache.commons.dbutils.handlers.BeanListHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.rmi.RemoteException;
 import java.sql.Blob;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -114,7 +118,101 @@ public class FpRecog implements Runnable {
     }
 
     private void FPTT(List<SrchDataRec> srchDataRecList, SrchTaskBean srchTaskBean) {
-
+        HSFPTenFp.TenFpSearchParam probe = new HSFPTenFp.TenFpSearchParam();
+        String tempMsg = srchTaskBean.getEXPTMSG();
+        StringBuilder exptMsg;
+        float threshold = 0F;
+        float[][] scores = new float[2][10];
+        if(tempMsg==null)
+            exptMsg = new StringBuilder();
+        else
+            exptMsg = new StringBuilder(tempMsg);
+        SrchDataRec srchDataRec = srchDataRecList.get(0);
+        byte[][] features_roll = srchDataRec.rpmnt;
+        byte[][] features_flat = srchDataRec.fpmnt;
+        //判断特征是否为空
+        if (srchDataRec.rpmntnum == 0 && srchDataRec.fpmntnum == 0) {
+            exptMsg.append(" RollMnt and FlatMnt features are both null ");
+            log.warn("FPTT: RollMnt and FlatMnt features are both null. ProbeId=", srchTaskBean.getPROBEID());
+        }
+        try{
+            List<FPRec> list = new ArrayList<>();
+            probe.features = features_roll;
+            probe.id = srchTaskBean.getPROBEID();
+            int numOfCand = srchTaskBean.getNUMOFCAND();
+            if(numOfCand >0)
+                probe.maxCands = (int)(numOfCand*1.5);
+            else
+                probe.maxCands = MAXCANDS;
+            probe.filter = "flag=={0}";
+            SearchResults<HSFPTenFp.TenFpSearchParam.Result> results = null;
+            results = HBIEinit.hbie_FP.search(probe);
+            for(HSFPTenFp.TenFpSearchParam.Result cand:results.candidates){
+                FPRec fpRec = new FPRec();
+                fpRec.candId = cand.record.id;
+                scores[0] = normalScore(cand.fpscores[5]);
+                fpRec.score = cand.score;
+                fpRec.info = cand.record.info;
+                if(fpRec.score>=threshold) {
+                    list.add(fpRec);
+                }
+            }
+            probe.features = features_flat;
+            probe.id = srchTaskBean.getPROBEID();
+            if(numOfCand >0)
+                probe.maxCands = (int)(numOfCand*1.5);
+            else
+                probe.maxCands = MAXCANDS;
+            probe.filter = "flag=={1}";
+            results = HBIEinit.hbie_FP.search(probe);
+            for(HSFPTenFp.TenFpSearchParam.Result cand:results.candidates){
+                FPRec fpRec = new FPRec();
+                fpRec.candId = cand.record.id;
+                scores[1] = normalScore(cand.fpscores[5]);
+                fpRec.score = cand.score;
+                fpRec.info = cand.record.info;
+                if(fpRec.score>=threshold) {
+                    list.add(fpRec);
+                }
+            }
+            list = Utils.mergeResult(list);
+            if (list == null || list.size() == 0) {
+                if (!exptMsg.toString().isEmpty()) {
+                    srchTaskBean.setSTATUS(-1);
+                    log.error("TT search: No results. ProbeId={}, ExceptionMsg:{}", srchTaskBean.getPROBEID(), exptMsg);
+                } else {
+                    srchTaskBean.setEXPTMSG("No results");
+                    srchTaskBean.setSTATUS(6);
+                    log.info("TT search: No results for ProbeId={}", srchTaskBean.getPROBEID());
+                }
+            } else {
+                if (list.size() > numOfCand) {
+                    list = Utils.getList(list, numOfCand);
+                }
+                String taskIdd = srchTaskBean.getTASKIDD();
+                String transNo = srchTaskBean.getTRANSNO();
+                String probeId = srchTaskBean.getPROBEID();
+                boolean isSuc = updateTable_TT(taskIdd, transNo, probeId, scores, list);
+                if (isSuc) {
+                    srchTaskBean.setSTATUS(5);
+                    log.info("TT search finished. ProbeId={}", probeId);
+                } else {
+                    exptMsg.append(tableName).append(" Insert error");
+                    log.error("TT search results insert into {} error. ProbeId={}", tableName, probeId);
+                }
+            }
+        } catch (RemoteException var6) {
+            log.error("RemoteExp error: ", var6);
+            exptMsg.append("RemoteExp error: ").append(var6);
+            srchTaskBean.setEXPTMSG(exptMsg.toString());
+            throw new RemoteException(exptMsg.toString());
+        } catch (MatcherException var7) {
+            log.error("FPTT Matcher error: ", var7);
+            log.info("try to restart Matcher...");
+            startTenFpMatcher();
+            updateSrchTask(3, srchTaskBean.getPROBEID());
+//            throw new MatcherException(exptMsg.toString());
+        }
     }
 
     public int getType() {
