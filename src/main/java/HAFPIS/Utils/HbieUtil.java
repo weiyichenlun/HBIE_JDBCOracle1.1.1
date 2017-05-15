@@ -15,6 +15,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 
 /**
+ * HBIE客户端初始化工具类
  * Created by ZP on 2017/5/12.
  */
 public class HbieUtil {

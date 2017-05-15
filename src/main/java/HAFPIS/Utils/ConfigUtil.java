@@ -17,6 +17,7 @@ import java.net.URLDecoder;
 import java.util.Properties;
 
 /**
+ * 配置文件工具类
  * Created by ZP on 2017/5/12.
  */
 public class ConfigUtil {
@@ -64,10 +65,9 @@ public class ConfigUtil {
     }
 
     public static String getConfig(String configFileName, String key) {
-
         URL url = ConfigUtil.class.getClassLoader().getResource(configFileName);
         if (url == null) {
-            log.error("get resource file {] error.", configFileName);
+            log.error("get resource file {} error.", configFileName);
             return ERROR_MESSAGE;
         } else {
             String path = url.getPath();
@@ -102,8 +102,10 @@ public class ConfigUtil {
         File config = new File(path);
         Properties properties = new Properties();
         String oldValue = null;
-        try{
-            properties.load(new FileInputStream(config));
+        try {
+            InputStream is = new FileInputStream(config);
+            properties.load(is);
+            is.close();
             OutputStream out = new FileOutputStream(config);
             oldValue = (String) properties.get(key);
             properties.setProperty(key, value);
@@ -118,7 +120,7 @@ public class ConfigUtil {
     public static String writeConfig(String key, String value) {
         URL url = ConfigUtil.class.getClassLoader().getResource(configFileName);
         if (url == null) {
-            log.error("get resource file {] error.", configFileName);
+            log.error("get resource file {} error.", configFileName);
             return ERROR_MESSAGE;
         } else {
             String path = url.getPath();
@@ -148,8 +150,9 @@ public class ConfigUtil {
 
     @Test
     public void test() {
-        System.out.println(getConfig("host"));
-        System.out.println(writeConfig("test.properties", "1", "1"));
+        System.out.println(ConfigUtil.class.getResource(""));
+        System.out.println(ConfigUtil.class.getResource("/"));
+        System.out.println(ConfigUtil.class.getClassLoader().getResource(""));
     }
 
 }
