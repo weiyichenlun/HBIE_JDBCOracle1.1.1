@@ -28,7 +28,7 @@ public class ConfigUtil {
     private static final String ERROR_MESSAGE = "ERROR";
     private static String configFileName = "hbie.cfg.properties";
 
-    private static void init() {
+    private static synchronized void init() {
         try {
             URL url = ConfigUtil.class.getClassLoader().getResource(configFileName);
             if (url == null) {
@@ -45,7 +45,7 @@ public class ConfigUtil {
         }
     }
 
-    private static void load() {
+    private static synchronized void load() {
         try{
             props.load(new FileInputStream(configFile));
             fileLastModified = configFile.lastModified();
@@ -55,8 +55,7 @@ public class ConfigUtil {
             log.error("IOException while in loading configfile {}.",configFileName, e);
         }
     }
-
-    public static String getConfig(String key) {
+    public static synchronized String getConfig(String key) {
         if (configFile == null || props == null) {
             init();
         }
@@ -64,7 +63,7 @@ public class ConfigUtil {
         return props.getProperty(key);
     }
 
-    public static String getConfig(String configFileName, String key) {
+    public static synchronized String getConfig(String configFileName, String key) {
         URL url = ConfigUtil.class.getClassLoader().getResource(configFileName);
         if (url == null) {
             log.error("get resource file {} error.", configFileName);
@@ -87,7 +86,7 @@ public class ConfigUtil {
         }
     }
 
-    public static String writeConfig(String configFileName, String key, String value) {
+    public static synchronized String writeConfig(String configFileName, String key, String value) {
         URL url = ConfigUtil.class.getClassLoader().getResource(configFileName);
         if (url == null) {
             log.error("get resource file {] error.", configFileName);
@@ -117,7 +116,7 @@ public class ConfigUtil {
         return oldValue;
     }
 
-    public static String writeConfig(String key, String value) {
+    public static synchronized String writeConfig(String key, String value) {
         URL url = ConfigUtil.class.getClassLoader().getResource(configFileName);
         if (url == null) {
             log.error("get resource file {} error.", configFileName);
@@ -145,6 +144,29 @@ public class ConfigUtil {
                 log.error("can not load configFile {}.", configFileName, e);
             }
             return oldValue;
+        }
+    }
+
+    public static synchronized Properties getProp(String configFileName) {
+        URL url = ConfigUtil.class.getClassLoader().getResource(configFileName);
+        if (url == null) {
+            log.error("get resource file {} error.", configFileName);
+            return null;
+        } else {
+            String path = url.getPath();
+            try {
+                path = URLDecoder.decode(path, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                log.error("can not configFile {}.", configFileName, e);
+            }
+            File config = new File(path);
+            Properties properties = new Properties();
+            try {
+                properties.load(new FileInputStream(config));
+            } catch (IOException e) {
+                log.error("can not load configFile {}.", configFileName, e);
+            }
+            return properties;
         }
     }
 

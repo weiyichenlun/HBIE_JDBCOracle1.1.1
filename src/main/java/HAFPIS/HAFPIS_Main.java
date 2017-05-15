@@ -14,9 +14,13 @@ public class HAFPIS_Main {
     public static void main(String[] args) {
         int num = 0;
         String interval = "1";
-        String querynum = "20";
+        String querynum = "10";
         String status = "3";
         String type = null;
+        String tablename = null;
+        String FPTT_tablename = null;
+        String FPLT_tablename = null;
+
         if (args == null) {
             log.info("请输入一个配置文件名称(例如HSFP.properties):  ");
             System.exit(-1);
@@ -41,7 +45,7 @@ public class HAFPIS_Main {
                 interval = ConfigUtil.getConfig(temp, "interval");
                 querynum = ConfigUtil.getConfig(temp, "querynum");
                 status = ConfigUtil.getConfig(temp, "status");
-
+                tablename = ConfigUtil.getConfig(temp, "tablename");
             }
             if (type == null) {
                 log.error("没有指定type类型，无法启动程序");
@@ -106,10 +110,11 @@ public class HAFPIS_Main {
                 case CONSTANTS.FPTTLT:
                     FpRecog fpRecog = new FpRecog();
                     fpRecog.setType(num);
-                    fpRecog.setInterval(Integer.valueOf(interval));
-                    fpRecog.setQueryNum(Integer.valueOf(querynum));
-                    fpRecog.setStatus(Integer.valueOf(status));
-                    Thread fpThread = new Thread(fpRecog);
+                    fpRecog.setInterval(interval);
+                    fpRecog.setQueryNum(querynum);
+                    fpRecog.setStatus(status);
+                    fpRecog.setTablename(tablename);
+                    Thread fpThread = new Thread(fpRecog, "FPThread");
                     fpThread.start();
                     break;
 
