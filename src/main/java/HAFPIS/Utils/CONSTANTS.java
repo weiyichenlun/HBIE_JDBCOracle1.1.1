@@ -27,4 +27,5 @@ public class CONSTANTS {
     public static final int[] PalmFeatureSize = new int[]{12288, 12288, 8192, 8192};
     public static final int FacefeatureSize = 1580;
     public static final int IrisFeatureSize = 2400;
+    public static final int MAXCANDS = 100;
 }

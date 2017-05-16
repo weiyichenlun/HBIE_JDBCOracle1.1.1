@@ -38,26 +38,26 @@ public class HbieUtil {
         try {
             log.info("HBIEClient init begin...");
             ipAddr = ConfigUtil.getConfig("host");
-            fpPort = Integer.parseInt(ConfigUtil.getConfig("fpPort"));
-            ppPort = Integer.parseInt(ConfigUtil.getConfig("ppPort"));
-            lppPort = Integer.parseInt(ConfigUtil.getConfig("lppPort"));
-            plpPort = Integer.parseInt(ConfigUtil.getConfig("plpPort"));
-            facePort = Integer.parseInt(ConfigUtil.getConfig("facePort"));
-            irisPort = Integer.parseInt(ConfigUtil.getConfig("irisPort"));
+            fpPort = Integer.parseInt(ConfigUtil.getConfig("tenfp_port"));
+            ppPort = Integer.parseInt(ConfigUtil.getConfig("fourpalm_port"));
+            lppPort = Integer.parseInt(ConfigUtil.getConfig("latfp_port"));
+            plpPort = Integer.parseInt(ConfigUtil.getConfig("latpalm_port"));
+            facePort = Integer.parseInt(ConfigUtil.getConfig("face_port"));
+            irisPort = Integer.parseInt(ConfigUtil.getConfig("iris_port"));
 
             hbie_FP = new HBIEClient<HSFPTenFp.Record>(ipAddr, fpPort);
-            hbie_PP = new HBIEClient<HSFPFourPalm.Record>(ipAddr, ppPort);
-            hbie_LPP = new HBIEClient<HSFPLatFp.Record>(ipAddr, lppPort);
-            hbie_PLP = new HBIEClient<HSFPLatPalm.Record>(ipAddr, plpPort);
-            hbie_FACE = new HBIEClient<THIDFace.Record>(ipAddr, facePort);
-            hbie_IRIS = new HBIEClient<HSIris.Record>(ipAddr, irisPort);
+//            hbie_PP = new HBIEClient<HSFPFourPalm.Record>(ipAddr, ppPort);
+//            hbie_LPP = new HBIEClient<HSFPLatFp.Record>(ipAddr, lppPort);
+//            hbie_PLP = new HBIEClient<HSFPLatPalm.Record>(ipAddr, plpPort);
+//            hbie_FACE = new HBIEClient<THIDFace.Record>(ipAddr, facePort);
+//            hbie_IRIS = new HBIEClient<HSIris.Record>(ipAddr, irisPort);
             log.info("HBIEClient init end...");
         } catch (RemoteException e) {
-            
+            log.error("remoteexception: ",e);
         } catch (NotBoundException e) {
-
+            log.error("notboundexception: ", e);
         } catch (MalformedURLException e) {
-
+            log.error("malformedURLexception: ", e);
         }
     }
 }

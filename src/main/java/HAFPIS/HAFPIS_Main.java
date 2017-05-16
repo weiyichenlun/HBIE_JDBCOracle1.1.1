@@ -6,6 +6,8 @@ import HAFPIS.service.FpRecog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Properties;
+
 /**
  * Created by ZP on 2017/5/12.
  */
@@ -18,34 +20,34 @@ public class HAFPIS_Main {
         String status = "3";
         String type = null;
         String tablename = null;
-        String FPTT_tablename = null;
-        String FPLT_tablename = null;
+        Properties prop = new Properties();
 
         if (args == null) {
             log.info("请输入一个配置文件名称(例如HSFP.properties):  ");
             System.exit(-1);
         } else {
-            int len = args.length;
             String name = args[0];
             String temp = null;
             if (name.startsWith("-")) {
                 if (name.startsWith("-cfg-file=")) {
                     temp = name.substring(name.indexOf(61) + 1);
-                    type = ConfigUtil.getConfig(temp, "type");
+                    prop = ConfigUtil.getProp(temp);
                 } else {
                     int t = name.indexOf(61);
                     if (t == -1) {
                         temp = name;
-                        type = ConfigUtil.getConfig(temp, "type");
+                        prop = ConfigUtil.getProp(temp);
                     } else {
                         temp = name.substring(t + 1);
-                        type = ConfigUtil.getConfig(temp, "type");
+                        prop = ConfigUtil.getProp(temp);
                     }
                 }
-                interval = ConfigUtil.getConfig(temp, "interval");
-                querynum = ConfigUtil.getConfig(temp, "querynum");
-                status = ConfigUtil.getConfig(temp, "status");
-                tablename = ConfigUtil.getConfig(temp, "tablename");
+                type = (String) prop.get("type");
+                interval = (String) prop.get("interval");
+                querynum = (String) prop.get("querynum");
+                status = (String) prop.get("status");
+                tablename = (String) prop.get("tablename");
+
             }
             if (type == null) {
                 log.error("没有指定type类型，无法启动程序");
@@ -108,12 +110,20 @@ public class HAFPIS_Main {
                 case CONSTANTS.FPTT:
                 case CONSTANTS.FPLT:
                 case CONSTANTS.FPTTLT:
+                    String FPTT_threshold = (String) prop.get("FPTT_threshold");
+                    String FPLT_threshold = (String) prop.get("FPLT_threshold");
+                    String FPTT_tablename = (String) prop.get("FPTT_tablename");
+                    String FPLT_tablename = (String) prop.get("FPLT_tablename");
                     FpRecog fpRecog = new FpRecog();
                     fpRecog.setType(num);
                     fpRecog.setInterval(interval);
                     fpRecog.setQueryNum(querynum);
                     fpRecog.setStatus(status);
                     fpRecog.setTablename(tablename);
+                    fpRecog.setFPTT_threshold(Float.parseFloat(FPTT_threshold));
+                    fpRecog.setFPTT_tablename(FPTT_tablename);
+                    fpRecog.setFPLT_threshold(Float.parseFloat(FPLT_threshold));
+                    fpRecog.setFPLT_tablename(FPLT_tablename);
                     Thread fpThread = new Thread(fpRecog, "FPThread");
                     fpThread.start();
                     break;

@@ -1,5 +1,6 @@
 package HAFPIS.Utils;
 
+import HAFPIS.domain.Rec;
 import HAFPIS.domain.SrchDataRec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,7 @@ import java.io.InputStream;
 import java.sql.Blob;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -175,4 +177,80 @@ public class CommonUtil {
     }
 
 
+    public synchronized static <T extends Rec> List<T> mergeResult(List<T> list) {
+        if (list == null || list.size() == 0) {
+            return null;
+        }
+        Rec fpRec1, fpRec2;
+        for (int i = 0; i < list.size() - 1; i++) {
+            for (int j = list.size() - 1; j > i; j--) {
+                fpRec1 = list.get(i);
+                fpRec2 = list.get(j);
+                if (fpRec1.position == fpRec2.position) {
+                    float tempScore = Math.max(fpRec1.score, fpRec2.score);
+                    if (fpRec1.candid.equals(fpRec2.candid.substring(0, fpRec2.candid.length() - 1)) && fpRec2.candid.endsWith("_")) {
+                        fpRec1.score = tempScore;
+                        list.remove(j);
+                    }
+                    if (fpRec2.candid.equals(fpRec1.candid.substring(0, fpRec1.candid.length() - 1)) && fpRec1.candid.endsWith("_")) {
+                        fpRec1.score = tempScore;
+                        list.remove(j);
+                    }
+                    if (fpRec1.candid.equals(fpRec2.candid)) {
+                        fpRec1.score = tempScore;
+                        list.remove(j);
+                    }
+                }
+            }
+        }
+        for (int i = 0; i < list.size(); i++) {
+            Rec fpRec = list.get(i);
+            if (fpRec.candid.endsWith("_")) {
+                fpRec.candid = fpRec.candid.substring(0, fpRec.candid.length() - 1);
+            }
+        }
+        return sort(list);
+    }
+
+
+    public static <T extends Comparable<? super T>> List<T> sort(List<T> list){
+        Collections.sort(list);
+        return list;
+    }
+
+    public static <T extends Rec> List<T> getList(List<T> list, int numOfCand){
+        List<T> res = new ArrayList<>();
+        if (list.size() > numOfCand) {
+            res.addAll(list.subList(0, numOfCand));
+        } else {
+            res.addAll(res);
+        }
+        return res;
+    }
+
+    public synchronized static <T extends Rec> List<T> mergeResult(List<T> list, List<T> list_rest) {
+        List<T> res = new ArrayList<>();
+        if(list == null && list_rest == null){
+            return null;
+        }
+        else if(list == null){
+            for(int i=0; i<list_rest.size(); i++){
+                res.add(list_rest.get(i));
+            }
+        }
+        else if(list_rest == null){
+            for(int i=0; i<list.size(); i++) {
+                res.add(list.get(i));
+            }
+        }
+        else{
+            for(int i=0; i<list.size(); i++) {
+                res.add(list.get(i));
+            }
+            for(int i=0; i<list_rest.size(); i++) {
+                res.add(list_rest.get(i));
+            }
+        }
+        return mergeResult(res);
+    }
 }

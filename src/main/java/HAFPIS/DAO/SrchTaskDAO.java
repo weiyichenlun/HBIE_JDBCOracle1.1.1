@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * HAFPIS_SRCH_TASK
@@ -21,20 +23,25 @@ public class SrchTaskDAO {
         this.tablename = tablename;
     }
 
-    public void update(String taskidd, int status, String exptmsg) {
+    public synchronized void update(String taskidd, int status, String exptmsg) {
         StringBuilder sb = new StringBuilder();
-        sb.append("update ").append(tablename).append(" set ");
-        sb.append(", status=").append(status);
-        sb.append(", endtime=").append(DateUtil.getFormatDate(System.currentTimeMillis()));
+        List<Object> param = new ArrayList<>();
+        sb.append("update ").append(tablename).append(" set");
+        sb.append(" status=?,");
+        param.add(status);
+        sb.append(" endtime=?");
+        String date = DateUtil.getFormatDate(System.currentTimeMillis());
+        param.add(DateUtil.getFormatDate(System.currentTimeMillis()));
         if (status < 0) {
-            sb.append(", exptmsg=").append(exptmsg);
+            sb.append(", exptmsg=?");
+            param.add(exptmsg);
         }
-        sb.append(" where taskidd=").append(taskidd);
-
+        sb.append(" where taskidd=?");
+        param.add(taskidd);
         try {
-            qr.update(sb.toString());
+            qr.update(sb.toString(), status,date, taskidd );
         } catch (SQLException e) {
-            log.error("UPDATE DB error: {}", e);
+            log.error("UPDATE DB error: ", e);
         }
     }
 }

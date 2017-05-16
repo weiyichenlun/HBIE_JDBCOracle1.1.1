@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+Class-Path: lib\slf4j-api-1.7.7.jar lib\commons-dbcp-1.4.jar lib\hamcr
+ est-core-1.3.jar lib\commons-dbutils-1.5.jar lib\logback-core-1.2.1.j
+ ar lib\junit-4.12.jar lib\hbie-1.5.jar lib\logback-classic-1.2.1.jar 
+ lib\ojdbc-7.jar lib\commons-pool-1.5.4.jar
+Main-Class: HAFPIS.HAFPIS_Main
+
