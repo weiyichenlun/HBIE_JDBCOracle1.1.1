@@ -1,7 +1,6 @@
 package HAFPIS; 
 
 import HAFPIS.Utils.HbieUtil;
-import HAFPIS.Utils.QueryRunnerUtil;
 import com.hisign.bie.MatcherException;
 import com.hisign.bie.hsfp.HSFPTenFp;
 import org.apache.commons.dbutils.QueryRunner;
@@ -28,7 +27,7 @@ public class HAFPIS_MainTest {
     private static QueryRunner qr;
     @Before
     public void before() throws Exception {
-        qr = QueryRunnerUtil.getInstance();
+//        qr = QueryRunnerUtil.getInstance();
     } 
 
     @Test

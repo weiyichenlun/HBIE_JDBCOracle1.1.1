@@ -26,29 +26,14 @@ public class HAFPIS_Main {
             log.info("请输入一个配置文件名称(例如HSFP.properties):  ");
             System.exit(-1);
         } else {
-            String name = args[0];
-            String temp = null;
-            if (name.startsWith("-")) {
-                if (name.startsWith("-cfg-file=")) {
-                    temp = name.substring(name.indexOf(61) + 1);
-                    prop = ConfigUtil.getProp(temp);
-                } else {
-                    int t = name.indexOf(61);
-                    if (t == -1) {
-                        temp = name;
-                        prop = ConfigUtil.getProp(temp);
-                    } else {
-                        temp = name.substring(t + 1);
-                        prop = ConfigUtil.getProp(temp);
-                    }
-                }
-                type = (String) prop.get("type");
-                interval = (String) prop.get("interval");
-                querynum = (String) prop.get("querynum");
-                status = (String) prop.get("status");
-                tablename = (String) prop.get("tablename");
-
-            }
+            System.out.println(HAFPIS_Main.class.getResource(""));
+            System.out.println(HAFPIS_Main.class.getResource("/"));
+            prop = ConfigUtil.getProp(args);
+            type = (String) prop.get("type");
+            interval = (String) prop.get("interval");
+            querynum = (String) prop.get("querynum");
+            status = (String) prop.get("status");
+            tablename = (String) prop.get("tablename");
             if (type == null) {
                 log.error("没有指定type类型，无法启动程序");
                 System.exit(-1);
