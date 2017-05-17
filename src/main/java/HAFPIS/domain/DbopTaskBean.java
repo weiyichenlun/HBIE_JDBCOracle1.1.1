@@ -3,7 +3,7 @@ package HAFPIS.domain;
 /**
  * Created by ZP on 2017/5/15.
  */
-public class DbopTaskBean {
+public class DbopTaskBean{
     private String TaskIdd;
     private String TransNo;
     private String ProbeId;

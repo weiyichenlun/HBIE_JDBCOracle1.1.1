@@ -80,7 +80,7 @@ public class FpRecog implements Runnable {
             if ((list.size() == 0)) {
                 int timeSleep = Integer.parseInt(interval);
                 try {
-                    Thread.sleep(timeSleep * 10000);
+                    Thread.sleep(timeSleep * 1000);
                     log.info("sleeping");
                 } catch (InterruptedException e) {
                     log.warn("Waiting Thread was interrupted: {}", e);
@@ -308,15 +308,15 @@ public class FpRecog implements Runnable {
                 for (int i = 0; i < list.size(); i++) {
                     list.get(i).candrank = i + 1;
                 }
-                log.info("begin to write results into {}", FPTT_tablename);
+                log.info("begin to write results into {}", FPLT_tablename);
                 boolean isSuc = fpltdao.updateRes(list);
                 if (isSuc) {
                     srchTaskBean.setSTATUS(5);
-                    log.info("TT search finished. ProbeId={}", srchTaskBean.getPROBEID());
+                    log.info("LT search finished. ProbeId={}", srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, null);
                 } else {
-                    exptMsg.append(FPTT_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
-                    log.error("TT search results insert into {} error. ProbeId={}", FPTT_tablename, srchTaskBean.getPROBEID());
+                    exptMsg.append(FPLT_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
+                    log.error("LT search results insert into {} error. ProbeId={}", FPLT_tablename, srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().substring(1, 128));
                 }
             }
@@ -326,7 +326,7 @@ public class FpRecog implements Runnable {
             srchTaskBean.setEXPTMSG(exptMsg.toString());
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString().substring(0,128));
         } catch (MatcherException var7) {
-            log.error("FPTT Matcher error: ", var7);
+            log.error("FPLT Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
             log.info("try to restart Matcher...");
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString().substring(0, 128));

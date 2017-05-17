@@ -28,4 +28,23 @@ public class CONSTANTS {
     public static final int FacefeatureSize = 1580;
     public static final int IrisFeatureSize = 2400;
     public static final int MAXCANDS = 100;
+
+    public static int ppPos2Ora(int position) {
+        int a = 0;
+        switch (position) {
+            case 0:
+                a = 1;
+                break;
+            case 1:
+                a = 6;
+                break;
+            case 2:
+                a = 5;
+                break;
+            case 3:
+                a = 10;
+                break;
+        }
+        return a;
+    }
 }

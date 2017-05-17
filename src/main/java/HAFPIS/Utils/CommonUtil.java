@@ -188,11 +188,11 @@ public class CommonUtil {
                 fpRec2 = list.get(j);
                 if (fpRec1.position == fpRec2.position) {
                     float tempScore = Math.max(fpRec1.score, fpRec2.score);
-                    if (fpRec1.candid.equals(fpRec2.candid.substring(0, fpRec2.candid.length() - 1)) && fpRec2.candid.endsWith("_")) {
+                    if (fpRec2.candid.endsWith("_") && fpRec1.candid.equals(fpRec2.candid.substring(0, fpRec2.candid.length() - 1))) {
                         fpRec1.score = tempScore;
                         list.remove(j);
                     }
-                    if (fpRec2.candid.equals(fpRec1.candid.substring(0, fpRec1.candid.length() - 1)) && fpRec1.candid.endsWith("_")) {
+                    if (fpRec1.candid.endsWith("_") && fpRec2.candid.equals(fpRec1.candid.substring(0, fpRec1.candid.length() - 1))) {
                         fpRec1.score = tempScore;
                         list.remove(j);
                     }

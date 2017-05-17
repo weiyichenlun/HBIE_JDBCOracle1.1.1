@@ -2,13 +2,19 @@ package HAFPIS;
 
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.ConfigUtil;
+import HAFPIS.service.FaceRecog;
 import HAFPIS.service.FpRecog;
+import HAFPIS.service.IrisRecog;
+import HAFPIS.service.LatFpRecog;
+import HAFPIS.service.LatPalmRecog;
+import HAFPIS.service.PalmRecog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 
 /**
+ * 主函数
  * Created by ZP on 2017/5/12.
  */
 public class HAFPIS_Main {
@@ -112,7 +118,94 @@ public class HAFPIS_Main {
                     Thread fpThread = new Thread(fpRecog, "FPThread");
                     fpThread.start();
                     break;
-
+                case CONSTANTS.FPTL:
+                case CONSTANTS.FPLL:
+                case CONSTANTS.FPTLLL:
+                    String FPTL_threshold = (String) prop.get("FPTL_threshold");
+                    String FPLL_threshold = (String) prop.get("FPLL_threshold");
+                    String FPTL_tablename = (String) prop.get("FPTL_tablename");
+                    String FPLL_tablename = (String) prop.get("FPLL_tablename");
+                    LatFpRecog latFpRecog = new LatFpRecog();
+                    latFpRecog.setType(num);
+                    latFpRecog.setInterval(interval);
+                    latFpRecog.setQueryNum(querynum);
+                    latFpRecog.setStatus(status);
+                    latFpRecog.setTablename(tablename);
+                    latFpRecog.setFPTL_threshold(Float.parseFloat(FPTL_threshold));
+                    latFpRecog.setFPTL_tablename(FPTL_tablename);
+                    latFpRecog.setFPLL_threshold(Float.parseFloat(FPLL_threshold));
+                    latFpRecog.setFPLL_tablename(FPLL_tablename);
+                    Thread latfpThread = new Thread(latFpRecog, "LatFPThread");
+                    latfpThread.start();
+                    break;
+                case CONSTANTS.PPTT:
+                case CONSTANTS.PPLT:
+                case CONSTANTS.PPTTLT:
+                    String PPTT_threshold = (String) prop.get("PMTT_threshold");
+                    String PPLT_threshold = (String) prop.get("PMLT_threshold");
+                    String PPTT_tablename = (String) prop.get("PMTT_tablename");
+                    String PPLT_tablename = (String) prop.get("PMLT_tablename");
+                    PalmRecog palmRecog = new PalmRecog();
+                    palmRecog.setType(num);
+                    palmRecog.setInterval(interval);
+                    palmRecog.setQueryNum(querynum);
+                    palmRecog.setStatus(status);
+                    palmRecog.setTablename(tablename);
+                    palmRecog.setPPTT_tablename(PPTT_tablename);
+                    palmRecog.setPPTT_threshold(Float.parseFloat(PPTT_threshold));
+                    palmRecog.setPPLT_tablename(PPLT_tablename);
+                    palmRecog.setPPLT_threshold(Float.parseFloat(PPLT_threshold));
+                    Thread palmThread = new Thread(palmRecog, "PalmThread");
+                    palmThread.start();
+                    break;
+                case CONSTANTS.PPTL:
+                case CONSTANTS.PPLL:
+                case CONSTANTS.PPTLLL:
+                    String PPTL_threshold = (String) prop.get("PMTL_threshold");
+                    String PPLL_threshold = (String) prop.get("PMLL_threshold");
+                    String PPTL_tablename = (String) prop.get("PMTL_tablename");
+                    String PPLL_tablename = (String) prop.get("PMLL_tablename");
+                    LatPalmRecog latPalmRecog = new LatPalmRecog();
+                    latPalmRecog.setType(num);
+                    latPalmRecog.setInterval(interval);
+                    latPalmRecog.setQueryNum(querynum);
+                    latPalmRecog.setStatus(status);
+                    latPalmRecog.setTablename(tablename);
+                    latPalmRecog.setPPTL_tablename(PPTL_tablename);
+                    latPalmRecog.setPPTL_threshold(Float.parseFloat(PPTL_threshold));
+                    latPalmRecog.setPPLL_tablename(PPLL_tablename);
+                    latPalmRecog.setPPLL_threshold(Float.parseFloat(PPLL_threshold));
+                    Thread latpalmThread = new Thread(latPalmRecog, "LatpalmThread");
+                    latpalmThread.start();
+                    break;
+                case CONSTANTS.FACE:
+                    String FaceTT_threshold = (String) prop.get("FaceTT_threshold");
+                    String FaceTT_tablename = (String) prop.get("FaceTT_tablename");
+                    FaceRecog faceRecog = new FaceRecog();
+                    faceRecog.setType(num);
+                    faceRecog.setInterval(interval);
+                    faceRecog.setQueryNum(querynum);
+                    faceRecog.setStatus(status);
+                    faceRecog.setTablename(tablename);
+                    faceRecog.setFaceTT_tablename(FaceTT_tablename);
+                    faceRecog.setFaceTT_threshold(Float.parseFloat(FaceTT_threshold));
+                    Thread faceThread = new Thread(faceRecog, "FaceThread");
+                    faceThread.start();
+                    break;
+                case CONSTANTS.IRIS:
+                    String IrisTT_threshold = (String) prop.get("IrisTT_threshold");
+                    String IrisTT_tablename = (String) prop.get("IrisTT_tablename");
+                    IrisRecog irisRecog = new IrisRecog();
+                    irisRecog.setType(num);
+                    irisRecog.setInterval(interval);
+                    irisRecog.setQueryNum(querynum);
+                    irisRecog.setStatus(status);
+                    irisRecog.setTablename(tablename);
+                    irisRecog.setIrisTT_tablename(IrisTT_tablename);
+                    irisRecog.setIrisTT_threshold(Float.parseFloat(IrisTT_threshold));
+                    Thread irisThread = new Thread(irisRecog, "FaceThread");
+                    irisThread.start();
+                    break;
             }
         }
     }

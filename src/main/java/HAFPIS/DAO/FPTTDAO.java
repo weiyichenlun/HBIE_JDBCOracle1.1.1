@@ -14,7 +14,7 @@ import java.util.List;
  * Created by ZP on 2017/5/16.
  */
 public class FPTTDAO {
-    private final Logger log = LoggerFactory.getLogger(SrchTaskDAO.class);
+    private final Logger log = LoggerFactory.getLogger(FPTTDAO.class);
     private QueryRunner qr = QueryRunnerUtil.getInstance();
     private String tablename = null;
 

@@ -1,9 +1,12 @@
 package HAFPIS.domain;
 
+import java.io.Serializable;
+
 /**
  * Created by ZP on 2017/5/15.
  */
-public class SrchDataRec {
+public class SrchDataRec implements Serializable{
+    private static final long serialVersionUID = -4662236686344805743L;
     public byte[] probeId;
     public int[] RpMntLen;
     public int[] RpImgLen;

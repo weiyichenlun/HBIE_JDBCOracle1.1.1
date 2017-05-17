@@ -1,7 +1,8 @@
 package HAFPIS.DAO;
 
+import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.QueryRunnerUtil;
-import HAFPIS.domain.FPLTRec;
+import HAFPIS.domain.PPLTRec;
 import org.apache.commons.dbutils.QueryRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,24 +11,23 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Created by ZP on 2017/5/16.
+ * Created by ZP on 2017/5/17.
  */
-public class FPLTDAO {
-    private final Logger log = LoggerFactory.getLogger(FPLTDAO.class);
+public class PPLTDAO {
+    private final Logger log = LoggerFactory.getLogger(PPLTDAO.class);
     private QueryRunner qr = QueryRunnerUtil.getInstance();
     private String tablename = null;
 
-    public FPLTDAO(String tablename) {
+    public PPLTDAO(String tablename) {
         this.tablename = tablename;
     }
 
-
-    public synchronized boolean updateRes(List<FPLTRec> list) {
-        FPLTRec fpltRec = new FPLTRec();
-        fpltRec = list.get(0);
-        String taskid = fpltRec.taskid;
-        String transno = fpltRec.transno;
-        String probeid = fpltRec.probeid;
+    public synchronized boolean updateRes(List<PPLTRec> list) {
+        PPLTRec ppltRec = new PPLTRec();
+        ppltRec = list.get(0);
+        String taskid = ppltRec.taskid;
+        String transno = ppltRec.transno;
+        String probeid = ppltRec.probeid;
         Object[][] paramUsed = new Object[list.size()][8];
         int sum = 0;
         //先清理表中存在的重复的比对结果数据
@@ -36,15 +36,15 @@ public class FPLTDAO {
         String ins_sql = "insert into " + tablename + " (TASKIDD, TRANSNO, PROBEID, DBID, CANDID, CANDRANK, POSITION, SCORE) VALUES(?,?,?,?,?,?,?,?)";
         for (int i = 0; i < list.size(); i++) {
             int idx = 0;
-            fpltRec = list.get(i);
+            ppltRec = list.get(i);
             paramUsed[i][idx++] = taskid;
             paramUsed[i][idx++] = transno;
             paramUsed[i][idx++] = probeid;
-            paramUsed[i][idx++] = fpltRec.dbid;
-            paramUsed[i][idx++] = fpltRec.candid;
-            paramUsed[i][idx++] = fpltRec.candrank;
-            paramUsed[i][idx++] = fpltRec.position;
-            paramUsed[i][idx]   = (int) (fpltRec.score * 10000);
+            paramUsed[i][idx++] = ppltRec.dbid;
+            paramUsed[i][idx++] = ppltRec.candid;
+            paramUsed[i][idx++] = ppltRec.candrank;
+            paramUsed[i][idx++] = CONSTANTS.ppPos2Ora(ppltRec.position);
+            paramUsed[i][idx]   = (int) (ppltRec.score * 10000);
         }
         try {
             sum = qr.batch(ins_sql, paramUsed).length;
