@@ -90,6 +90,27 @@ public class HAFPIS_Main {
                         case "IRIS":
                             num = CONSTANTS.IRIS;
                             break;
+                        case "FPTT_1TOF":
+                            num = CONSTANTS.FPTT1TOF;
+                            break;
+                        case "FPLL_1TOF":
+                            num = CONSTANTS.FPLL1TOF;
+                            break;
+                        case "PPTT_1TOF":
+                            num = CONSTANTS.PPTT1TOF;
+                            break;
+                        case "PPLL_1TOF":
+                            num = CONSTANTS.PPLL1TOF;
+                            break;
+                        case "FACE_1TOF":
+                            num = CONSTANTS.FACE1TOF;
+                            break;
+                        case "IRIS_1TOF":
+                            num = CONSTANTS.IRIS1TOF;
+                            break;
+                        case "DBOP":
+                            num = CONSTANTS.DBOP;
+                            break;
                         default:
                             log.warn("type error.");
                             break;
@@ -206,6 +227,21 @@ public class HAFPIS_Main {
                     Thread irisThread = new Thread(irisRecog, "FaceThread");
                     irisThread.start();
                     break;
+                case CONSTANTS.FPTT1TOF:
+                    break;
+                case CONSTANTS.FPLL1TOF:
+                    break;
+                case CONSTANTS.PPTT1TOF:
+                    break;
+                case CONSTANTS.PPLL1TOF:
+                    break;
+                case CONSTANTS.FACE1TOF:
+                    break;
+                case CONSTANTS.IRIS1TOF:
+                    break;
+                case CONSTANTS.DBOP:
+                    break;
+
             }
         }
     }

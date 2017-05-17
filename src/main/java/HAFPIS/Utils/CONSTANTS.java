@@ -23,6 +23,15 @@ public class CONSTANTS {
     public static final int FACE = 13;
     public static final int IRIS = 14;
 
+    public static final int FPTT1TOF = 20;
+    public static final int FPLL1TOF = 21;
+    public static final int PPTT1TOF = 22;
+    public static final int PPLL1TOF = 23;
+    public static final int FACE1TOF = 24;
+    public static final int IRIS1TOF = 25;
+
+    public static final int DBOP = 30;
+
     public static final int FpFeatureSize = 3072;
     public static final int[] PalmFeatureSize = new int[]{12288, 12288, 8192, 8192};
     public static final int FacefeatureSize = 1580;
