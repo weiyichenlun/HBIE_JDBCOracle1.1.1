@@ -57,9 +57,9 @@ public class PPTTDAO {
     }
 
     public synchronized boolean delete(String taskid) {
-        String del_sql = "delete from " + tablename + " where taskidd=" + taskid;
+        String del_sql = "delete from " + tablename + " where taskidd=?";
         try {
-            return qr.update(del_sql) > 0;
+            return qr.update(del_sql, taskid) > 0;
         } catch (SQLException e) {
             log.error("Delete records before inserting records error: delSql={}, ExceptionMsg={}", del_sql, e);
             return false;

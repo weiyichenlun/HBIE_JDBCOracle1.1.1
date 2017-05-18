@@ -67,6 +67,22 @@ public class HAFPIS_MainTest {
 
     }
 
+    @Test
+    public void test_insert_1ToFLL_srch() throws IOException, MatcherException, SQLException {
+        String path = "D:\\Resource\\data\\gallery\\";
+        File pathFile = new File(path);
+        File[] paths = pathFile.listFiles();
+        String[] res = new String[10];
+        int idx = 0;
+        for (int i = 0; i < paths.length; i++) {
+            if (paths[i].isDirectory() && idx < 10) {
+                res[idx++] = paths[i].getAbsolutePath();
+            }
+        }
+        byte[] srchdata = getSrchDatas_LatFp(res);
+        insertSrchTask_latfp_1ToF(srchdata, 8);
+    }
+
     @After
     public void after() throws Exception {
     }
@@ -85,6 +101,17 @@ public class HAFPIS_MainTest {
         System.out.println(a);
     }
 
+    public static byte[] getSrchDatas_LatFp(String[] paths) throws IOException, MatcherException {
+        int len = paths.length;
+        byte[] res = new byte[(3072 + 353) * len];
+        for (int i = 0; i < len; i++) {
+            String path = paths[i];
+            byte[] srchdata = getSrchData_LatFp(path);
+            System.arraycopy(srchdata, 0, res, (3072 + 353) * i, (3072 + 353));
+        }
+        return res;
+    }
+
     public static byte[] getSrchDatas_TenFP(String[] paths) throws IOException, MatcherException, ExecutionException, InterruptedException {
         int len = paths.length;
         byte[] res = new byte[31073 * len];
@@ -96,6 +123,22 @@ public class HAFPIS_MainTest {
         }
         return res;
 
+    }
+
+    public static void insertSrchTask_latfp_1ToF(byte[] srchdata, int tasktype) throws SQLException {
+        String url = "INSERT INTO HAFPIS_SRCH_TASK (TASKIDD, TRANSNO, PROBEID, DATATYPE, TASKTYPE, STATUS, SRCHDATA) VALUES(?,?,?,?,?,?,?)";
+        String taskidd = UUID.randomUUID().toString().replace("-", "");
+        String transno = UUID.randomUUID().toString().replace("-", "");
+        byte[] id = new byte[32];
+        for (int i = 0; i < 32; i++) {
+            id[i] = srchdata[i];
+        }
+        String probeid = new String(id);
+        int datatype = 4;
+        int status = 3;
+        System.out.println("srchdata length is "+srchdata.length);
+        int a = qr.update(url,taskidd,transno, probeid,datatype,tasktype,status,srchdata);
+        System.out.println(a);
     }
 
     public static void insertSrchTask_tenfp_1ToF(byte[] srchdata, int tasktype) throws SQLException {
@@ -133,9 +176,8 @@ public class HAFPIS_MainTest {
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos);
-        char[] probeid = new char[32];
         byte[] temp = new byte[33];
-        temp = "00000000000000000000000000000002 ".getBytes();
+        temp = (UUID.randomUUID().toString().replace("-", "")+" ").getBytes();
         dos.write(temp);
         int[] rollMnt = new int[10];
         int[] rollimg = new int[10];

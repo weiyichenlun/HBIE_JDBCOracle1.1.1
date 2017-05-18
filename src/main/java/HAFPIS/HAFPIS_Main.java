@@ -7,6 +7,7 @@ import HAFPIS.service.FpRecog;
 import HAFPIS.service.IrisRecog;
 import HAFPIS.service.LatFpRecog;
 import HAFPIS.service.LatPalmRecog;
+import HAFPIS.service.OneToF_FPLL;
 import HAFPIS.service.OneToF_FPTT;
 import HAFPIS.service.PalmRecog;
 import org.slf4j.Logger;
@@ -241,6 +242,16 @@ public class HAFPIS_Main {
                     oneToF_FPTT_Thread.start();
                     break;
                 case CONSTANTS.FPLL1TOF:
+                    String tablename_FPLL = (String) prop.get("result_tablename");
+                    OneToF_FPLL oneToF_fpll = new OneToF_FPLL();
+                    oneToF_fpll.setType(num);
+                    oneToF_fpll.setInterval(querynum);
+                    oneToF_fpll.setQueryNum(querynum);
+                    oneToF_fpll.setStatus(status);
+                    oneToF_fpll.setTablename(tablename);
+                    oneToF_fpll.setFPLL_tablename(tablename_FPLL);
+                    Thread oneToF_FPLL_Thread = new Thread(oneToF_fpll, "OneToF_FPll_Thread");
+                    oneToF_FPLL_Thread.start();
                     break;
                 case CONSTANTS.PPTT1TOF:
                     break;

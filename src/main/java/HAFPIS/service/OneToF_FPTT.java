@@ -41,16 +41,20 @@ public class OneToF_FPTT implements Runnable {
     private String tablename;
     private String FPTT_tablename;
     int tasktype = 0;
+    int datatype = 1;
     private SrchTaskDAO srchTaskDAO;
     @Override
     public void run() {
         srchTaskDAO = new SrchTaskDAO(tablename);
         if (type == CONSTANTS.FPTT1TOF) {
             tasktype = 8;
+        } else {
+            log.warn("the type is wrong. type={}", type);
         }
         StringBuilder sb = new StringBuilder();
         sb.append("select * from ").append(tablename);
         sb.append(" where status=").append(Integer.parseInt(status));
+        sb.append(" and datatype=1");
         sb.append(" and tasktype=").append(tasktype);
         sb.append(" and rownum<=").append(Integer.parseInt(queryNum));
         sb.append(" order by priority desc, begtime asc");
@@ -110,7 +114,7 @@ public class OneToF_FPTT implements Runnable {
         if (srchDataRecList.size() <= 1) {
             srchTaskBean.setSTATUS(-1);
             srchTaskBean.setEXPTMSG("there is only one SrchDataRec");
-            log.error("there is only one SrchDataRec in srchDataRecList, FP_1ToF will stop");
+            log.error("there is only one SrchDataRec in srchDataRecList, FPTT_1ToF will stop");
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "only one srchdata record");
         } else {
             List<FPTTRec> list = new ArrayList<>();
@@ -120,68 +124,69 @@ public class OneToF_FPTT implements Runnable {
                 if (gallery.rpmntnum == 0 && gallery.fpmntnum == 0) {
                     exptMsg.append("list.get(").append(i).append(")\'s rollmnt and flatmnt are both null").append(" probeid is").append(new String(gallery.probeId));
                     log.warn("1ToF rollmnt and flatmnt are both null for the record in list.get({}), probeid={}.", i, new String(gallery.probeId));
+                }else {
+                    Map<Integer, Future<Float>> map = new HashMap<>();
+                    FPTTRec fpttRec = new FPTTRec();
+                    fpttRec.taskid = srchTaskBean.getTASKIDD();
+                    fpttRec.transno = srchTaskBean.getTRANSNO();
+                    fpttRec.probeid = srchTaskBean.getPROBEID();
+                    fpttRec.dbid = 0;
+                    fpttRec.candid = new String(gallery.probeId).trim();
+                    int len = gallery.rpmntnum;
+                    if (len > 0) {
+                        for (int j = 0; j < 10; j++) {
+                            final int finalJ = j;
+                            Future<Float> score = executorService.submit(new Callable<Float>() {
+                                @Override
+                                public Float call() throws Exception {
+                                    HSFPTenFp.VerifyFeature verifyFuture = new HSFPTenFp.VerifyFeature();
+                                    verifyFuture.feature1 = probe.rpmnt[finalJ];
+                                    verifyFuture.feature2 = gallery.rpmnt[finalJ];
+                                    HSFPTenFp.VerifyFeature.Result result = HbieUtil.hbie_FP.process(verifyFuture);
+                                    return result.score;
+                                }
+                            });
+                            map.put(j, score);
+                        }
+                    }
+                    len = gallery.fpmntnum;
+                    if (len > 0) {
+                        for (int j = 0; j < 10; j++) {
+                            final int finalJ = j;
+                            Future<Float> score = executorService.submit(new Callable<Float>() {
+                                @Override
+                                public Float call() throws Exception {
+                                    HSFPTenFp.VerifyFeature verifyFuture = new HSFPTenFp.VerifyFeature();
+                                    verifyFuture.feature1 = probe.fpmnt[finalJ];
+                                    verifyFuture.feature2 = gallery.fpmnt[finalJ];
+                                    HSFPTenFp.VerifyFeature.Result result = HbieUtil.hbie_FP.process(verifyFuture);
+                                    return result.score;
+                                }
+                            });
+                            map.put(j + 10, score);
+                        }
+                    }
+                    float tempScore = 0F;
+                    for (int j = 0; j < map.size(); j++) {
+                        Future<Float> f = map.get(j);
+                        float temp = 0F;
+                        try {
+                            temp = f.get();
+                        } catch (InterruptedException | ExecutionException e) {
+                            log.info("get 1ToF score map error, probeid={} ", new String(gallery.probeId), e);
+                        }
+                        if (temp > tempScore) {
+                            tempScore = temp;
+                        }
+                        if (j >= 0 && j < 10) {
+                            fpttRec.rpscores[j] = temp;
+                        } else {
+                            fpttRec.fpscores[j - 10] = temp;
+                        }
+                    }
+                    fpttRec.score = tempScore;
+                    list.add(fpttRec);
                 }
-                Map<Integer, Future<Float>> map = new HashMap<>();
-                FPTTRec fpttRec = new FPTTRec();
-                fpttRec.taskid = srchTaskBean.getTASKIDD();
-                fpttRec.transno = srchTaskBean.getTRANSNO();
-                fpttRec.probeid = srchTaskBean.getPROBEID();
-                fpttRec.dbid = 0;
-                fpttRec.candid = new String(gallery.probeId).trim();
-                int len = gallery.rpmntnum;
-                if (len > 0) {
-                    for (int j = 0; j < 10; j++) {
-                        final int finalJ = j;
-                        Future<Float> score = executorService.submit(new Callable<Float>() {
-                            @Override
-                            public Float call() throws Exception {
-                                HSFPTenFp.VerifyFeature verifyFuture = new HSFPTenFp.VerifyFeature();
-                                verifyFuture.feature1 = probe.rpmnt[finalJ];
-                                verifyFuture.feature2 = gallery.rpmnt[finalJ];
-                                HSFPTenFp.VerifyFeature.Result result = HbieUtil.hbie_FP.process(verifyFuture);
-                                return result.score;
-                            }
-                        });
-                        map.put(j, score);
-                    }
-                }
-                len = gallery.fpmntnum;
-                if (len > 0) {
-                    for (int j = 0; j < 10; j++) {
-                        final int finalJ = j;
-                        Future<Float> score = executorService.submit(new Callable<Float>() {
-                            @Override
-                            public Float call() throws Exception {
-                                HSFPTenFp.VerifyFeature verifyFuture = new HSFPTenFp.VerifyFeature();
-                                verifyFuture.feature1 = probe.fpmnt[finalJ];
-                                verifyFuture.feature2 = gallery.fpmnt[finalJ];
-                                HSFPTenFp.VerifyFeature.Result result = HbieUtil.hbie_FP.process(verifyFuture);
-                                return result.score;
-                            }
-                        });
-                        map.put(j + 10, score);
-                    }
-                }
-                float tempScore = 0F;
-                for (int j = 0; j < map.size(); j++) {
-                    Future<Float> f = map.get(j);
-                    float temp = 0F;
-                    try {
-                        temp = f.get();
-                    } catch (InterruptedException | ExecutionException e) {
-                        log.info("get 1ToF score map error, probeid={} ",new String(gallery.probeId), e);
-                    }
-                    if (temp > tempScore) {
-                        tempScore = temp;
-                    }
-                    if (j >= 0 && j < 10) {
-                        fpttRec.rpscores[j] = temp;
-                    } else {
-                        fpttRec.fpscores[j - 10] = temp;
-                    }
-                }
-                fpttRec.score = tempScore;
-                list.add(fpttRec);
             }
             list = CommonUtil.sort(list);
             for (int i = 0; i < list.size(); i++) {
