@@ -1,12 +1,14 @@
 package HAFPIS.domain;
 
+import java.io.Serializable;
 import java.sql.Blob;
 import java.sql.Clob;
 
 /**
  * Created by ZP on 2017/5/15.
  */
-public class SrchTaskBean {
+public class SrchTaskBean implements Serializable{
+    private static final long serialVersionUID = 6332467233836389462L;
     private String TASKIDD;
     private String TRANSNO;
     private String PROBEID;

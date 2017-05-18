@@ -371,7 +371,7 @@ public class FpRecog implements Runnable {
                 fpttRec.probeid = srchTaskBean.getPROBEID();
                 fpttRec.dbid = 1;
                 fpttRec.candid = cand.record.id;
-                fpttRec.rpscores = normalScore(cand.fpscores[5]);
+                fpttRec.rpscores = normalScore(cand.fpscores);
                 fpttRec.score = cand.score;
                 if (fpttRec.score >= FPTT_threshold) {
                     list.add(fpttRec);
@@ -387,7 +387,7 @@ public class FpRecog implements Runnable {
                 fpttRec.probeid = srchTaskBean.getPROBEID();
                 fpttRec.dbid = 1;
                 fpttRec.candid = cand.record.id;
-                fpttRec.fpscores = normalScore(cand.fpscores[5]);
+                fpttRec.fpscores = normalScore(cand.fpscores);
                 fpttRec.score = cand.score;
                 if (fpttRec.score >= FPTT_threshold) {
                     list.add(fpttRec);

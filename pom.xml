@@ -119,6 +119,10 @@
               -->
               <mainClass>HAFPIS.HAFPIS_Main</mainClass>
             </manifest>
+            <!--在MANIFEST.MF文件中加入当前路径-->
+            <manifestEntries>
+              <Class-Path>.</Class-Path>
+            </manifestEntries>
           </archive>
           <!--
               过滤掉不希望包含在jar中的文件

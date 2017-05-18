@@ -7,6 +7,7 @@ import HAFPIS.service.FpRecog;
 import HAFPIS.service.IrisRecog;
 import HAFPIS.service.LatFpRecog;
 import HAFPIS.service.LatPalmRecog;
+import HAFPIS.service.OneToF_FPTT;
 import HAFPIS.service.PalmRecog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,22 +91,22 @@ public class HAFPIS_Main {
                         case "IRIS":
                             num = CONSTANTS.IRIS;
                             break;
-                        case "FPTT_1TOF":
+                        case "FPTT_1ToF":
                             num = CONSTANTS.FPTT1TOF;
                             break;
-                        case "FPLL_1TOF":
+                        case "FPLL_1ToF":
                             num = CONSTANTS.FPLL1TOF;
                             break;
-                        case "PPTT_1TOF":
+                        case "PPTT_1ToF":
                             num = CONSTANTS.PPTT1TOF;
                             break;
-                        case "PPLL_1TOF":
+                        case "PPLL_1ToF":
                             num = CONSTANTS.PPLL1TOF;
                             break;
-                        case "FACE_1TOF":
+                        case "FACE_1ToF":
                             num = CONSTANTS.FACE1TOF;
                             break;
-                        case "IRIS_1TOF":
+                        case "IRIS_1ToF":
                             num = CONSTANTS.IRIS1TOF;
                             break;
                         case "DBOP":
@@ -228,6 +229,16 @@ public class HAFPIS_Main {
                     irisThread.start();
                     break;
                 case CONSTANTS.FPTT1TOF:
+                    String tablename_FPTT = (String) prop.get("result_tablename");
+                    OneToF_FPTT oneToF_fptt = new OneToF_FPTT();
+                    oneToF_fptt.setType(num);
+                    oneToF_fptt.setInterval(querynum);
+                    oneToF_fptt.setQueryNum(querynum);
+                    oneToF_fptt.setStatus(status);
+                    oneToF_fptt.setTablename(tablename);
+                    oneToF_fptt.setFPTT_tablename(tablename_FPTT);
+                    Thread oneToF_FPTT_Thread = new Thread(oneToF_fptt, "OneToF_FPTT_Thread");
+                    oneToF_FPTT_Thread.start();
                     break;
                 case CONSTANTS.FPLL1TOF:
                     break;
