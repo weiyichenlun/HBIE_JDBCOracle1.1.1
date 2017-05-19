@@ -30,7 +30,9 @@ public class CONSTANTS {
     public static final int FACE1TOF = 24;
     public static final int IRIS1TOF = 25;
 
-    public static final int DBOP = 30;
+    public static final int DBOP_TPP = 30;
+    public static final int DBOP_LPP = 31;
+    public static final int DBOP_PLP = 32;
 
     public static final int FpFeatureSize = 3072;
     public static final int[] PalmFeatureSize = new int[]{12288, 12288, 8192, 8192};

@@ -78,7 +78,13 @@ public class FpRecog implements Runnable {
                 log.error("SQLException: {}, query_sql:{}", e, sb.toString());
             }
             if ((list.size() == 0)) {
-                int timeSleep = Integer.parseInt(interval);
+                int timeSleep = 0;
+                try {
+                    timeSleep = Integer.parseInt(interval);
+                } catch (NumberFormatException e) {
+                    log.error("interval format error. should be number {}", interval);
+                    timeSleep = 1;
+                }
                 try {
                     Thread.sleep(timeSleep * 1000);
                     log.info("sleeping");
@@ -95,7 +101,7 @@ public class FpRecog implements Runnable {
                 try {
                     if (srchdata != null) {
                         List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
-                        if (srchDataRecList.size() <= 0) {
+                        if (srchDataRecList == null || srchDataRecList.size() <= 0) {
                             log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
                         } else {
                             int tasktype = srchTaskBean.getTASKTYPE();

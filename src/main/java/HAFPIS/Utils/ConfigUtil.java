@@ -18,6 +18,8 @@ import java.util.Properties;
 
 /**
  * 配置文件工具类
+ * 对hbie.cfg.properties进行缓存，如果文件发生了更改则重新进行加载，否则直接
+ * 从内存里面读取相应信息
  * Created by ZP on 2017/5/12.
  */
 public class ConfigUtil {
@@ -26,7 +28,7 @@ public class ConfigUtil {
     private static File configFile = null;
     private static long fileLastModified = 0;
     private static final String ERROR_MESSAGE = "ERROR";
-    private static String configFileName = "hbie.cfg.properties";
+    private static String configFileName = "config\\hbie.cfg.properties";
 
     private static synchronized void init() {
         configFile = new File(configFileName);

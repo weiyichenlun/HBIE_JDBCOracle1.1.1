@@ -8,23 +8,11 @@
   <name>HAFPIS Maven Webapp</name>
   <url>http://maven.apache.org</url>
   <dependencies>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>3.8.1</version>
-      <scope>test</scope>
-    </dependency>
 
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
       <version>1.7.7</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.hisign.bie.hbie</groupId>
-      <artifactId>hbie</artifactId>
-      <version>1.5</version>
     </dependency>
 
     <dependency>
@@ -51,11 +39,6 @@
       <version>1.2.1</version>
     </dependency>
 
-    <dependency>
-      <groupId>ojdbc</groupId>
-      <artifactId>ojdbc</artifactId>
-      <version>7</version>
-    </dependency>
 
     <dependency>
       <groupId>junit</groupId>
@@ -64,9 +47,15 @@
     </dependency>
 
     <dependency>
-        <groupId>com.hisign.bie.hbie</groupId>
-        <artifactId>hbie</artifactId>
-        <version>1.5</version>
+      <groupId>com.hisign.bie.hbie</groupId>
+      <artifactId>hbie</artifactId>
+      <version>1.5</version>
+    </dependency>
+
+    <dependency>
+      <groupId>ojdbc</groupId>
+      <artifactId>ojdbc</artifactId>
+      <version>7</version>
     </dependency>
 
   </dependencies>
@@ -83,6 +72,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.3</version>
         <configuration>
           <source>1.8</source>
           <target>1.8</target>

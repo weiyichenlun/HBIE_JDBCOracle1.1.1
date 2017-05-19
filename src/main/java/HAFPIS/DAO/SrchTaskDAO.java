@@ -32,14 +32,17 @@ public class SrchTaskDAO {
         sb.append(" endtime=?");
         String date = DateUtil.getFormatDate(System.currentTimeMillis());
         param.add(DateUtil.getFormatDate(System.currentTimeMillis()));
-        if (status < 0) {
+        if (status < 0 || exptmsg != null) {
             sb.append(", exptmsg=?");
+            if (exptmsg.length() > 128) {
+                exptmsg = exptmsg.substring(1, 128);
+            }
             param.add(exptmsg);
         }
         sb.append(" where taskidd=?");
         param.add(taskidd);
         try {
-            qr.update(sb.toString(), status,date, taskidd );
+            qr.update(sb.toString(), param.toArray());
         } catch (SQLException e) {
             log.error("UPDATE DB error: ", e);
         }

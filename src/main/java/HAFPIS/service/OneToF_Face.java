@@ -1,15 +1,15 @@
 package HAFPIS.service;
 
-import HAFPIS.DAO.FPLLDAO;
+import HAFPIS.DAO.FaceTTDAO;
 import HAFPIS.DAO.SrchTaskDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
 import HAFPIS.Utils.HbieUtil;
 import HAFPIS.Utils.QueryRunnerUtil;
-import HAFPIS.domain.FPLLRec;
+import HAFPIS.domain.FaceRec;
 import HAFPIS.domain.SrchDataRec;
 import HAFPIS.domain.SrchTaskBean;
-import com.hisign.bie.hsfp.HSFPTenFp;
+import com.hisign.bie.thid.THIDFace;
 import org.apache.commons.dbutils.QueryRunner;
 import org.apache.commons.dbutils.handlers.BeanListHandler;
 import org.slf4j.Logger;
@@ -28,25 +28,24 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 /**
- * 现场指纹1ToF
- * Created by ZP on 2017/5/18.
+ * Created by ZP on 2017/5/19.
  */
-public class OneToF_FPLL implements Runnable {
-    private static final Logger log = LoggerFactory.getLogger(OneToF_FPLL.class);
+public class OneToF_Face implements Runnable {
+    private static final Logger log = LoggerFactory.getLogger(OneToF_Face.class);
     private QueryRunner qr = QueryRunnerUtil.getInstance();
     private int type;
     private String interval;
     private String queryNum;
     private String status;
     private String tablename;
-    private String FPLL_tablename;
+    private String Face_tablename;
     int tasktype = 0;
-    int datatype = 4;
+    final int datatype = 6;
     private SrchTaskDAO srchTaskDAO;
     @Override
     public void run() {
         srchTaskDAO = new SrchTaskDAO(tablename);
-        if (type == CONSTANTS.FPLL1TOF) {
+        if (type == CONSTANTS.FACE1TOF) {
             tasktype = 8;
         } else{
             log.warn("the type is wrong. type={}", type);
@@ -54,7 +53,7 @@ public class OneToF_FPLL implements Runnable {
         StringBuilder sb = new StringBuilder();
         sb.append("select * from ").append(tablename);
         sb.append(" where status=").append(Integer.parseInt(status));
-        sb.append(" and datatype=4");
+        sb.append(" and datatype=").append(datatype);
         sb.append(" and tasktype=").append(tasktype);
         sb.append(" and rownum<=").append(Integer.parseInt(queryNum));
         sb.append(" order by priority desc, begtime asc");
@@ -87,23 +86,23 @@ public class OneToF_FPLL implements Runnable {
                         if (srchDataRecList == null || srchDataRecList.size() <= 0) {
                             log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
                         } else {
-                            FPLL(srchDataRecList, srchTaskBean);
+                            Face(srchDataRecList, srchTaskBean);
                         }
                     } else {
                         log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
                         srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
                     }
                 } catch (Exception e) {
-                    log.error("exception in OneToF_FPLL.run() ", e);
+                    log.error("exception in OneToF_Face.run() ", e);
                 }
             }
         }
 
     }
 
-    private void FPLL(List<SrchDataRec> srchDataRecList, SrchTaskBean srchTaskBean) {
+    private void Face(List<SrchDataRec> srchDataRecList, SrchTaskBean srchTaskBean) {
         ExecutorService executorService = Executors.newFixedThreadPool(5);
-        FPLLDAO fplldao = new FPLLDAO(FPLL_tablename);
+        FaceTTDAO facedao = new FaceTTDAO(Face_tablename);
         String tempMsg = srchTaskBean.getEXPTMSG();
         StringBuilder exptMsg;
         if (tempMsg == null) {
@@ -117,7 +116,7 @@ public class OneToF_FPLL implements Runnable {
             log.error("there is only one SrchDataRec in srchDataRecList, FPLL_1ToF will stop");
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "only one srchdata record");
         } else {
-            List<FPLLRec> list = new ArrayList<>();
+            List<FaceRec> list = new ArrayList<>();
             SrchDataRec probe = srchDataRecList.get(0);
             if (probe.latfpmnt == null) {
                 exptMsg.append("probe latfpmnt is null.");
@@ -125,39 +124,39 @@ public class OneToF_FPLL implements Runnable {
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "probe latfpmnt is null");
             } else {
                 Map<String, Future<Float>> map = new HashMap<>();
-                List<Future<FPLLRec>> listF = new ArrayList<>();
+                List<Future<FaceRec>> listF = new ArrayList<>();
                 for (int i = 1; i < srchDataRecList.size(); i++) {
                     SrchDataRec gallery = srchDataRecList.get(i);
-                    if (gallery.latfpmnt == null) {
-                        log.warn("gallery latfpmnt is null! the position in the list is {} and probeid is {}", i + 1, new String(gallery.probeId));
+                    if (gallery.facemnt == null) {
+                        log.warn("gallery facemnt is null! the position is {} and probeid is {}", i + 1, new String(gallery.probeId));
                     } else {
-                        Future<FPLLRec> rec = executorService.submit(new Callable<FPLLRec>() {
+                        Future<FaceRec> rec = executorService.submit(new Callable<FaceRec>() {
                             @Override
-                            public FPLLRec call() throws Exception {
-                                FPLLRec fpllRec = new FPLLRec();
-                                fpllRec.candid = new String(gallery.probeId).trim();
-                                HSFPTenFp.VerifyFeature verifyFeature = new HSFPTenFp.VerifyFeature();
-                                verifyFeature.feature1 = probe.latfpmnt;
-                                verifyFeature.feature2 = gallery.latfpmnt;
-                                HSFPTenFp.VerifyFeature.Result result = HbieUtil.hbie_FP.process(verifyFeature);
-                                fpllRec.score = result.score;
-                                return fpllRec;
+                            public FaceRec call() throws Exception {
+                                FaceRec faceRec = new FaceRec();
+                                faceRec.candid = new String(gallery.probeId).trim();
+                                THIDFace.VerifyFeature verifyFeature = new THIDFace.VerifyFeature();
+                                verifyFeature.feature1 = probe.facemnt;
+                                verifyFeature.feature2 = gallery.facemnt;
+                                THIDFace.VerifyFeature.Result result = HbieUtil.hbie_FACE.process(verifyFeature);
+                                faceRec.score = result.score;
+                                return faceRec;
                             }
                         });
                         listF.add(rec);
                     }
                 }
                 for (int i = 0; i < listF.size(); i++) {
-                    FPLLRec fpllRec = null;
+                    FaceRec faceRec = null;
                     try {
-                        fpllRec = listF.get(i).get();
-                        fpllRec.taskid = srchTaskBean.getTASKIDD();
-                        fpllRec.transno = srchTaskBean.getTRANSNO();
-                        fpllRec.probeid = srchTaskBean.getPROBEID();
-                        fpllRec.dbid = 0;
-                        list.add(fpllRec);
+                        faceRec = listF.get(i).get();
+                        faceRec.taskid = srchTaskBean.getTASKIDD();
+                        faceRec.transno = srchTaskBean.getTRANSNO();
+                        faceRec.probeid = srchTaskBean.getPROBEID();
+                        faceRec.dbid = 0;
+                        list.add(faceRec);
                     } catch (InterruptedException | ExecutionException e) {
-                        log.info("FPLL_1ToF get record error, ", e);
+                        log.info("Face_1ToF get record error, ", e);
                     }
                 }
             }
@@ -165,30 +164,31 @@ public class OneToF_FPLL implements Runnable {
             if (list == null || list.size() == 0) {
                 if (!exptMsg.toString().isEmpty()) {
                     srchTaskBean.setSTATUS(-1);
-                    log.error("FPLL_1ToF search: No results. ProbeId={}, ExceptionMsg={}", srchTaskBean.getPROBEID(), exptMsg);
+                    log.error("Face_1ToF search: No results. ProbeId={}, ExceptionMsg={}", srchTaskBean.getPROBEID(), exptMsg);
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
                 } else {
                     srchTaskBean.setEXPTMSG("No results");
                     srchTaskBean.setSTATUS(6);
-                    log.info("FPLL_1ToF search: No results for ProbeId={}", srchTaskBean.getPROBEID());
+                    log.info("Face_1ToF search: No results for ProbeId={}", srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), 6, "no results");
                 }
             } else {
                 for (int i = 0; i < list.size(); i++) {
                     list.get(i).candrank = i + 1;
                 }
-                boolean isSuc = fplldao.updateRes(list);
+                boolean isSuc = facedao.updateRes(list);
                 if (isSuc) {
                     srchTaskBean.setSTATUS(5);
-                    log.info("1ToF_FPLL search finished. ProbeId={}", srchTaskBean.getPROBEID());
+                    log.info("Face_1ToF search finished. ProbeId={}", srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, null);
                 } else {
-                    exptMsg.append(FPLL_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
-                    log.error("1ToF_FPLL search results insert into {} error. ProbeId={}", FPLL_tablename, srchTaskBean.getPROBEID());
+                    exptMsg.append(Face_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
+                    log.error("Face_1ToF search results insert into {} error. ProbeId={}", Face_tablename, srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().substring(1, 128));
                 }
             }
         }
+
     }
 
     public int getType() {
@@ -231,11 +231,11 @@ public class OneToF_FPLL implements Runnable {
         this.tablename = tablename;
     }
 
-    public String getFPLL_tablename() {
-        return FPLL_tablename;
+    public String getFace_tablename() {
+        return Face_tablename;
     }
 
-    public void setFPLL_tablename(String FPLL_tablename) {
-        this.FPLL_tablename = FPLL_tablename;
+    public void setFace_tablename(String face_tablename) {
+        Face_tablename = face_tablename;
     }
 }

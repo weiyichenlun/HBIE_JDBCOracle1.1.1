@@ -2,6 +2,9 @@ package HAFPIS;
 
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.ConfigUtil;
+import HAFPIS.service.DBOP_LPP;
+import HAFPIS.service.DBOP_PLP;
+import HAFPIS.service.DBOP_TPP;
 import HAFPIS.service.FaceRecog;
 import HAFPIS.service.FpRecog;
 import HAFPIS.service.IrisRecog;
@@ -9,6 +12,9 @@ import HAFPIS.service.LatFpRecog;
 import HAFPIS.service.LatPalmRecog;
 import HAFPIS.service.OneToF_FPLL;
 import HAFPIS.service.OneToF_FPTT;
+import HAFPIS.service.OneToF_Face;
+import HAFPIS.service.OneToF_Iris;
+import HAFPIS.service.OneToF_PPTT;
 import HAFPIS.service.PalmRecog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,8 +116,14 @@ public class HAFPIS_Main {
                         case "IRIS_1ToF":
                             num = CONSTANTS.IRIS1TOF;
                             break;
-                        case "DBOP":
-                            num = CONSTANTS.DBOP;
+                        case "DBOP_TPP":
+                            num = CONSTANTS.DBOP_TPP;
+                            break;
+                        case "DBOP_LPP":
+                            num = CONSTANTS.DBOP_LPP;
+                            break;
+                        case "DBOP_PLP":
+                            num = CONSTANTS.DBOP_PLP;
                             break;
                         default:
                             log.warn("type error.");
@@ -233,7 +245,7 @@ public class HAFPIS_Main {
                     String tablename_FPTT = (String) prop.get("result_tablename");
                     OneToF_FPTT oneToF_fptt = new OneToF_FPTT();
                     oneToF_fptt.setType(num);
-                    oneToF_fptt.setInterval(querynum);
+                    oneToF_fptt.setInterval(interval);
                     oneToF_fptt.setQueryNum(querynum);
                     oneToF_fptt.setStatus(status);
                     oneToF_fptt.setTablename(tablename);
@@ -245,7 +257,7 @@ public class HAFPIS_Main {
                     String tablename_FPLL = (String) prop.get("result_tablename");
                     OneToF_FPLL oneToF_fpll = new OneToF_FPLL();
                     oneToF_fpll.setType(num);
-                    oneToF_fpll.setInterval(querynum);
+                    oneToF_fpll.setInterval(interval);
                     oneToF_fpll.setQueryNum(querynum);
                     oneToF_fpll.setStatus(status);
                     oneToF_fpll.setTablename(tablename);
@@ -254,16 +266,75 @@ public class HAFPIS_Main {
                     oneToF_FPLL_Thread.start();
                     break;
                 case CONSTANTS.PPTT1TOF:
+                    String tablename_PPTT= (String) prop.get("result_tablename");
+                    OneToF_PPTT oneToF_pptt = new OneToF_PPTT();
+                    oneToF_pptt.setType(num);
+                    oneToF_pptt.setInterval(interval);
+                    oneToF_pptt.setQueryNum(querynum);
+                    oneToF_pptt.setStatus(status);
+                    oneToF_pptt.setTablename(tablename);
+                    oneToF_pptt.setPPTT_tablename(tablename_PPTT);
+                    Thread oneToF_PPTT_Thread = new Thread(oneToF_pptt, "OneToF_PPTT_Thread");
+                    oneToF_PPTT_Thread.start();
                     break;
                 case CONSTANTS.PPLL1TOF:
                     break;
                 case CONSTANTS.FACE1TOF:
+                    String tablename_Face = (String) prop.get("result_tablename");
+                    OneToF_Face oneToF_face = new OneToF_Face();
+                    oneToF_face.setType(num);
+                    oneToF_face.setInterval(interval);
+                    oneToF_face.setQueryNum(querynum);
+                    oneToF_face.setStatus(status);
+                    oneToF_face.setTablename(tablename);
+                    oneToF_face.setFace_tablename(tablename_Face);
+                    Thread oneToF_Face_Thread = new Thread(oneToF_face, "OneToF_Face_Thread");
+                    oneToF_Face_Thread.start();
                     break;
                 case CONSTANTS.IRIS1TOF:
+                    String tablename_Iris = (String) prop.get("result_tablename");
+                    OneToF_Iris oneToF_iris = new OneToF_Iris();
+                    oneToF_iris.setType(num);
+                    oneToF_iris.setInterval(interval);
+                    oneToF_iris.setQueryNum(querynum);
+                    oneToF_iris.setStatus(status);
+                    oneToF_iris.setTablename(tablename);
+                    oneToF_iris.setIris_tablename(tablename_Iris);
+                    Thread oneToF_Iris_Thread = new Thread(oneToF_iris, "OneToF_Iris_Thread");
+                    oneToF_Iris_Thread.start();
                     break;
-                case CONSTANTS.DBOP:
+                case CONSTANTS.DBOP_TPP:
+                    String tablename_pinfo = (String) prop.get("tablename_pinfo");
+                    DBOP_TPP dbop_tpp = new DBOP_TPP();
+                    dbop_tpp.setType(num);
+                    dbop_tpp.setInterval(interval);
+                    dbop_tpp.setQueryNum(querynum);
+                    dbop_tpp.setStatus(status);
+                    dbop_tpp.setTablename(tablename);
+                    dbop_tpp.setTablename_pinfo(tablename_pinfo);
+                    Thread dbop_tpp_thread = new Thread(dbop_tpp, "Dbop_TPP_Thread");
+                    dbop_tpp_thread.start();
                     break;
-
+                case CONSTANTS.DBOP_LPP:
+                    DBOP_LPP dbop_lpp = new DBOP_LPP();
+                    dbop_lpp.setType(num);
+                    dbop_lpp.setInterval(interval);
+                    dbop_lpp.setQueryNum(querynum);
+                    dbop_lpp.setStatus(status);
+                    dbop_lpp.setTablename(tablename);
+                    Thread dbop_lpp_thread = new Thread(dbop_lpp, "Dbop_LPP_Thread");
+                    dbop_lpp_thread.start();
+                    break;
+                case CONSTANTS.DBOP_PLP:
+                    DBOP_PLP dbop_plp = new DBOP_PLP();
+                    dbop_plp.setType(num);
+                    dbop_plp.setInterval(interval);
+                    dbop_plp.setQueryNum(querynum);
+                    dbop_plp.setStatus(status);
+                    dbop_plp.setTablename(tablename);
+                    Thread dbop_plp_thread = new Thread(dbop_plp, "Dbop_PLP_Thread");
+                    dbop_plp_thread.start();
+                    break;
             }
         }
     }
