@@ -6,7 +6,6 @@ import HAFPIS.DAO.SrchTaskDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
 import HAFPIS.Utils.HbieUtil;
-import HAFPIS.Utils.QueryRunnerUtil;
 import HAFPIS.domain.FPLLRec;
 import HAFPIS.domain.FPTLRec;
 import HAFPIS.domain.SrchDataRec;
@@ -14,14 +13,11 @@ import HAFPIS.domain.SrchTaskBean;
 import com.hisign.bie.MatcherException;
 import com.hisign.bie.SearchResults;
 import com.hisign.bie.hsfp.HSFPLatFp;
-import org.apache.commons.dbutils.QueryRunner;
-import org.apache.commons.dbutils.handlers.BeanListHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
 import java.sql.Blob;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,7 +27,6 @@ import java.util.List;
  */
 public class LatFpRecog implements Runnable{
     private static final Logger log = LoggerFactory.getLogger(FpRecog.class);
-    private QueryRunner qr = QueryRunnerUtil.getInstance();
     private int type;
     private String interval;
     private String queryNum;
@@ -41,7 +36,7 @@ public class LatFpRecog implements Runnable{
     private String FPTL_tablename;
     private float  FPLL_threshold;
     private String FPLL_tablename;
-    int[] tasktypes = new int[2];
+    private int[] tasktypes = new int[2];
     private SrchTaskDAO srchTaskDAO;
 
 
@@ -55,27 +50,10 @@ public class LatFpRecog implements Runnable{
             tasktypes[0] = 2;
             tasktypes[1] = 4;
         }
-        StringBuilder sb = new StringBuilder();
-        sb.append("select * from ").append(tablename);
-        sb.append(" where status=").append(Integer.parseInt(status));
-        sb.append(" and tasktype in (");
-        for (int tasktype : tasktypes) {
-            if (tasktype != 0) {
-                sb.append(tasktype).append(",");
-            }
-        }
-        sb.deleteCharAt(sb.length() - 1).append(")");
-        sb.append(" and rownum<=").append(Integer.parseInt(queryNum));
-        sb.append(" order by priority desc, begtime asc");
         srchTaskDAO = new SrchTaskDAO(tablename);
         while (true) {
             List<SrchTaskBean> list = new ArrayList<>();
-            try {
-                list = qr.query(sb.toString(), new BeanListHandler<>(SrchTaskBean.class));
-                System.out.println(sb.toString());
-            } catch (SQLException e) {
-                log.error("SQLException: {}, query_sql:{}", e, sb.toString());
-            }
+            list = srchTaskDAO.getList(status, 4, tasktypes, queryNum);
             if ((list.size() == 0)) {
                 int timeSleep = Integer.parseInt(interval);
                 try {
@@ -91,32 +69,28 @@ public class LatFpRecog implements Runnable{
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
                 Blob srchdata = srchTaskBean.getSRCHDATA();
                 int dataType = srchTaskBean.getDATATYPE();
-                try {
-                    if (srchdata != null) {
-                        List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
-                        if (srchDataRecList.size() <= 0) {
-                            log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
-                        } else {
-                            int tasktype = srchTaskBean.getTASKTYPE();
-                            switch (tasktype) {
-                                case 2:
-                                    long start = System.currentTimeMillis();
-                                    FPTL(srchDataRecList, srchTaskBean);
-                                    log.info("FPTL total cost : {} ms", (System.currentTimeMillis()-start));
-                                    break;
-                                case 4:
-                                    long start1 = System.currentTimeMillis();
-                                    FPLL(srchDataRecList, srchTaskBean);
-                                    log.info("FPLL total cost : {} ms", (System.currentTimeMillis()-start1));
-                                    break;
-                            }
-                        }
+                if (srchdata != null) {
+                    List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
+                    if (srchDataRecList.size() <= 0) {
+                        log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
                     } else {
-                        log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
-                        srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
+                        int tasktype = srchTaskBean.getTASKTYPE();
+                        switch (tasktype) {
+                            case 2:
+                                long start = System.currentTimeMillis();
+                                FPTL(srchDataRecList, srchTaskBean);
+                                log.info("FPTL total cost : {} ms", (System.currentTimeMillis()-start));
+                                break;
+                            case 4:
+                                long start1 = System.currentTimeMillis();
+                                FPLL(srchDataRecList, srchTaskBean);
+                                log.info("FPLL total cost : {} ms", (System.currentTimeMillis()-start1));
+                                break;
+                        }
                     }
-                } catch (Exception e) {
-
+                } else {
+                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
                 }
             }
         }

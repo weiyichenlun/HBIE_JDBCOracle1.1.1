@@ -24,6 +24,7 @@ public class FPTTDAO {
 
 
     public synchronized boolean updateRes(List<FPTTRec> list) {
+        long start1 = System.currentTimeMillis();
         FPTTRec fpttRec = new FPTTRec();
         fpttRec = list.get(0);
         String taskid = fpttRec.taskid;
@@ -59,6 +60,7 @@ public class FPTTDAO {
         } catch (SQLException var2) {
             log.error("Insert into {} error. ProbeId={}, ExceptionMsg={}", tablename, probeid, var2);
         }
+        log.info("update {} records cost {} ms",list.size(), (System.currentTimeMillis()-start1));
         return sum == list.size();
     }
 

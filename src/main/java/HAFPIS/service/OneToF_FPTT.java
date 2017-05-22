@@ -11,12 +11,10 @@ import HAFPIS.domain.SrchDataRec;
 import HAFPIS.domain.SrchTaskBean;
 import com.hisign.bie.hsfp.HSFPTenFp;
 import org.apache.commons.dbutils.QueryRunner;
-import org.apache.commons.dbutils.handlers.BeanListHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Blob;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,39 +31,26 @@ import java.util.concurrent.Future;
  */
 public class OneToF_FPTT implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(OneToF_FPTT.class);
-    private QueryRunner qr = QueryRunnerUtil.getInstance();
     private int type;
     private String interval;
     private String queryNum;
     private String status;
     private String tablename;
     private String FPTT_tablename;
-    int tasktype = 0;
+    int[] tasktype = new int[]{0};
     int datatype = 1;
     private SrchTaskDAO srchTaskDAO;
     @Override
     public void run() {
         srchTaskDAO = new SrchTaskDAO(tablename);
         if (type == CONSTANTS.FPTT1TOF) {
-            tasktype = 8;
+            tasktype[0] = 8;
         } else {
             log.warn("FPTT_1ToF the type is wrong. type={}", type);
         }
-        StringBuilder sb = new StringBuilder();
-        sb.append("select * from ").append(tablename);
-        sb.append(" where status=").append(Integer.parseInt(status));
-        sb.append(" and datatype=1");
-        sb.append(" and tasktype=").append(tasktype);
-        sb.append(" and rownum<=").append(Integer.parseInt(queryNum));
-        sb.append(" order by priority desc, begtime asc");
         while (true) {
             List<SrchTaskBean> list = new ArrayList<>();
-            try {
-                list = qr.query(sb.toString(), new BeanListHandler<>(SrchTaskBean.class));
-                System.out.println(sb.toString());
-            } catch (SQLException e) {
-                log.error("SQLException: {}, query_sql:{}", e, sb.toString());
-            }
+            list = srchTaskDAO.getList(status, datatype, tasktype, queryNum);
             if ((list.size() == 0)) {
                 int timeSleep = Integer.parseInt(interval);
                 try {
@@ -81,20 +66,16 @@ public class OneToF_FPTT implements Runnable {
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
                 Blob srchdata = srchTaskBean.getSRCHDATA();
                 int dataType = srchTaskBean.getDATATYPE();
-                try {
-                    if (srchdata != null) {
-                        List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
-                        if (srchDataRecList == null || srchDataRecList.size() <= 0) {
-                            log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
-                        } else {
-                            FPTT(srchDataRecList, srchTaskBean);
-                        }
+                if (srchdata != null) {
+                    List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
+                    if (srchDataRecList == null || srchDataRecList.size() <= 0) {
+                        log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
                     } else {
-                        log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
-                        srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
+                        FPTT(srchDataRecList, srchTaskBean);
                     }
-                } catch (Exception e) {
-                    log.error("exception in OneToF_FPTT.run() ", e);
+                } else {
+                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
                 }
             }
         }

@@ -7,7 +7,6 @@ import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
 import HAFPIS.Utils.ConfigUtil;
 import HAFPIS.Utils.HbieUtil;
-import HAFPIS.Utils.QueryRunnerUtil;
 import HAFPIS.domain.FPLTRec;
 import HAFPIS.domain.FPTTRec;
 import HAFPIS.domain.SrchDataRec;
@@ -15,17 +14,18 @@ import HAFPIS.domain.SrchTaskBean;
 import com.hisign.bie.MatcherException;
 import com.hisign.bie.SearchResults;
 import com.hisign.bie.hsfp.HSFPTenFp;
-import org.apache.commons.dbutils.QueryRunner;
-import org.apache.commons.dbutils.handlers.BeanListHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
 import java.sql.Blob;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * 指纹识别 TT和LT
@@ -33,7 +33,6 @@ import java.util.Properties;
  */
 public class FpRecog implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(FpRecog.class);
-    private QueryRunner qr = QueryRunnerUtil.getInstance();
     private int type;
     private String interval;
     private String queryNum;
@@ -43,11 +42,13 @@ public class FpRecog implements Runnable {
     private String FPTT_tablename;
     private float  FPLT_threshold;
     private String FPLT_tablename;
-    int[] tasktypes = new int[2];
+    private int[] tasktypes = new int[2];
     private SrchTaskDAO srchTaskDAO;
+
 
     @Override
     public void run() {
+        ExecutorService executorService = Executors.newFixedThreadPool(4);
         if (type == CONSTANTS.FPTT) {
             tasktypes[0] = 1;
         } else if (type == CONSTANTS.FPLT) {
@@ -56,27 +57,10 @@ public class FpRecog implements Runnable {
             tasktypes[0] = 1;
             tasktypes[1] = 3;
         }
-        StringBuilder sb = new StringBuilder();
-        sb.append("select * from ").append(tablename);
-        sb.append(" where status=").append(Integer.parseInt(status));
-        sb.append(" and tasktype in (");
-        for (int tasktype : tasktypes) {
-            if (tasktype != 0) {
-                sb.append(tasktype).append(",");
-            }
-        }
-        sb.deleteCharAt(sb.length() - 1).append(")");
-        sb.append(" and rownum<=").append(Integer.parseInt(queryNum));
-        sb.append(" order by priority desc, begtime asc");
         srchTaskDAO = new SrchTaskDAO(tablename);
         while (true) {
             List<SrchTaskBean> list = new ArrayList<>();
-            try {
-                list = qr.query(sb.toString(), new BeanListHandler<SrchTaskBean>(SrchTaskBean.class));
-                System.out.println(sb.toString());
-            } catch (SQLException e) {
-                log.error("SQLException: {}, query_sql:{}", e, sb.toString());
-            }
+            list = srchTaskDAO.getList(status, 1, tasktypes, queryNum);
             if ((list.size() == 0)) {
                 int timeSleep = 0;
                 try {
@@ -87,45 +71,75 @@ public class FpRecog implements Runnable {
                 }
                 try {
                     Thread.sleep(timeSleep * 1000);
-                    log.info("sleeping");
+                    log.debug("sleeping");
                 } catch (InterruptedException e) {
                     log.warn("Waiting Thread was interrupted: {}", e);
                 }
             }
             SrchTaskBean srchTaskBean = null;
+            List<Future<String>> listF = new ArrayList<>();
+            long start1 = System.currentTimeMillis();
             for (int i = 0; i < list.size(); i++) {
+                log.info("in for loop i is  {} ", i);
                 srchTaskBean = list.get(i);
-                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+
                 Blob srchdata = srchTaskBean.getSRCHDATA();
                 int dataType = srchTaskBean.getDATATYPE();
-                try {
-                    if (srchdata != null) {
-                        List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
-                        if (srchDataRecList == null || srchDataRecList.size() <= 0) {
-                            log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
-                        } else {
-                            int tasktype = srchTaskBean.getTASKTYPE();
-                            switch (tasktype) {
-                                case 1:
-                                    long start = System.currentTimeMillis();
-                                    FPTT(srchDataRecList, srchTaskBean);
-                                    log.info("FPTT total cost : {} ms", (System.currentTimeMillis()-start));
-                                    break;
-                                case 3:
-                                    long start1 = System.currentTimeMillis();
-                                    FPLT(srchDataRecList, srchTaskBean);
-                                    log.info("FPLT total cost : {} ms", (System.currentTimeMillis()-start1));
-                                    break;
-                            }
-                        }
+                if (srchdata != null) {
+                    List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
+                    if (srchDataRecList == null || srchDataRecList.size() <= 0) {
+                        log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
                     } else {
-                        log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
-                        srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
+                        int tasktype = srchTaskBean.getTASKTYPE();
+                        Future<String> future = null;
+                        switch (tasktype) {
+                            case 1:
+                                SrchTaskBean finalSrchTaskBean = srchTaskBean;
+                                future = executorService.submit(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        long start = System.currentTimeMillis();
+                                        FPTT(srchDataRecList, finalSrchTaskBean);
+                                        log.info("FPTT total cost : {} ms", (System.currentTimeMillis() - start));
+                                    }
+                                }, "FPTT");
+//                                long start = System.currentTimeMillis();
+//                                FPTT(srchDataRecList, srchTaskBean);
+//                                log.info("FPTT total cost : {} ms", (System.currentTimeMillis()-start));
+                                break;
+                            case 3:
+                                SrchTaskBean finalSrchTaskBean1 = srchTaskBean;
+                                future = executorService.submit(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        long start1 = System.currentTimeMillis();
+                                        FPLT(srchDataRecList, finalSrchTaskBean1);
+                                        log.info("FPLT total cost : {} ms", (System.currentTimeMillis() - start1));
+                                    }
+                                }, "FPLT");
+//                                long start1 = System.currentTimeMillis();
+//                                FPLT(srchDataRecList, srchTaskBean);
+//                                log.info("FPLT total cost : {} ms", (System.currentTimeMillis()-start1));
+                                break;
+                        }
+                        listF.add(future);
                     }
-                } catch (Exception e) {
-
+                } else {
+                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
                 }
             }
+            for (int i = 0; i < listF.size(); i++) {
+                Future<String> f = listF.get(i);
+                try {
+                    f.get();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                }
+            }
+            log.info("total cost : {} ms", (System.currentTimeMillis()-start1));
         }
     }
 
@@ -169,6 +183,7 @@ public class FpRecog implements Runnable {
             }
         }
         avgCand = srchTaskBean.getAVERAGECAND();
+        srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
         try{
             //准备比对
             probe.id = srchTaskBean.getPROBEID();
@@ -355,6 +370,7 @@ public class FpRecog implements Runnable {
             exptMsg.append(" rollmnt and flatmnt features are both null ");
             log.warn("FPTT: rollmnt and flatmnt features are both null. ProbeId=", srchTaskBean.getPROBEID());
         }
+        srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
         try{
             List<FPTTRec> list = new ArrayList<>();
             int numOfCand = srchTaskBean.getNUMOFCAND();
@@ -385,7 +401,10 @@ public class FpRecog implements Runnable {
             }
             probe.features = srchDataRec.fpmnt;
             probe.filter = "flag=={1}";
+            long start11 = System.currentTimeMillis();
             results = HbieUtil.hbie_FP.search(probe);
+            long start2 = System.currentTimeMillis();
+            log.info("*******In FPTT the saerch time cost is {} ms", (start2-start11));
             for (HSFPTenFp.TenFpSearchParam.Result cand : results.candidates) {
                 FPTTRec fpttRec = new FPTTRec();
                 fpttRec.taskid = srchTaskBean.getTASKIDD();
@@ -399,8 +418,8 @@ public class FpRecog implements Runnable {
                     list.add(fpttRec);
                 }
             }
-            log.info("*******In FPTT the time cost is {} ms", (System.currentTimeMillis()-start1));
             list = CommonUtil.mergeResult(list);
+            log.info("convert result and merge list cost {} ms", (System.currentTimeMillis()-start2));
             if (list == null || list.size() == 0) {
                 if (!exptMsg.toString().isEmpty()) {
                     srchTaskBean.setSTATUS(-1);
@@ -424,7 +443,7 @@ public class FpRecog implements Runnable {
                 if (isSuc) {
                     srchTaskBean.setSTATUS(5);
                     log.info("TT search finished. ProbeId={}", srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, null);
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 5, null);
                 } else {
                     exptMsg.append(FPTT_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
                     log.error("TT search results insert into {} error. ProbeId={}", FPTT_tablename, srchTaskBean.getPROBEID());
