@@ -46,7 +46,7 @@ public class HbieUtil {
             irisPort = Integer.parseInt(ConfigUtil.getConfig("iris_port"));
 
             hbie_FP = new HBIEClient<HSFPTenFp.Record>(ipAddr, fpPort);
-//            hbie_PP = new HBIEClient<HSFPFourPalm.Record>(ipAddr, ppPort);
+            hbie_PP = new HBIEClient<HSFPFourPalm.Record>(ipAddr, ppPort);
 //            hbie_LPP = new HBIEClient<HSFPLatFp.Record>(ipAddr, lppPort);
 //            hbie_PLP = new HBIEClient<HSFPLatPalm.Record>(ipAddr, plpPort);
 //            hbie_FACE = new HBIEClient<THIDFace.Record>(ipAddr, facePort);

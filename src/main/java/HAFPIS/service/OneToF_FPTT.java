@@ -5,12 +5,10 @@ import HAFPIS.DAO.SrchTaskDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
 import HAFPIS.Utils.HbieUtil;
-import HAFPIS.Utils.QueryRunnerUtil;
 import HAFPIS.domain.FPTTRec;
 import HAFPIS.domain.SrchDataRec;
 import HAFPIS.domain.SrchTaskBean;
 import com.hisign.bie.hsfp.HSFPTenFp;
-import org.apache.commons.dbutils.QueryRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,20 +35,21 @@ public class OneToF_FPTT implements Runnable {
     private String status;
     private String tablename;
     private String FPTT_tablename;
-    int[] tasktype = new int[]{0};
-    int datatype = 1;
+    private int[] tasktypes = new int[2];
+    private int[] datatypes = new int[2];
     private SrchTaskDAO srchTaskDAO;
     @Override
     public void run() {
         srchTaskDAO = new SrchTaskDAO(tablename);
         if (type == CONSTANTS.FPTT1TOF) {
-            tasktype[0] = 8;
+            tasktypes[0] = 8;
+            datatypes[0] = 1;
         } else {
             log.warn("FPTT_1ToF the type is wrong. type={}", type);
         }
         while (true) {
             List<SrchTaskBean> list = new ArrayList<>();
-            list = srchTaskDAO.getList(status, datatype, tasktype, queryNum);
+            list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
             if ((list.size() == 0)) {
                 int timeSleep = Integer.parseInt(interval);
                 try {

@@ -43,7 +43,7 @@ public class FaceRecog implements Runnable {
         srchTaskDAO = new SrchTaskDAO(tablename);
         while (true) {
             List<SrchTaskBean> list = new ArrayList<>();
-            list = srchTaskDAO.getList(status, 6, tasktypes, queryNum);
+            list = srchTaskDAO.getList(status, new int[]{6}, tasktypes, queryNum);
             if ((list.size() == 0)) {
                 int timeSleep = Integer.parseInt(interval);
                 try {

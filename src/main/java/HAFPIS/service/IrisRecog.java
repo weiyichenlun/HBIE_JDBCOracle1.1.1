@@ -42,7 +42,7 @@ public class IrisRecog implements Runnable {
         srchTaskDAO = new SrchTaskDAO(tablename);
         while (true) {
             List<SrchTaskBean> list = new ArrayList<>();
-            list = srchTaskDAO.getList(status, 7, tasktypes, queryNum);
+            list = srchTaskDAO.getList(status, new int[]{7}, tasktypes, queryNum);
             if ((list.size() == 0)) {
                 int timeSleep = Integer.parseInt(interval);
                 try {

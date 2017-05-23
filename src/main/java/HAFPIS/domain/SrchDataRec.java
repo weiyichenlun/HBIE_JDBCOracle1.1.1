@@ -1,11 +1,14 @@
 package HAFPIS.domain;
 
-import java.io.Serializable;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  * Created by ZP on 2017/5/15.
  */
-public class SrchDataRec implements Serializable{
+public class SrchDataRec implements Externalizable{
     private static final long serialVersionUID = -4662236686344805743L;
     public byte[] probeId;
     public int[] RpMntLen;
@@ -58,5 +61,124 @@ public class SrchDataRec implements Serializable{
         fpmntnum = 0;
         palmmntnum = 0;
         irismntnum = 0;
+    }
+
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        System.out.println("now serializable begin...");
+        out.write(probeId);
+        for (int i = 0; i < RpMntLen.length; i++) {
+            out.writeInt(RpMntLen[i]);
+        }
+        for (int i = 0; i < RpImgLen.length; i++) {
+            out.writeInt(RpImgLen[i]);
+        }
+        for (int i = 0; i < FpMntLen.length; i++) {
+            out.writeInt(FpMntLen[i]);
+        }
+        for (int i = 0; i < FpImgLen.length; i++) {
+            out.writeInt(FpImgLen[i]);
+        }
+        for (int i = 0; i < PalmMntLen.length; i++) {
+            out.writeInt(PalmMntLen[i]);
+        }
+        for (int i = 0; i < PalmImgLen.length; i++) {
+            out.writeInt(PalmImgLen[i]);
+        }
+        for (int i = 0; i < FaceMntLen.length; i++) {
+            out.writeInt(FaceMntLen[i]);
+        }
+        for (int i = 0; i < FaceImgLen.length; i++) {
+            out.writeInt(FaceImgLen[i]);
+        }
+        for (int i = 0; i < IrisMntLen.length; i++) {
+            out.writeInt(IrisMntLen[i]);
+        }
+        for (int i = 0; i < IrisImgLen.length; i++) {
+            out.writeInt(IrisImgLen[i]);
+        }
+        for (int i = 0; i < reserved.length; i++) {
+            out.writeInt(reserved[i]);
+        }
+        for (int i = 0; i < rpmnt.length; i++) {
+            if (rpmnt[i] != null) {
+                out.write(rpmnt[i]);
+            }
+        }
+        for (int i = 0; i < fpmnt.length; i++) {
+            if (fpmnt[i] != null) {
+                out.write(fpmnt[i]);
+            }
+        }
+        for (int i = 0; i < palmmnt.length; i++) {
+            if (palmmnt[i] != null) {
+                out.write(palmmnt[i]);
+            }
+        }
+        for (int i = 0; i < irismnt.length; i++) {
+            if (irismnt[i] != null) {
+                out.write(irismnt[i]);
+            }
+        }
+        if (latfpmnt != null && latfpmnt.length > 0) {
+            out.write(latfpmnt);
+        }
+        if (latpalmmnt != null && latpalmmnt.length > 0) {
+            out.write(latpalmmnt);
+        }
+        if (facemnt != null && facemnt.length > 0) {
+            out.write(facemnt);
+        }
+        out.flush();
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        System.out.println("now deserializable begin...");
+        in.readFully(probeId);
+        for (int i = 0; i < RpMntLen.length; i++) {
+            RpMntLen[i] = in.readInt();
+        }
+        for (int i = 0; i < RpImgLen.length; i++) {
+            RpImgLen[i] = in.readInt();
+        }
+        for (int i = 0; i < PalmMntLen.length; i++) {
+            PalmMntLen[i] = in.readInt();
+        }
+        for (int i = 0; i < PalmImgLen.length; i++) {
+            PalmImgLen[i] = in.readInt();
+        }
+        for (int i=0; i<FaceMntLen.length; i++) {
+            FaceMntLen[i] = in.readInt();
+        }
+        for (int i=0; i<FaceImgLen.length; i++) {
+            FaceImgLen[i] = in.readInt();
+        }
+        for (int i = 0; i < IrisMntLen.length; i++) {
+            IrisMntLen[i] = in.readInt();
+        }
+        for (int i = 0; i < IrisImgLen.length; i++) {
+            IrisImgLen[i] = in.readInt();
+        }
+        for (int i = 0; i < reserved.length; i++) {
+            reserved[i] = in.readInt();
+        }
+
+        for (int i = 0; i < rpmnt.length; i++) {
+            in.readFully(rpmnt[i]);
+        }
+        for (int i = 0; i < fpmnt.length; i++) {
+            in.readFully(fpmnt[i]);
+        }
+        for (int i = 0; i < palmmnt.length; i++) {
+            in.readFully(palmmnt[i]);
+        }
+        for (int i = 0; i < irismnt.length; i++) {
+            in.readFully(irismnt[i]);
+        }
+        in.readFully(latfpmnt);
+        in.readFully(latpalmmnt);
+        in.readFully(facemnt);
     }
 }

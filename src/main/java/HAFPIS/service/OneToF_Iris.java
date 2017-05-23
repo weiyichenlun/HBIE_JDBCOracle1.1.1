@@ -34,21 +34,22 @@ public class OneToF_Iris implements Runnable {
     private String status;
     private String tablename;
     private String Iris_tablename;
-    int[] tasktype = new int[]{0};
-    final int datatype = 7;
+    private int[] tasktypes = new int[2];
+    private int[] datatypes = new int[2];
     private SrchTaskDAO srchTaskDAO;
 
     @Override
     public void run() {
         srchTaskDAO = new SrchTaskDAO(tablename);
         if (type == CONSTANTS.IRIS1TOF) {
-            tasktype[0] = 8;
+            tasktypes[0] = 8;
+            datatypes[0] = 7;
         } else{
             log.warn("the type is wrong. type={}", type);
         }
         while (true) {
             List<SrchTaskBean> list = new ArrayList<>();
-            list = srchTaskDAO.getList(status, datatype, tasktype, queryNum);
+            list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
             if ((list.size() == 0)) {
                 int timeSleep = Integer.parseInt(interval);
                 try {

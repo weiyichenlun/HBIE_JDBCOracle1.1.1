@@ -37,6 +37,7 @@ public class PalmRecog implements Runnable{
     private float  PPLT_threshold;
     private String PPLT_tablename;
     private int[] tasktypes = new int[2];
+    private int[] datatypes = new int[2];
     private SrchTaskDAO srchTaskDAO;
 
 
@@ -44,16 +45,20 @@ public class PalmRecog implements Runnable{
     public void run() {
         if (type == CONSTANTS.PPTT) {
             tasktypes[0] = 1;
+            datatypes[0] = 2;
         } else if (type == CONSTANTS.PPLT) {
             tasktypes[1] = 3;
+            datatypes[1] = 5;
         } else if (type == CONSTANTS.PPTTLT) {
             tasktypes[0] = 1;
             tasktypes[1] = 3;
+            datatypes[0] = 2;
+            datatypes[1] = 5;
         }
         srchTaskDAO = new SrchTaskDAO(tablename);
         while (true) {
             List<SrchTaskBean> list = new ArrayList<>();
-            list = srchTaskDAO.getList(status, 2, tasktypes, queryNum);
+            list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
             if ((list.size() == 0)) {
                 int timeSleep = Integer.parseInt(interval);
                 try {
@@ -71,8 +76,9 @@ public class PalmRecog implements Runnable{
                 int dataType = srchTaskBean.getDATATYPE();
                 if (srchdata != null) {
                     List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
-                    if (srchDataRecList.size() <= 0) {
+                    if (srchDataRecList == null || srchDataRecList.size() <= 0) {
                         log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+                        srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata format error");
                     } else {
                         int tasktype = srchTaskBean.getTASKTYPE();
                         switch (tasktype) {

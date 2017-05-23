@@ -35,22 +35,27 @@ public class LatPalmRecog implements Runnable {
     private float  PPLL_threshold;
     private String PPLL_tablename;
     private int[] tasktypes = new int[2];
+    private int[] datatypes = new int[2];
     private SrchTaskDAO srchTaskDAO;
 
     @Override
     public void run() {
         if (type == CONSTANTS.PPTL) {
             tasktypes[0] = 2;
+            datatypes[0] = 2;
         } else if (type == CONSTANTS.PPLL) {
             tasktypes[1] = 4;
+            datatypes[1] = 5;
         } else if (type == CONSTANTS.PPTLLL) {
             tasktypes[0] = 2;
             tasktypes[1] = 4;
+            datatypes[0] = 2;
+            datatypes[1] = 5;
         }
         srchTaskDAO = new SrchTaskDAO(tablename);
         while (true) {
             List<SrchTaskBean> list = new ArrayList<>();
-            list = srchTaskDAO.getList(status, 5, tasktypes, queryNum);
+            list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
             if ((list.size() == 0)) {
                 int timeSleep = Integer.parseInt(interval);
                 try {

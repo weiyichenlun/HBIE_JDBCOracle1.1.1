@@ -26,7 +26,7 @@ public class SrchTaskDAO {
     }
 
 
-    public synchronized List<SrchTaskBean> getList(String status, int datatype, int[] tasktypes, String queryNum) {
+    public synchronized List<SrchTaskBean> getList(String status, int[] datatypes, int[] tasktypes, String queryNum) {
         List<SrchTaskBean> list = new ArrayList<>();
         StringBuilder sb = new StringBuilder();
         sb.append("select * from ").append(tablename);
@@ -37,7 +37,13 @@ public class SrchTaskDAO {
             log.error("parse status error. status must be a number. status-{}, exception-{}", status, e);
         }
         sb.append(" where status=").append(statusN);
-        sb.append(" and datatype=").append(datatype);
+        sb.append(" and datatype in (");
+        for (int i=0; i<datatypes.length; i++) {
+            if (datatypes[i] > 0) {
+                sb.append(datatypes[i]).append(",");
+            }
+        }
+        sb.deleteCharAt(sb.length() - 1).append(")");
         sb.append(" and tasktype in (");
         for (int tasktype : tasktypes) {
             if (tasktype != 0) {

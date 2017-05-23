@@ -37,6 +37,7 @@ public class LatFpRecog implements Runnable{
     private float  FPLL_threshold;
     private String FPLL_tablename;
     private int[] tasktypes = new int[2];
+    private int[] datatypes = new int[2];
     private SrchTaskDAO srchTaskDAO;
 
 
@@ -44,16 +45,20 @@ public class LatFpRecog implements Runnable{
     public void run() {
         if (type == CONSTANTS.FPTL) {
             tasktypes[0] = 2;
+            datatypes[0] = 1;
         } else if (type == CONSTANTS.FPLL) {
             tasktypes[1] = 4;
+            datatypes[1] = 4;
         } else if (type == CONSTANTS.FPTLLL) {
             tasktypes[0] = 2;
             tasktypes[1] = 4;
+            datatypes[0] = 1;
+            datatypes[1] = 4;
         }
         srchTaskDAO = new SrchTaskDAO(tablename);
         while (true) {
             List<SrchTaskBean> list = new ArrayList<>();
-            list = srchTaskDAO.getList(status, 4, tasktypes, queryNum);
+            list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
             if ((list.size() == 0)) {
                 int timeSleep = Integer.parseInt(interval);
                 try {

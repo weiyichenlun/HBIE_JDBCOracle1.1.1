@@ -43,6 +43,7 @@ public class FpRecog implements Runnable {
     private float  FPLT_threshold;
     private String FPLT_tablename;
     private int[] tasktypes = new int[2];
+    private int[] datatypes = new int[2];
     private SrchTaskDAO srchTaskDAO;
 
 
@@ -51,16 +52,20 @@ public class FpRecog implements Runnable {
         ExecutorService executorService = Executors.newFixedThreadPool(4);
         if (type == CONSTANTS.FPTT) {
             tasktypes[0] = 1;
+            datatypes[0] = 1;
         } else if (type == CONSTANTS.FPLT) {
+            datatypes[1] = 4;
             tasktypes[1] = 3;
         } else if (type == CONSTANTS.FPTTLT) {
             tasktypes[0] = 1;
             tasktypes[1] = 3;
+            datatypes[0] = 1;
+            datatypes[1] = 4;
         }
         srchTaskDAO = new SrchTaskDAO(tablename);
         while (true) {
             List<SrchTaskBean> list = new ArrayList<>();
-            list = srchTaskDAO.getList(status, 1, tasktypes, queryNum);
+            list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
             if ((list.size() == 0)) {
                 int timeSleep = 0;
                 try {
@@ -82,7 +87,6 @@ public class FpRecog implements Runnable {
             for (int i = 0; i < list.size(); i++) {
                 log.info("in for loop i is  {} ", i);
                 srchTaskBean = list.get(i);
-
                 Blob srchdata = srchTaskBean.getSRCHDATA();
                 int dataType = srchTaskBean.getDATATYPE();
                 if (srchdata != null) {
