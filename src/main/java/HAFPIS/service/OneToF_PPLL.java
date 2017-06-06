@@ -1,14 +1,14 @@
 package HAFPIS.service;
 
-import HAFPIS.DAO.IrisTTDAO;
+import HAFPIS.DAO.PPLLDAO;
 import HAFPIS.DAO.SrchTaskDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
 import HAFPIS.Utils.HbieUtil;
-import HAFPIS.domain.IrisRec;
+import HAFPIS.domain.PPLLRec;
 import HAFPIS.domain.SrchDataRec;
 import HAFPIS.domain.SrchTaskBean;
-import com.hisign.bie.iris.HSIris;
+import com.hisign.bie.hsfp.HSFPFourPalm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,16 +24,17 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 /**
- * Created by ZP on 2017/5/19.
+ * 现场掌纹1比F实现
+ * Created by ZP on 2017/6/5.
  */
-public class OneToF_Iris implements Runnable {
-    private static final Logger log = LoggerFactory.getLogger(OneToF_Iris.class);
+public class OneToF_PPLL implements Runnable {
+    private static final Logger log = LoggerFactory.getLogger(OneToF_FPLL.class);
     private int type;
     private String interval;
     private String queryNum;
     private String status;
     private String tablename;
-    private String Iris_tablename;
+    private String PPLL_tablename;
     private int[] tasktypes = new int[2];
     private int[] datatypes = new int[2];
     private SrchTaskDAO srchTaskDAO;
@@ -41,9 +42,9 @@ public class OneToF_Iris implements Runnable {
     @Override
     public void run() {
         srchTaskDAO = new SrchTaskDAO(tablename);
-        if (type == CONSTANTS.IRIS1TOF) {
+        if (type == CONSTANTS.PPLL1TOF) {
             tasktypes[0] = 8;
-            datatypes[0] = 7;
+            datatypes[0] = 5;
         } else{
             log.warn("the type is wrong. type={}", type);
         }
@@ -51,7 +52,12 @@ public class OneToF_Iris implements Runnable {
             List<SrchTaskBean> list = new ArrayList<>();
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
             if ((list.size() == 0)) {
-                int timeSleep = Integer.parseInt(interval);
+                int timeSleep = 1;
+                try {
+                    timeSleep = Integer.parseInt(interval);
+                } catch (NumberFormatException e) {
+                    log.error("interval {} format error. Use default interval(1)", interval);
+                }
                 try {
                     Thread.sleep(timeSleep * 1000);
                     log.info("sleeping");
@@ -70,7 +76,7 @@ public class OneToF_Iris implements Runnable {
                     if (srchDataRecList == null || srchDataRecList.size() <= 0) {
                         log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
                     } else {
-                        Iris(srchDataRecList, srchTaskBean);
+                        PPLL(srchDataRecList, srchTaskBean);
                     }
                 } else {
                     log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
@@ -80,9 +86,9 @@ public class OneToF_Iris implements Runnable {
         }
     }
 
-    private void Iris(List<SrchDataRec> srchDataRecList, SrchTaskBean srchTaskBean) {
+    private void PPLL(List<SrchDataRec> srchDataRecList, SrchTaskBean srchTaskBean) {
         ExecutorService executorService = Executors.newFixedThreadPool(5);
-        IrisTTDAO irisdao = new IrisTTDAO(Iris_tablename);
+        PPLLDAO pplldao = new PPLLDAO(PPLL_tablename);
         String tempMsg = srchTaskBean.getEXPTMSG();
         StringBuilder exptMsg;
         if (tempMsg == null) {
@@ -93,59 +99,50 @@ public class OneToF_Iris implements Runnable {
         if (srchDataRecList.size() <= 1) {
             srchTaskBean.setSTATUS(-1);
             srchTaskBean.setEXPTMSG("there is only one SrchDataRec");
-            log.error("there is only one SrchDataRec in srchDataRecList, Iris_1ToF will stop");
+            log.error("there is only one SrchDataRec in srchDataRecList, FPLL_1ToF will stop");
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "only one srchdata record");
         } else {
-            List<IrisRec> list = new ArrayList<>();
+            List<PPLLRec> list = new ArrayList<>();
             SrchDataRec probe = srchDataRecList.get(0);
-            if (probe.irismntnum == 0) {
-                exptMsg.append("probe irismnt are both null.");
-                log.error("the probe iris are both null. probeid={}", new String(probe.probeId));
-                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "probe irismnt are both null");
+            if (probe.latfpmnt == null) {
+                exptMsg.append("probe latfpmnt is null.");
+                log.error("the probe latfpmnt is null. probeid={}", new String(probe.probeId));
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "probe latfpmnt is null");
             } else {
                 Map<String, Future<Float>> map = new HashMap<>();
-                List<Future<IrisRec>> listF = new ArrayList<>();
+                List<Future<PPLLRec>> listF = new ArrayList<>();
                 for (int i = 1; i < srchDataRecList.size(); i++) {
                     SrchDataRec gallery = srchDataRecList.get(i);
-                    if (gallery.irismntnum == 0) {
-                        log.warn("gallery irismnt are both null! the position is {} and probeid is {}", i + 1, new String(gallery.probeId));
+                    if (gallery.latfpmnt == null) {
+                        log.warn("gallery latfpmnt is null! the position in the list is {} and probeid is {}", i + 1, new String(gallery.probeId));
                     } else {
-                        Future<IrisRec> rec = executorService.submit(new Callable<IrisRec>() {
+                        Future<PPLLRec> rec = executorService.submit(new Callable<PPLLRec>() {
                             @Override
-                            public IrisRec call() throws Exception {
-                                IrisRec irisRec = new IrisRec();
-                                irisRec.candid = new String(gallery.probeId).trim();
-                                HSIris.VerifyFeature verifyFeature = new HSIris.VerifyFeature();
-                                for (int j = 0; j < 2; j++) {
-                                    byte[] fea1 = probe.irismnt[j];
-                                    byte[] fea2 = gallery.irismnt[j];
-                                    if (fea1 != null && fea2 != null) {
-                                        verifyFeature.feature1 = fea1;
-                                        verifyFeature.feature2 = fea2;
-                                        HSIris.VerifyFeature.Result result = HbieUtil.getInstance().hbie_IRIS.process(verifyFeature);
-                                        irisRec.iiscores[j] = result.score;
-                                    } else {
-                                        irisRec.iiscores[j] = 0F;
-                                    }
-                                }
-                                irisRec.score = Math.max(irisRec.iiscores[0], irisRec.iiscores[1]);
-                                return irisRec;
+                            public PPLLRec call() throws Exception {
+                                PPLLRec fpllRec = new PPLLRec();
+                                fpllRec.candid = new String(gallery.probeId).trim();
+                                HSFPFourPalm.VerifyFeature verifyFeature = new HSFPFourPalm.VerifyFeature();
+                                verifyFeature.feature1[0] = probe.latfpmnt;
+                                verifyFeature.feature2[0] = gallery.latfpmnt;
+                                HSFPFourPalm.VerifyFeature.Result result = HbieUtil.getInstance().hbie_FP.process(verifyFeature);
+                                fpllRec.score = result.score;
+                                return fpllRec;
                             }
                         });
                         listF.add(rec);
                     }
                 }
                 for (int i = 0; i < listF.size(); i++) {
-                    IrisRec irisRec = null;
+                    PPLLRec ppllRec = null;
                     try {
-                        irisRec = listF.get(i).get();
-                        irisRec.taskid = srchTaskBean.getTASKIDD();
-                        irisRec.transno = srchTaskBean.getTRANSNO();
-                        irisRec.probeid = srchTaskBean.getPROBEID();
-                        irisRec.dbid = 0;
-                        list.add(irisRec);
+                        ppllRec = listF.get(i).get();
+                        ppllRec.taskid = srchTaskBean.getTASKIDD();
+                        ppllRec.transno = srchTaskBean.getTRANSNO();
+                        ppllRec.probeid = srchTaskBean.getPROBEID();
+                        ppllRec.dbid = 0;
+                        list.add(ppllRec);
                     } catch (InterruptedException | ExecutionException e) {
-                        log.info("Iris_1ToF get record error, ", e);
+                        log.info("FPLL_1ToF get record error, ", e);
                     }
                 }
             }
@@ -153,30 +150,31 @@ public class OneToF_Iris implements Runnable {
             if (list == null || list.size() == 0) {
                 if (!exptMsg.toString().isEmpty()) {
                     srchTaskBean.setSTATUS(-1);
-                    log.error("Iris_1ToF search: No results. ProbeId={}, ExceptionMsg={}", srchTaskBean.getPROBEID(), exptMsg);
+                    log.error("PPLL_1ToF search: No results. ProbeId={}, ExceptionMsg={}", srchTaskBean.getPROBEID(), exptMsg);
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
                 } else {
                     srchTaskBean.setEXPTMSG("No results");
                     srchTaskBean.setSTATUS(6);
-                    log.info("Iris_1ToF search: No results for ProbeId={}", srchTaskBean.getPROBEID());
+                    log.info("PPLL_1ToF search: No results for ProbeId={}", srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), 6, "no results");
                 }
             } else {
                 for (int i = 0; i < list.size(); i++) {
                     list.get(i).candrank = i + 1;
                 }
-                boolean isSuc = irisdao.updateRes(list);
+                boolean isSuc = pplldao.updateRes(list);
                 if (isSuc) {
                     srchTaskBean.setSTATUS(5);
-                    log.info("Iris_1ToF search finished. ProbeId={}", srchTaskBean.getPROBEID());
+                    log.info("1ToF_PPLL search finished. ProbeId={}", srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, null);
                 } else {
-                    exptMsg.append(Iris_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
-                    log.error("Iris_1ToF search results insert into {} error. ProbeId={}", Iris_tablename, srchTaskBean.getPROBEID());
+                    exptMsg.append(PPLL_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
+                    log.error("1ToF_PPLL search results insert into {} error. ProbeId={}", PPLL_tablename, srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().substring(1, 128));
                 }
             }
         }
+
     }
 
     public int getType() {
@@ -219,11 +217,11 @@ public class OneToF_Iris implements Runnable {
         this.tablename = tablename;
     }
 
-    public String getIris_tablename() {
-        return Iris_tablename;
+    public String getPPLL_tablename() {
+        return PPLL_tablename;
     }
 
-    public void setIris_tablename(String iris_tablename) {
-        Iris_tablename = iris_tablename;
+    public void setPPLL_tablename(String PPLL_tablename) {
+        this.PPLL_tablename = PPLL_tablename;
     }
 }

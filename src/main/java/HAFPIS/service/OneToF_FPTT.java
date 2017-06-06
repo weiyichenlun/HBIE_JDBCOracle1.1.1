@@ -122,7 +122,7 @@ public class OneToF_FPTT implements Runnable {
                                     HSFPTenFp.VerifyFeature verifyFuture = new HSFPTenFp.VerifyFeature();
                                     verifyFuture.feature1 = probe.rpmnt[finalJ];
                                     verifyFuture.feature2 = gallery.rpmnt[finalJ];
-                                    HSFPTenFp.VerifyFeature.Result result = HbieUtil.hbie_FP.process(verifyFuture);
+                                    HSFPTenFp.VerifyFeature.Result result = HbieUtil.getInstance().hbie_FP.process(verifyFuture);
                                     return result.score;
                                 }
                             });
@@ -139,7 +139,7 @@ public class OneToF_FPTT implements Runnable {
                                     HSFPTenFp.VerifyFeature verifyFuture = new HSFPTenFp.VerifyFeature();
                                     verifyFuture.feature1 = probe.fpmnt[finalJ];
                                     verifyFuture.feature2 = gallery.fpmnt[finalJ];
-                                    HSFPTenFp.VerifyFeature.Result result = HbieUtil.hbie_FP.process(verifyFuture);
+                                    HSFPTenFp.VerifyFeature.Result result = HbieUtil.getInstance().hbie_FP.process(verifyFuture);
                                     return result.score;
                                 }
                             });

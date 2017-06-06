@@ -4,19 +4,21 @@ import HAFPIS.DAO.PPTTDAO;
 import HAFPIS.DAO.SrchTaskDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
+import HAFPIS.Utils.HbieUtil;
 import HAFPIS.domain.PPTTRec;
 import HAFPIS.domain.SrchDataRec;
 import HAFPIS.domain.SrchTaskBean;
+import com.hisign.bie.MatcherException;
+import com.hisign.bie.hsfp.HSFPFourPalm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.rmi.RemoteException;
 import java.sql.Blob;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -49,7 +51,12 @@ public class OneToF_PPTT implements Runnable{
             List<SrchTaskBean> list = new ArrayList<>();
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
             if ((list.size() == 0)) {
-                int timeSleep = Integer.parseInt(interval);
+                int timeSleep = 1;
+                try {
+                    timeSleep = Integer.parseInt(interval);
+                } catch (NumberFormatException e) {
+                    log.error("interval {} format error. Use default interval(1)", interval);
+                }
                 try {
                     Thread.sleep(timeSleep * 1000);
                     log.info("sleeping");
@@ -65,7 +72,7 @@ public class OneToF_PPTT implements Runnable{
                 int dataType = srchTaskBean.getDATATYPE();
                 if (srchdata != null) {
                     List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
-                    if (srchDataRecList==null || srchDataRecList.size() <= 0) {
+                    if (srchDataRecList == null || srchDataRecList.size() <= 0) {
                         log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
                     } else {
                         PPTT(srchDataRecList, srchTaskBean);
@@ -114,33 +121,61 @@ public class OneToF_PPTT implements Runnable{
                         ppttRec.probeid = srchTaskBean.getPROBEID();
                         ppttRec.dbid = 0;
                         ppttRec.candid = new String(gallery.probeId).trim();
+                        byte[][] feature1 = new byte[4][];
+                        byte[][] feature2 = new byte[4][];
+//                        for (int j = 0; j < 4; j++) {
+//                            feature1[i] = probe.palmmnt[i];
+//                            feature2[i] = gallery.palmmnt[i];
+//                            Future<Float> score = executorService.submit(new Callable<Float>() {
+//                                @Override
+//                                public Float call() throws Exception {
+//                                    //TODO remain to be implemented
+//                                    HSFPFourPalm.VerifyFeature verifyFeature = new HSFPFourPalm.VerifyFeature();
+//                                    verifyFeature.feature1 = feature1;
+//                                    verifyFeature.feature2 = feature2;
+//                                    HSFPFourPalm.VerifyFeature.Result result = HbieUtil.hbie_PP.process(verifyFeature);
+//                                    return result.score;
+//                                }
+//                            });
+//                            map.put(j, score);
+//                        }
+//                        float tempScore = 0F;
+//                        for (int j = 0; j < map.size(); j++) {
+//                            Future<Float> f = map.get(j);
+//                            float temp = 0F;
+//                            try {
+//                                temp = f.get();
+//                                System.out.println("j=" + j + "scores is " + temp);
+//                            } catch (InterruptedException | ExecutionException e) {
+//                                log.info("get 1ToF score map error, probeid={} ", new String(gallery.probeId), e);
+//
+//                            }
+//                            if (temp > tempScore) {
+//                                tempScore = temp;
+//                            }
+//                            ppttRec.ppscores[j] = temp;
+//                        }
+                        HSFPFourPalm.VerifyFeature verifyFeature = new HSFPFourPalm.VerifyFeature();
+                        verifyFeature.feature1 = probe.palmmnt;
+                        log.info("probe.palmmnt:" + probe.palmmnt.length);
                         for (int j = 0; j < 4; j++) {
-                            final int finalJ = j;
-                            Future<Float> score = executorService.submit(new Callable<Float>() {
-                                @Override
-                                public Float call() throws Exception {
-                                    //TODO remain to be implemented
-
-                                    return null;
-                                }
-                            });
-                            map.put(j, score);
-                        }
-                        float tempScore = 0F;
-                        for (int j = 0; j < map.size(); j++) {
-                            Future<Float> f = map.get(j);
-                            float temp = 0F;
-                            try {
-                                temp = f.get();
-                            } catch (InterruptedException | ExecutionException e) {
-                                log.info("get 1ToF score map error, probeid={} ", new String(gallery.probeId), e);
+                            byte[] fea = probe.palmmnt[j];
+                            for (int k = 0; k < fea.length; k++) {
+                                System.out.print(fea[k]+" ");
                             }
-                            if (temp > tempScore) {
-                                tempScore = temp;
-                            }
-                            ppttRec.ppscores[j] = temp;
+                            System.out.println();
                         }
-                        ppttRec.score = tempScore;
+                        verifyFeature.feature2 = gallery.palmmnt;
+                        log.info("gallery.palmmnt:" + gallery.palmmnt.length);
+                        HSFPFourPalm.VerifyFeature.Result result = new HSFPFourPalm.VerifyFeature.Result();
+                        try {
+                            result = HbieUtil.getInstance().hbie_PP.process(verifyFeature);
+                        } catch (RemoteException e) {
+                            e.printStackTrace();
+                        } catch (MatcherException e) {
+                            e.printStackTrace();
+                        }
+                        ppttRec.score = result.score;
                         list.add(ppttRec);
                     }
                 }

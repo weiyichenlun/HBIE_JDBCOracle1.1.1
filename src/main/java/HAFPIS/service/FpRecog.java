@@ -85,7 +85,7 @@ public class FpRecog implements Runnable {
             List<Future<String>> listF = new ArrayList<>();
             long start1 = System.currentTimeMillis();
             for (int i = 0; i < list.size(); i++) {
-                log.info("in for loop i is  {} ", i);
+                log.debug("in for loop i is  {} ", i);
                 srchTaskBean = list.get(i);
                 Blob srchdata = srchTaskBean.getSRCHDATA();
                 int dataType = srchTaskBean.getDATATYPE();
@@ -217,7 +217,7 @@ public class FpRecog implements Runnable {
                     if (posMask_Roll[i] == 1) {
                         probe.fp_score_weight[i] = posMask_Roll[i];
                         probe.filter = "flag=={0}";
-                        results = HbieUtil.hbie_FP.search(probe);
+                        results = HbieUtil.getInstance().hbie_FP.search(probe);
 
                         for (int j = 0; j < results.candidates.size(); j++) {
                             HSFPTenFp.LatFpSearchParam.Result cand = results.candidates.get(j);
@@ -244,7 +244,7 @@ public class FpRecog implements Runnable {
                     if (posMask_Flat[i] == 1) {
                         probe.fp_score_weight[i] = posMask_Flat[i];
                         probe.filter = "flag=={1}";
-                        results = HbieUtil.hbie_FP.search(probe);
+                        results = HbieUtil.getInstance().hbie_FP.search(probe);
 
                         for (int j = 0; j < results.candidates.size(); j++) {
                             HSFPTenFp.LatFpSearchParam.Result cand = results.candidates.get(j);
@@ -280,7 +280,7 @@ public class FpRecog implements Runnable {
                     probe.fp_score_weight[i] = posMask_Roll[i];
                 }
                 probe.filter = "flag=={0}";
-                results = HbieUtil.hbie_FP.search(probe);
+                results = HbieUtil.getInstance().hbie_FP.search(probe);
                 for (HSFPTenFp.LatFpSearchParam.Result cand : results.candidates) {
                     FPLTRec fpltRec = new FPLTRec();
                     fpltRec.taskid = srchTaskBean.getTASKIDD();
@@ -299,7 +299,7 @@ public class FpRecog implements Runnable {
                     probe.fp_score_weight[i] = posMask_Flat[i];
                 }
                 probe.filter = "flag=={1}";
-                results = HbieUtil.hbie_FP.search(probe);
+                results = HbieUtil.getInstance().hbie_FP.search(probe);
                 for (HSFPTenFp.LatFpSearchParam.Result cand : results.candidates) {
                     FPLTRec fpltRec = new FPLTRec();
                     fpltRec.taskid = srchTaskBean.getTASKIDD();
@@ -389,7 +389,7 @@ public class FpRecog implements Runnable {
             probe.filter = "flag=={0}";
             SearchResults<HSFPTenFp.TenFpSearchParam.Result> results = null;
             long start1 = System.currentTimeMillis();
-            results = HbieUtil.hbie_FP.search(probe);
+            results = HbieUtil.getInstance().hbie_FP.search(probe);
             for(HSFPTenFp.TenFpSearchParam.Result cand:results.candidates){
                 FPTTRec fpttRec = new FPTTRec();
                 fpttRec.taskid = srchTaskBean.getTASKIDD();
@@ -406,7 +406,7 @@ public class FpRecog implements Runnable {
             probe.features = srchDataRec.fpmnt;
             probe.filter = "flag=={1}";
             long start11 = System.currentTimeMillis();
-            results = HbieUtil.hbie_FP.search(probe);
+            results = HbieUtil.getInstance().hbie_FP.search(probe);
             long start2 = System.currentTimeMillis();
             log.info("*******In FPTT the saerch time cost is {} ms", (start2-start11));
             for (HSFPTenFp.TenFpSearchParam.Result cand : results.candidates) {

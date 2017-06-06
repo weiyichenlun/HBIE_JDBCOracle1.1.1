@@ -108,7 +108,7 @@ public class IrisRecog implements Runnable {
                 probe.maxCands = numOfCand = CONSTANTS.MAXCANDS;
             }
 
-            SearchResults<HSIris.IrisSearchParam.Result> results = HbieUtil.hbie_IRIS.search(probe);
+            SearchResults<HSIris.IrisSearchParam.Result> results = HbieUtil.getInstance().hbie_IRIS.search(probe);
             for(HSIris.IrisSearchParam.Result cand:results.candidates){
                 IrisRec irisRec = new IrisRec();
                 irisRec.taskid = srchTaskBean.getTASKIDD();

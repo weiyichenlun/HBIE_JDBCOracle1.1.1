@@ -119,7 +119,7 @@ public class OneToF_Face implements Runnable {
                                 THIDFace.VerifyFeature verifyFeature = new THIDFace.VerifyFeature();
                                 verifyFeature.feature1 = probe.facemnt;
                                 verifyFeature.feature2 = gallery.facemnt;
-                                THIDFace.VerifyFeature.Result result = HbieUtil.hbie_FACE.process(verifyFeature);
+                                THIDFace.VerifyFeature.Result result = HbieUtil.getInstance().hbie_FACE.process(verifyFeature);
                                 faceRec.score = result.score;
                                 return faceRec;
                             }

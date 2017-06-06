@@ -172,7 +172,7 @@ public class LatFpRecog implements Runnable{
                     if (posMask_Roll[i] == 1) {
                         probe.image = features_roll[i];
 //                        probe.filter = "flag=={0}";
-                        results = HbieUtil.hbie_LPP.search(probe);
+                        results = HbieUtil.getInstance().hbie_LPP.search(probe);
 
                         for (int j = 0; j < results.candidates.size(); j++) {
                             HSFPLatFp.TenFpSearchParam.Result cand = results.candidates.get(j);
@@ -197,7 +197,7 @@ public class LatFpRecog implements Runnable{
                 for (int i = 0; i < posMask_Flat.length; i++) {
                     if (posMask_Flat[i] == 1) {
                         probe.image = features_flat[i];
-                        results = HbieUtil.hbie_LPP.search(probe);
+                        results = HbieUtil.getInstance().hbie_LPP.search(probe);
                         for (int j = 0; j < results.candidates.size(); j++) {
                             HSFPLatFp.TenFpSearchParam.Result cand = results.candidates.get(j);
                             FPTLRec fptlRec = new FPTLRec();
@@ -231,7 +231,7 @@ public class LatFpRecog implements Runnable{
                 for (int i = 0; i < posMask_Roll.length; i++) {
                     if (posMask_Roll[i] == 1) {
                         probe.image = features_roll[i];
-                        results = HbieUtil.hbie_LPP.search(probe);
+                        results = HbieUtil.getInstance().hbie_LPP.search(probe);
                         for (HSFPLatFp.TenFpSearchParam.Result cand : results.candidates) {
                             FPTLRec fptlRec = new FPTLRec();
                             fptlRec.taskid = srchTaskBean.getTASKIDD();
@@ -251,7 +251,7 @@ public class LatFpRecog implements Runnable{
                 for (int i = 0; i < posMask_Flat.length; i++) {
                     if (posMask_Flat[i] == 1) {
                         probe.image = features_flat[i];
-                        results = HbieUtil.hbie_LPP.search(probe);
+                        results = HbieUtil.getInstance().hbie_LPP.search(probe);
                         for (HSFPLatFp.TenFpSearchParam.Result cand : results.candidates) {
                             FPTLRec fptlRec = new FPTLRec();
                             fptlRec.taskid = srchTaskBean.getTASKIDD();
@@ -339,7 +339,7 @@ public class LatFpRecog implements Runnable{
             }
 
             SearchResults<HSFPLatFp.LatFpSearchParam.Result> results = null;
-            results = HbieUtil.hbie_LPP.search(probe);
+            results = HbieUtil.getInstance().hbie_LPP.search(probe);
             List<FPLLRec> list = new ArrayList<>();
             for (HSFPLatFp.LatFpSearchParam.Result cand : results.candidates) {
                 FPLLRec fpllRec = new FPLLRec();

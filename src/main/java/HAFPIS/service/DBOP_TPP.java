@@ -78,11 +78,11 @@ public class DBOP_TPP implements Runnable {
                                 String id = dbopTaskBean.getProbeId();
                                 switch (tasktype) {
                                     case 6:
-                                        HbieUtil.hbie_FP.updateMatcher(id, -1);
-                                        HbieUtil.hbie_FP.updateMatcher(id + "_", -1);
-                                        HbieUtil.hbie_PP.updateMatcher(id, -1);
-                                        HbieUtil.hbie_FACE.updateMatcher(id, -1);
-                                        HbieUtil.hbie_IRIS.updateMatcher(id, -1);
+                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id, -1);
+                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id + "_", -1);
+                                        HbieUtil.getInstance().hbie_PP.updateMatcher(id, -1);
+                                        HbieUtil.getInstance().hbie_FACE.updateMatcher(id, -1);
+                                        HbieUtil.getInstance().hbie_IRIS.updateMatcher(id, -1);
                                         break;
                                     case 5:
                                         pinfodao = new PINFODAO(tablename_pinfo);
@@ -94,45 +94,51 @@ public class DBOP_TPP implements Runnable {
                                         if (imgmask.length() >= 10) {
                                             String rfp = imgmask.substring(0, 10);
                                             if (!"0000000000".equals(rfp)) {
-                                                HbieUtil.hbie_FP.updateMatcher(id, 1);
+//                                                HbieUtil.hbie_FP.updateMatcher(id, 1);
+                                                HbieUtil.getInstance().hbie_FP.updateMatcher(id, 1);
                                             }
                                         }
                                         if (imgmask.length() >= 20) {
                                             String ffp = imgmask.substring(10, 20);
                                             if (!"0000000000".equals(ffp)) {
-                                                HbieUtil.hbie_FP.updateMatcher(id + "_", 1);
+//                                                HbieUtil.hbie_FP.updateMatcher(id + "_", 1);
+                                                HbieUtil.getInstance().hbie_FP.updateMatcher(id + "_", 1);
                                             }
                                         }
                                         if (imgmask.length() >= 30) {
                                             String pm = imgmask.substring(20, 30);
                                             if (!"0000000000".equals(pm)) {
-                                                HbieUtil.hbie_PP.updateMatcher(id, 1);
+//                                                HbieUtil.hbie_PP.updateMatcher(id, 1);
+                                                HbieUtil.getInstance().hbie_PP.updateMatcher(id, 1);
                                             }
                                         }
                                         if (imgmask.length() >= 31) {
                                             String face = imgmask.substring(30, 31);
                                             if (face.charAt(0) == '1') {
-                                                HbieUtil.hbie_FACE.updateMatcher(id, 1);
+//                                                HbieUtil.hbie_FACE.updateMatcher(id, 1);
+                                                HbieUtil.getInstance().hbie_FACE.updateMatcher(id, 1);
                                             }
                                         }
                                         if (imgmask.length() >= 35) {
                                             String iris = imgmask.substring(33, 35);
                                             if (!"00".equals(iris)) {
-                                                HbieUtil.hbie_IRIS.updateMatcher(id, 1);
+//                                                HbieUtil.hbie_IRIS.updateMatcher(id, 1);
+                                                HbieUtil.getInstance().hbie_IRIS.updateMatcher(id, 1);
+
                                             }
                                         }
                                         break;
                                     case 7:
-                                        HbieUtil.hbie_FP.updateMatcher(id, -1);
-                                        HbieUtil.hbie_FP.updateMatcher(id, 1);
-                                        HbieUtil.hbie_FP.updateMatcher(id + "_", -1);
-                                        HbieUtil.hbie_FP.updateMatcher(id + "_", 1);
-                                        HbieUtil.hbie_PP.updateMatcher(id, -1);
-                                        HbieUtil.hbie_PP.updateMatcher(id, 1);
-                                        HbieUtil.hbie_FACE.updateMatcher(id, -1);
-                                        HbieUtil.hbie_FACE.updateMatcher(id, 1);
-                                        HbieUtil.hbie_IRIS.updateMatcher(id, -1);
-                                        HbieUtil.hbie_IRIS.updateMatcher(id, 1);
+                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id, -1);
+                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id, 1);
+                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id + "_", -1);
+                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id + "_", 1);
+                                        HbieUtil.getInstance().hbie_PP.updateMatcher(id, -1);
+                                        HbieUtil.getInstance().hbie_PP.updateMatcher(id, 1);
+                                        HbieUtil.getInstance().hbie_FACE.updateMatcher(id, -1);
+                                        HbieUtil.getInstance().hbie_FACE.updateMatcher(id, 1);
+                                        HbieUtil.getInstance().hbie_IRIS.updateMatcher(id, -1);
+                                        HbieUtil.getInstance().hbie_IRIS.updateMatcher(id, 1);
                                         break;
                                     default:
                                         log.error("tasktype error {}.", tasktype);

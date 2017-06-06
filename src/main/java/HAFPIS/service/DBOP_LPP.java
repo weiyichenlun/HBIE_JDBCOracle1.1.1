@@ -77,14 +77,14 @@ public class DBOP_LPP implements Runnable {
                                 String id = dbopTaskBean.getProbeId();
                                 switch (tasktype) {
                                     case 6:
-                                        HbieUtil.hbie_LPP.updateMatcher(id, -1);
+                                        HbieUtil.getInstance().hbie_LPP.updateMatcher(id, -1);
                                         break;
                                     case 5:
-                                        HbieUtil.hbie_LPP.updateMatcher(id, 1);
+                                        HbieUtil.getInstance().hbie_LPP.updateMatcher(id, 1);
                                         break;
                                     case 7:
-                                        HbieUtil.hbie_LPP.updateMatcher(id, -1);
-                                        HbieUtil.hbie_LPP.updateMatcher(id, 1);
+                                        HbieUtil.getInstance().hbie_LPP.updateMatcher(id, -1);
+                                        HbieUtil.getInstance().hbie_LPP.updateMatcher(id, 1);
                                         break;
                                     default:
                                         log.error("tasktype error {}.", tasktype);

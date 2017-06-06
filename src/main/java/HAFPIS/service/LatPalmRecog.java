@@ -125,7 +125,7 @@ public class LatPalmRecog implements Runnable {
                 probe.maxCands = numOfCand = CONSTANTS.MAXCANDS;
             }
             SearchResults<HSFPLatPalm.LatPalmSearchParam.Result> results = null;
-            results = HbieUtil.hbie_PLP.search(probe);
+            results = HbieUtil.getInstance().hbie_PLP.search(probe);
             List<PPLLRec> list = new ArrayList<>();
             for (HSFPLatPalm.LatPalmSearchParam.Result cand : results.candidates) {
                 PPLLRec ppllRec = new PPLLRec();

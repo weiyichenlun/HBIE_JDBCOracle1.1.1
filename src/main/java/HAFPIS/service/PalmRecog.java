@@ -118,10 +118,10 @@ public class PalmRecog implements Runnable{
         }
         SrchDataRec srchDataRec = srchDataRecList.get(0);
         String srchPosMask = srchTaskBean.getSRCHPOSMASK();
-        if (srchPosMask.length() > 10) {
-            srchPosMask_Palm = srchPosMask.substring(0, 10);
-        } else {
+        if (srchPosMask == null || srchPosMask.length() < 10) {
             srchPosMask_Palm = "1000110001";
+        } else {
+            srchPosMask_Palm = srchPosMask.substring(0, 10);
         }
         boolean[] mask = new boolean[4];
         for (int i = 0; i < 4; i++) {
@@ -169,7 +169,7 @@ public class PalmRecog implements Runnable{
                 for (int i = 0; i < mask.length; i++) {
                     if (mask[i]) {
                         probe.ppMask[i] = true;
-                        results = HbieUtil.hbie_PP.search(probe);
+                        results = HbieUtil.getInstance().hbie_PP.search(probe);
                         for (int j = 0; j < results.candidates.size(); j++) {
                             HSFPFourPalm.LatPalmSearchParam.Result cand = results.candidates.get(j);
                             PPLTRec ppltRec = new PPLTRec();
@@ -205,7 +205,7 @@ public class PalmRecog implements Runnable{
                         probe.ppMask[i] = true;
                     }
                 }
-                results = HbieUtil.hbie_PP.search(probe);
+                results = HbieUtil.getInstance().hbie_PP.search(probe);
                 for (HSFPFourPalm.LatPalmSearchParam.Result cand : results.candidates) {
                     PPLTRec ppltRec = new PPLTRec();
                     ppltRec.taskid = srchTaskBean.getTASKIDD();
@@ -290,7 +290,7 @@ public class PalmRecog implements Runnable{
             } else {
                 probe.maxCands = numOfCand = CONSTANTS.MAXCANDS;
             }
-            SearchResults<HSFPFourPalm.FourPalmSearchParam.Result> results = HbieUtil.hbie_PP.search(probe);
+            SearchResults<HSFPFourPalm.FourPalmSearchParam.Result> results = HbieUtil.getInstance().hbie_PP.search(probe);
             for (HSFPFourPalm.FourPalmSearchParam.Result cand : results.candidates) {
                 PPTTRec ppttRec = new PPTTRec();
                 ppttRec.taskid = srchTaskBean.getTASKIDD();

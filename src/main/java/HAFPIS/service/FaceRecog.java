@@ -108,7 +108,7 @@ public class FaceRecog implements Runnable {
                 probe.maxCands = numOfCand = CONSTANTS.MAXCANDS;
 
             }
-            SearchResults<THIDFace.FaceSearchParam.Result> result = HbieUtil.hbie_FACE.search(probe);
+            SearchResults<THIDFace.FaceSearchParam.Result> result = HbieUtil.getInstance().hbie_FACE.search(probe);
             List<FaceRec> list = new ArrayList<>();
             for(THIDFace.FaceSearchParam.Result cand:result.candidates){
                 FaceRec faceRec = new FaceRec();

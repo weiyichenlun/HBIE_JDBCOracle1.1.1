@@ -120,7 +120,7 @@ public class OneToF_FPLL implements Runnable {
                                 HSFPTenFp.VerifyFeature verifyFeature = new HSFPTenFp.VerifyFeature();
                                 verifyFeature.feature1 = probe.latfpmnt;
                                 verifyFeature.feature2 = gallery.latfpmnt;
-                                HSFPTenFp.VerifyFeature.Result result = HbieUtil.hbie_FP.process(verifyFeature);
+                                HSFPTenFp.VerifyFeature.Result result = HbieUtil.getInstance().hbie_FP.process(verifyFeature);
                                 fpllRec.score = result.score;
                                 return fpllRec;
                             }

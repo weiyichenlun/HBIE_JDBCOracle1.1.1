@@ -28,7 +28,7 @@ public class ConfigUtil {
     private static File configFile = null;
     private static long fileLastModified = 0;
     private static final String ERROR_MESSAGE = "ERROR";
-//    private static String configFileName = "config\\hbie.cfg.properties";
+//    private static String configFileName = "config/hbie.cfg.properties";
     private static String configFileName = "hbie.cfg.properties";
 
     private static synchronized void init() {
@@ -44,9 +44,11 @@ public class ConfigUtil {
             props.load(new FileInputStream(configFileName));
             fileLastModified = configFile.lastModified();
         } catch (FileNotFoundException e) {
-            log.error("can not load configFile {}.", configFileName, e);
+            log.error("can not load configFile {}. The program will exit.", configFileName, e);
+            System.exit(-1);
         } catch (IOException e) {
-            log.error("IOException while in loading configfile {}.",configFileName, e);
+            log.error("IOException while in loading configfile {}. The program will exit.",configFileName, e);
+            System.exit(-1);
         }
     }
     public static synchronized String getConfig(String key) {
