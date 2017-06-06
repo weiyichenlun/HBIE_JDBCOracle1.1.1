@@ -52,7 +52,7 @@ public class IrisRecog implements Runnable {
                 }
                 try {
                     Thread.sleep(timeSleep * 1000);
-                    log.info("sleeping");
+                    log.debug("sleeping");
                 } catch (InterruptedException e) {
                     log.warn("Waiting Thread was interrupted: {}", e);
                 }
@@ -73,7 +73,7 @@ public class IrisRecog implements Runnable {
                             case 1:
                                 long start = System.currentTimeMillis();
                                 IrisTT(srchDataRecList, srchTaskBean);
-                                log.info("IrisTT total cost : {} ms", (System.currentTimeMillis() - start));
+                                log.debug("IrisTT total cost : {} ms", (System.currentTimeMillis() - start));
                                 break;
                         }
                     }

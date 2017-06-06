@@ -43,9 +43,9 @@ public class IrisTTDAO {
             paramUsed[i][idx++] = irisRec.dbid;
             paramUsed[i][idx++] = irisRec.candid;
             paramUsed[i][idx++] = irisRec.candrank;
-            paramUsed[i][idx++] = (int) (irisRec.score * 10000);
+            paramUsed[i][idx++] = (int) (irisRec.score );
             for (int j = 0; j < 2; j++) {
-                paramUsed[i][idx++] = (int) (irisRec.iiscores[j] * 10000);
+                paramUsed[i][idx++] = (int) (irisRec.iiscores[j] );
             }
         }
         try {

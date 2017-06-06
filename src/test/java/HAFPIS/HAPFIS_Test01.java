@@ -2,10 +2,10 @@ package HAFPIS;
 
 import HAFPIS.Utils.DateUtil;
 import HAFPIS.Utils.HbieUtil;
-import HAFPIS.Utils.QueryRunnerUtil;
 import HAFPIS.domain.SrchDataRec;
 import com.hisign.bie.MatcherException;
 import com.hisign.bie.hsfp.HSFPFourPalm;
+import com.hisign.bie.hsfp.HSFPLatPalm;
 import com.hisign.bie.hsfp.HSFPTenFp;
 import com.hisign.bie.iris.HSIris;
 import com.hisign.bie.thid.THIDFace;
@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.UnsupportedEncodingException;
+import java.lang.management.ManagementFactory;
 import java.rmi.RemoteException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -47,14 +48,14 @@ public class HAPFIS_Test01 {
     private QueryRunner qr;
     @Before
     public void before() {
-        qr = QueryRunnerUtil.getInstance();
+//        qr = QueryRunnerUtil.getInstance();
     }
 
     @Test
     public void test() throws UnsupportedEncodingException {
         String path = "D:\\Resource\\data\\palm\\图片";
-        int tasktype = 1;
-        int datatype = 2;
+        int tasktype = 3;
+        int datatype = 5;
         try {
             byte[] srchdata = getSrchData(path, datatype);
             for (int i = 0; i < srchdata.length; i++) {
@@ -66,6 +67,14 @@ public class HAPFIS_Test01 {
             e.printStackTrace();
         }
 
+    }
+
+    @Test
+    public void test01() {
+        String name = ManagementFactory.getRuntimeMXBean().getName();
+        String pid = name.split("@")[0];
+        System.out.println(name);
+        System.out.println(pid);
     }
 
     public boolean insert_srch_table(byte[] srchdata, int tasktype, int datatype) {
@@ -182,7 +191,7 @@ public class HAPFIS_Test01 {
             if (data != null) {
                 THIDFace.ExtractFeature extractFeature = new THIDFace.ExtractFeature();
                 extractFeature.image = data;
-                THIDFace.ExtractFeature.Result result = HbieUtil.hbie_FACE.process(extractFeature);
+                THIDFace.ExtractFeature.Result result = HbieUtil.getInstance().hbie_FACE.process(extractFeature);
                 feature = result.feature;
             }
         }
@@ -198,7 +207,7 @@ public class HAPFIS_Test01 {
         if (files != null) {
             for (int i=0; i<files.length; i++) {
                 extractFeature.image = read(path, files[i]);
-                HSIris.ExtractFeature.Result result = HbieUtil.hbie_IRIS.process(extractFeature);
+                HSIris.ExtractFeature.Result result = HbieUtil.getInstance().hbie_IRIS.process(extractFeature);
                 features[i] = result.feature;
             }
         }
@@ -217,7 +226,7 @@ public class HAPFIS_Test01 {
             for (int i = 0; i < files.length; i++) {
                 extractFeature.images[i] = read(path, files[i]);
             }
-            HSFPFourPalm.ExtractFeature.Result result = HbieUtil.hbie_PP.process(extractFeature);
+            HSFPFourPalm.ExtractFeature.Result result = HbieUtil.getInstance().hbie_PP.process(extractFeature);
             features[0] = result.features[0];
             features[5] = result.features[1];
             features[4] = result.features[2];
@@ -234,9 +243,9 @@ public class HAPFIS_Test01 {
         if (files[0].endsWith("JPG") || files[0].endsWith("jpg")) {
             data = read(path, files[0]);
             if (data != null) {
-                HSFPFourPalm.ExtractFeature extractFeature = new HSFPFourPalm.ExtractFeature();
-                extractFeature.images[0] = data;
-                HSFPTenFp.ExtractFeature.Result result = HbieUtil.hbie_PP.process(extractFeature);
+                HSFPLatPalm.ExtractFeature extractFeature = new HSFPLatPalm.ExtractFeature();
+                extractFeature.image = data;
+                HSFPLatPalm.ExtractFeature.Result result = HbieUtil.getInstance().hbie_LPP.process(extractFeature);
                 feature = result.feature;
             }
         }
@@ -253,7 +262,7 @@ public class HAPFIS_Test01 {
             if (data != null) {
                 HSFPTenFp.ExtractFeature extractFeature = new HSFPTenFp.ExtractFeature();
                 extractFeature.image = data;
-                HSFPTenFp.ExtractFeature.Result result = HbieUtil.hbie_FP.process(extractFeature);
+                HSFPTenFp.ExtractFeature.Result result = HbieUtil.getInstance().hbie_FP.process(extractFeature);
                 feature = result.feature;
             }
         }
@@ -277,7 +286,7 @@ public class HAPFIS_Test01 {
                         public byte[] call() throws Exception {
                             HSFPTenFp.ExtractFeature extract = new HSFPTenFp.ExtractFeature();
                             extract.image = finalData;
-                            HSFPTenFp.ExtractFeature.Result result = HbieUtil.hbie_FP.process(extract);
+                            HSFPTenFp.ExtractFeature.Result result = HbieUtil.getInstance().hbie_FP.process(extract);
                             return result.feature;
                         }
                     });
@@ -314,7 +323,7 @@ public class HAPFIS_Test01 {
                         HSFPTenFp.ExtractFeature extractFeature = new HSFPTenFp.ExtractFeature();
                         extractFeature.image = image;
                         HSFPTenFp.ExtractFeature.Result result = new HSFPTenFp.ExtractFeature.Result();
-                        result = HbieUtil.hbie_FP.process(extractFeature);
+                        result = HbieUtil.getInstance().hbie_FP.process(extractFeature);
                         feature = result.feature;
                         break;
                     case 2:
@@ -322,21 +331,21 @@ public class HAPFIS_Test01 {
                         HSFPFourPalm.ExtractFeature extractFeature1 = new HSFPFourPalm.ExtractFeature();
                         extractFeature1.images[0] = image;
                         HSFPFourPalm.ExtractFeature.Result result1 = new HSFPFourPalm.ExtractFeature.Result();
-                        result1 = HbieUtil.hbie_PP.process(extractFeature1);
+                        result1 = HbieUtil.getInstance().hbie_PP.process(extractFeature1);
                         feature = result1.features[0];
                         break;
                     case 6:
                         THIDFace.ExtractFeature extractFeature2 = new THIDFace.ExtractFeature();
                         extractFeature2.image = image;
                         THIDFace.ExtractFeature.Result result2 = new THIDFace.ExtractFeature.Result();
-                        result2 = HbieUtil.hbie_FACE.process(extractFeature2);
+                        result2 = HbieUtil.getInstance().hbie_FACE.process(extractFeature2);
                         feature = result2.feature;
                         break;
                     case 7:
                         HSIris.ExtractFeature extractFeature3 = new HSIris.ExtractFeature();
                         extractFeature3.image = image;
                         HSIris.ExtractFeature.Result result3 = new HSIris.ExtractFeature.Result();
-                        result3 = HbieUtil.hbie_IRIS.process(extractFeature3);
+                        result3 = HbieUtil.getInstance().hbie_IRIS.process(extractFeature3);
                         feature = result3.feature;
                         break;
                     default:

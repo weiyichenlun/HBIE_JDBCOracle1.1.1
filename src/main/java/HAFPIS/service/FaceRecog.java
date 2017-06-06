@@ -53,7 +53,7 @@ public class FaceRecog implements Runnable {
                 }
                 try {
                     Thread.sleep(timeSleep * 1000);
-                    log.info("sleeping");
+                    log.debug("sleeping");
                 } catch (InterruptedException e) {
                     log.warn("Waiting Thread was interrupted: {}", e);
                 }
@@ -74,7 +74,7 @@ public class FaceRecog implements Runnable {
                             case 1:
                                 long start = System.currentTimeMillis();
                                 FaceTT(srchDataRecList, srchTaskBean);
-                                log.info("FaceTT total cost : {} ms", (System.currentTimeMillis() - start));
+                                log.debug("FaceTT total cost : {} ms", (System.currentTimeMillis() - start));
                                 break;
                         }
                     }

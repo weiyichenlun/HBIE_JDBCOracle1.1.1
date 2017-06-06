@@ -103,12 +103,12 @@ public class FpRecog implements Runnable {
                                     public void run() {
                                         long start = System.currentTimeMillis();
                                         FPTT(srchDataRecList, finalSrchTaskBean);
-                                        log.info("FPTT total cost : {} ms", (System.currentTimeMillis() - start));
+                                        log.debug("FPTT total cost : {} ms", (System.currentTimeMillis() - start));
                                     }
                                 }, "FPTT");
 //                                long start = System.currentTimeMillis();
 //                                FPTT(srchDataRecList, srchTaskBean);
-//                                log.info("FPTT total cost : {} ms", (System.currentTimeMillis()-start));
+//                                log.debug("FPTT total cost : {} ms", (System.currentTimeMillis()-start));
                                 break;
                             case 3:
                                 SrchTaskBean finalSrchTaskBean1 = srchTaskBean;
@@ -117,12 +117,12 @@ public class FpRecog implements Runnable {
                                     public void run() {
                                         long start1 = System.currentTimeMillis();
                                         FPLT(srchDataRecList, finalSrchTaskBean1);
-                                        log.info("FPLT total cost : {} ms", (System.currentTimeMillis() - start1));
+                                        log.debug("FPLT total cost : {} ms", (System.currentTimeMillis() - start1));
                                     }
                                 }, "FPLT");
 //                                long start1 = System.currentTimeMillis();
 //                                FPLT(srchDataRecList, srchTaskBean);
-//                                log.info("FPLT total cost : {} ms", (System.currentTimeMillis()-start1));
+//                                log.debug("FPLT total cost : {} ms", (System.currentTimeMillis()-start1));
                                 break;
                         }
                         listF.add(future);
@@ -142,7 +142,7 @@ public class FpRecog implements Runnable {
                     e.printStackTrace();
                 }
             }
-            log.info("total cost : {} ms", (System.currentTimeMillis()-start1));
+            log.debug("total cost : {} ms", (System.currentTimeMillis()-start1));
         }
     }
 

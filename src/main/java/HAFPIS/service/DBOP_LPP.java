@@ -63,7 +63,7 @@ public class DBOP_LPP implements Runnable {
                 }
                 try {
                     Thread.sleep(timeSleep * 1000);
-                    log.info("sleeping");
+                    log.debug("sleeping");
                 } catch (InterruptedException e) {
                     log.warn("Waiting Thread was interrupted: {}", e);
                 }

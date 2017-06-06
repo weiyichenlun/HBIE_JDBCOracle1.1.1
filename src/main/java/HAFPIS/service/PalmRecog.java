@@ -68,7 +68,7 @@ public class PalmRecog implements Runnable{
                 }
                 try {
                     Thread.sleep(timeSleep * 1000);
-                    log.info("sleeping");
+                    log.debug("sleeping");
                 } catch (InterruptedException e) {
                     log.warn("Waiting Thread was interrupted: {}", e);
                 }
@@ -90,12 +90,12 @@ public class PalmRecog implements Runnable{
                             case 1:
                                 long start = System.currentTimeMillis();
                                 PPTT(srchDataRecList, srchTaskBean);
-                                log.info("PPTT total cost : {} ms", (System.currentTimeMillis()-start));
+                                log.debug("PPTT total cost : {} ms", (System.currentTimeMillis()-start));
                                 break;
                             case 3:
                                 long start1 = System.currentTimeMillis();
                                 PPLT(srchDataRecList, srchTaskBean);
-                                log.info("PPLT total cost : {} ms", (System.currentTimeMillis()-start1));
+                                log.debug("PPLT total cost : {} ms", (System.currentTimeMillis()-start1));
                                 break;
                         }
                     }

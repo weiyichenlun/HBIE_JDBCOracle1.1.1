@@ -67,7 +67,7 @@ public class LatPalmRecog implements Runnable {
                 }
                 try {
                     Thread.sleep(timeSleep * 10000);
-                    log.info("sleeping");
+                    log.debug("sleeping");
                 } catch (InterruptedException e) {
                     log.warn("Waiting Thread was interrupted: {}", e);
                 }
@@ -88,12 +88,12 @@ public class LatPalmRecog implements Runnable {
                             case 2:
                                 long start = System.currentTimeMillis();
                                 PPTL(srchDataRecList, srchTaskBean);
-                                log.info("P2L total cost : {} ms", (System.currentTimeMillis()-start));
+                                log.debug("P2L total cost : {} ms", (System.currentTimeMillis()-start));
                                 break;
                             case 4:
                                 long start1 = System.currentTimeMillis();
                                 PPLL(srchDataRecList, srchTaskBean);
-                                log.info("L2L total cost : {} ms", (System.currentTimeMillis()-start1));
+                                log.debug("L2L total cost : {} ms", (System.currentTimeMillis()-start1));
                                 break;
                         }
                     }

@@ -68,7 +68,7 @@ public class LatFpRecog implements Runnable{
                 }
                 try {
                     Thread.sleep(timeSleep * 1000);
-                    log.info("sleeping");
+                    log.debug("sleeping");
                 } catch (InterruptedException e) {
                     log.warn("Waiting Thread was interrupted: {}", e);
                 }
@@ -89,12 +89,12 @@ public class LatFpRecog implements Runnable{
                             case 2:
                                 long start = System.currentTimeMillis();
                                 FPTL(srchDataRecList, srchTaskBean);
-                                log.info("FPTL total cost : {} ms", (System.currentTimeMillis()-start));
+                                log.debug("FPTL total cost : {} ms", (System.currentTimeMillis()-start));
                                 break;
                             case 4:
                                 long start1 = System.currentTimeMillis();
                                 FPLL(srchDataRecList, srchTaskBean);
-                                log.info("FPLL total cost : {} ms", (System.currentTimeMillis()-start1));
+                                log.debug("FPLL total cost : {} ms", (System.currentTimeMillis()-start1));
                                 break;
                         }
                     }
