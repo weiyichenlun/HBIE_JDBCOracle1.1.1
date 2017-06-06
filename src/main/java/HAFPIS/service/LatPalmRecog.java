@@ -1,11 +1,13 @@
 package HAFPIS.service;
 
 import HAFPIS.DAO.PPLLDAO;
+import HAFPIS.DAO.PPTLDAO;
 import HAFPIS.DAO.SrchTaskDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
 import HAFPIS.Utils.HbieUtil;
 import HAFPIS.domain.PPLLRec;
+import HAFPIS.domain.PPTLRec;
 import HAFPIS.domain.SrchDataRec;
 import HAFPIS.domain.SrchTaskBean;
 import com.hisign.bie.MatcherException;
@@ -57,7 +59,12 @@ public class LatPalmRecog implements Runnable {
             List<SrchTaskBean> list = new ArrayList<>();
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
             if ((list.size() == 0)) {
-                int timeSleep = Integer.parseInt(interval);
+                int timeSleep = 1;
+                try {
+                    timeSleep = Integer.parseInt(interval);
+                } catch (NumberFormatException e) {
+                    log.error("interval {} format error. Use default interval(1)", interval);
+                }
                 try {
                     Thread.sleep(timeSleep * 10000);
                     log.info("sleeping");
@@ -164,27 +171,165 @@ public class LatPalmRecog implements Runnable {
                 if (isSuc) {
                     srchTaskBean.setSTATUS(5);
                     log.info("L2L search finished. ProbeId={}", srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, null);
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 5, null);
                 } else {
                     exptMsg.append(PPLL_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
                     log.error("L2L search results insert into {} error. ProbeId={}", PPLL_tablename, srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().substring(1, 128));
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
                 }
             }
         } catch (RemoteException var6) {
             log.error("RemoteExp error: ", var6);
             exptMsg.append("RemoteExp error: ").append(var6);
             srchTaskBean.setEXPTMSG(exptMsg.toString());
-            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString().substring(0,128));
+            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
         } catch (MatcherException var7) {
             log.error("L2L Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
-            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString().substring(0, 128));
+            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
         }
     }
 
     private void PPTL(List<SrchDataRec> srchDataRecList, SrchTaskBean srchTaskBean) {
+        HSFPLatPalm.FourPalmSearchParam probe   = new HSFPLatPalm.FourPalmSearchParam();
+        PPTLDAO pptldao = new PPTLDAO(PPTL_tablename);
+        String tempMsg = srchTaskBean.getEXPTMSG();
+        StringBuilder exptMsg;
+        String srchPosMask;
+        String srchPosMask_Palm;
+        int numOfOne = 0;
+        int avgCand=0;
+        float threshold = 0F;
+        if (tempMsg == null) {
+            exptMsg = new StringBuilder();
+        } else {
+            exptMsg = new StringBuilder(tempMsg);
+        }
+        srchPosMask = srchTaskBean.getSRCHPOSMASK();
+        if (srchPosMask.length() > 10) {
+            srchPosMask_Palm = srchPosMask.substring(0, 10);
+        }else{
+            srchPosMask_Palm = "1000110001";
+        }
+        SrchDataRec srchDataRec = srchDataRecList.get(0);
+        byte[][] features = srchDataRec.palmmnt;
+        int[] mask = new int[4];
+        for (int i = 0; i < 4; i++) {
+            if (srchPosMask_Palm.charAt(CONSTANTS.srchOrder[i]) == '1' && srchDataRec.PalmMntLen[CONSTANTS.srchOrder[i]] != 0) {
+                mask[CONSTANTS.feaOrder[i]] = 1;
+            }
+        }
+        numOfOne = srchDataRec.palmmntnum;
+        if (srchDataRec.palmmntnum == 0) {
+            exptMsg.append(" PalmMnt features is null ");
+            log.warn("P2L: PalmMnt features are null. ProbeId=",srchTaskBean.getPROBEID());
+        }
 
+        try{
+            SearchResults<HSFPLatPalm.FourPalmSearchParam.Result> results = null;
+            List<PPTLRec> list = new ArrayList<>();
+            List<PPTLRec> tempList = new ArrayList<>();
+            avgCand = srchTaskBean.getAVERAGECAND();
+            int numOfCand = srchTaskBean.getNUMOFCAND();
+            if (numOfCand > 0) {
+                probe.maxCands = numOfCand;
+            } else {
+                probe.maxCands = CONSTANTS.MAXCANDS;
+                numOfCand = CONSTANTS.MAXCANDS;
+            }
+            int tempCands = numOfCand/numOfOne;
+            int tempRes = numOfCand%numOfOne;
+            if (tempRes > tempCands / 2) {
+                tempCands = tempCands + 1;
+            }
+            probe.id = srchTaskBean.getPROBEID();
+            if(avgCand==1){
+                for(int i=0; i<mask.length; i++){
+                    if(mask[i] == 1){
+                        probe.feature[i] = features[i];
+                        results = HbieUtil.getInstance().hbie_PLP.search(probe);
+                        for(int j=0; j< results.candidates.size(); j++){
+                            HSFPLatPalm.FourPalmSearchParam.Result cand = results.candidates.get(j);
+                            PPTLRec pptlRec = new PPTLRec();
+                            pptlRec.candid = cand.record.id;
+                            pptlRec.score  = cand.score;
+                            pptlRec.position = cand.outputs[2].galleryPos + 1;
+                            if (results.candidates.size() <= tempCands) {
+                                list.add(pptlRec);
+                            } else {
+                                if (j < tempCands && pptlRec.score >= threshold) {
+                                    list.add(pptlRec);
+                                } else {
+                                    tempList.add(pptlRec);
+                                }
+                            }
+                        }
+                    }
+                }
+                tempList = CommonUtil.mergeResult(tempList);
+                list = CommonUtil.mergeResult(list);
+                if(list.size()>numOfCand){
+                    list = CommonUtil.getList(list,numOfCand);
+                }else {
+                    tempList = CommonUtil.getList(tempList, numOfCand-list.size());
+                    list = CommonUtil.mergeResult(list, tempList);
+                }
+            }else{
+                probe.feature = features;
+                results = HbieUtil.getInstance().hbie_PLP.search(probe);
+                for (HSFPLatPalm.FourPalmSearchParam.Result cand : results.candidates) {
+                    PPTLRec pptlRec = new PPTLRec();
+                    pptlRec.candid = cand.record.id;
+                    pptlRec.score  = cand.score;
+                    pptlRec.position = cand.outputs[2].galleryPos + 1;
+                    if(pptlRec.score>threshold) {
+                        list.add(pptlRec);
+                    }
+                }
+                list = CommonUtil.mergeResult(list);
+            }
+            // list结果为空的情况
+            if ((list == null) || (list.size() == 0)) {
+                if (!exptMsg.toString().isEmpty()) {
+                    srchTaskBean.setSTATUS(-1);
+                    log.error("PPTL search: No results. ProbeId={}, ExceptionMsg:{}", srchTaskBean.getPROBEID(), exptMsg);
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().substring(1, 128));
+                }else{
+                    srchTaskBean.setEXPTMSG("No results");
+                    srchTaskBean.setSTATUS(6);
+                    log.info("P2L search: No results for ProbeId={}", srchTaskBean.getPROBEID());
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 6, "no results");
+                }
+            } else {
+                if (list.size() > numOfCand) {
+                    list = CommonUtil.getList(list, numOfCand);
+                }
+                for (int i = 0; i < list.size(); i++) {
+                    list.get(i).candrank = i + 1;
+                }
+                log.info("begin to write results into {}", PPTL_tablename);
+                boolean isSuc = pptldao.updateRes(list);
+                if (isSuc) {
+                    srchTaskBean.setSTATUS(5);
+                    log.info("PPTL search finished. ProbeId={}", srchTaskBean.getPROBEID());
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 5, null);
+                } else {
+                    exptMsg.append(PPTL_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
+                    log.error("PPTL search results insert into {} error. ProbeId={}", PPTL_tablename, srchTaskBean.getPROBEID());
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
+                }
+            }
+        } catch (RemoteException var6) {
+            log.error("PPTL RemoteExp error: ", var6);
+            exptMsg.append("RemoteExp error: ").append(var6);
+            srchTaskBean.setEXPTMSG(exptMsg.toString());
+            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+        } catch (MatcherException var7) {
+            log.error("PPTL Matcher error: ", var7);
+            exptMsg.append("RemoteExp error: ").append(var7);
+//            log.info("try to restart Matcher...");
+            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+        }
     }
 
     public int getType() {

@@ -28,12 +28,12 @@ public class ConfigUtil {
     private static File configFile = null;
     private static long fileLastModified = 0;
     private static final String ERROR_MESSAGE = "ERROR";
-//    private static String configFileName = "config/hbie.cfg.properties";
-    private static String configFileName = "hbie.cfg.properties";
+    private static String configFileName = "config/hbie.cfg.properties";
+//    private static String configFileName = "hbie.cfg.properties";
 
     private static synchronized void init() {
         configFile = new File(configFileName);
-        log.info("configfile abs path is {}", configFile.getAbsolutePath());
+//        log.info("configfile abs path is {}", configFile.getAbsolutePath());
         fileLastModified = configFile.lastModified();
         props = new Properties();
         load();
@@ -153,10 +153,10 @@ public class ConfigUtil {
                     String temp = name.substring(name.indexOf(61) + 1);
                     InputStream is = null;
                     try {
-                        log.info("file name is {}", temp);
+//                        log.info("file name is {}", temp);
                         File t = new File(temp);
-                        log.info("after file, the abs path is {}", t.getAbsolutePath());
-                        log.info("after file, the canonical path is {}", t.getCanonicalPath());
+//                        log.info("after file, the abs path is {}", t.getAbsolutePath());
+//                        log.info("after file, the canonical path is {}", t.getCanonicalPath());
                         is = new FileInputStream(temp);
                         prop.load(is);
                         is.close();

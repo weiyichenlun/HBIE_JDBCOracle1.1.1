@@ -52,7 +52,12 @@ public class OneToF_FPLL implements Runnable {
             List<SrchTaskBean> list = new ArrayList<>();
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
             if ((list.size() == 0)) {
-                int timeSleep = Integer.parseInt(interval);
+                int timeSleep = 1;
+                try {
+                    timeSleep = Integer.parseInt(interval);
+                } catch (NumberFormatException e) {
+                    log.error("interval {} format error. Use default interval(1)", interval);
+                }
                 try {
                     Thread.sleep(timeSleep * 1000);
                     log.info("sleeping");
@@ -162,11 +167,11 @@ public class OneToF_FPLL implements Runnable {
                 if (isSuc) {
                     srchTaskBean.setSTATUS(5);
                     log.info("1ToF_FPLL search finished. ProbeId={}", srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, null);
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 5, null);
                 } else {
                     exptMsg.append(FPLL_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
                     log.error("1ToF_FPLL search results insert into {} error. ProbeId={}", FPLL_tablename, srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().substring(1, 128));
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
                 }
             }
         }

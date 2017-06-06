@@ -14,6 +14,7 @@ import HAFPIS.service.OneToF_FPLL;
 import HAFPIS.service.OneToF_FPTT;
 import HAFPIS.service.OneToF_Face;
 import HAFPIS.service.OneToF_Iris;
+import HAFPIS.service.OneToF_PPLL;
 import HAFPIS.service.OneToF_PPTT;
 import HAFPIS.service.PalmRecog;
 import org.slf4j.Logger;
@@ -238,7 +239,7 @@ public class HAFPIS_Main {
                     irisRecog.setTablename(tablename);
                     irisRecog.setIrisTT_tablename(IrisTT_tablename);
                     irisRecog.setIrisTT_threshold(Float.parseFloat(IrisTT_threshold));
-                    Thread irisThread = new Thread(irisRecog, "FaceThread");
+                    Thread irisThread = new Thread(irisRecog, "Iris_Thread");
                     irisThread.start();
                     break;
                 case CONSTANTS.FPTT1TOF:
@@ -278,6 +279,16 @@ public class HAFPIS_Main {
                     oneToF_PPTT_Thread.start();
                     break;
                 case CONSTANTS.PPLL1TOF:
+                    String tablename_PPLL = (String) prop.get("result_tablename");
+                    OneToF_PPLL oneToF_ppll = new OneToF_PPLL();
+                    oneToF_ppll.setType(num);
+                    oneToF_ppll.setInterval(interval);
+                    oneToF_ppll.setQueryNum(querynum);
+                    oneToF_ppll.setStatus(status);
+                    oneToF_ppll.setTablename(tablename);
+                    oneToF_ppll.setPPLL_tablename(tablename_PPLL);
+                    Thread oneToF_PPLL_Thread = new Thread(oneToF_ppll, "OneToF_PPLL_Thread");
+                    oneToF_PPLL_Thread.start();
                     break;
                 case CONSTANTS.FACE1TOF:
                     String tablename_Face = (String) prop.get("result_tablename");

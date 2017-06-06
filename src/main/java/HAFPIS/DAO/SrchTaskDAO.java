@@ -74,8 +74,8 @@ public class SrchTaskDAO {
         param.add(DateUtil.getFormatDate(System.currentTimeMillis()));
         if (status < 0 || exptmsg != null) {
             sb.append(", exptmsg=?");
-            if (exptmsg.length() > 128) {
-                exptmsg = exptmsg.substring(1, 128);
+            if (exptmsg.length() > 127) {
+                exptmsg = exptmsg.substring(0, 127);
             }
             param.add(exptmsg);
         }

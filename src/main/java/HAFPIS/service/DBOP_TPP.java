@@ -50,7 +50,12 @@ public class DBOP_TPP implements Runnable {
             List<DbopTaskBean> list = new ArrayList<>();
             list = dbopTaskDAO.get(status, datatype, queryNum);
             if (null == list || list.size() == 0) {
-                int timeSleep = 0;
+                int timeSleep = 1;
+                try {
+                    timeSleep = Integer.parseInt(interval);
+                } catch (NumberFormatException e) {
+                    log.error("interval {} format error. Use default interval(1)", interval);
+                }
                 try {
                     timeSleep = Integer.parseInt(interval);
                 } catch (NumberFormatException e) {

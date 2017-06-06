@@ -7,5 +7,11 @@
       <jdbc-driver>oracle.jdbc.OracleDriver</jdbc-driver>
       <jdbc-url>jdbc:oracle:thin:@//192.168.40.100:1521/HAFPIS</jdbc-url>
     </data-source>
+    <data-source source="LOCAL" name="@172.16.0.193" uuid="e45fa47b-bb9d-4405-a889-46b17134b040">
+      <driver-ref>oracle</driver-ref>
+      <auto-commit>false</auto-commit>
+      <jdbc-driver>oracle.jdbc.OracleDriver</jdbc-driver>
+      <jdbc-url>jdbc:oracle:thin:@172.16.0.193:1521:HAFPIS</jdbc-url>
+    </data-source>
   </component>
 </project>

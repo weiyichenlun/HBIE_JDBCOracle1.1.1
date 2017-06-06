@@ -52,7 +52,7 @@ public class HbieUtil {
             hbie_FACE = new HBIEClient<THIDFace.Record>(ipAddr, facePort);
             hbie_IRIS = new HBIEClient<HSIris.Record>(ipAddr, irisPort);
             log.info("HBIEClient init end...");
-        } catch (RemoteException e) {
+        } catch (RemoteException e) {//TODO 如果初始化异常 应该停止运行重新启动
             log.error("remoteexception: ",e);
         } catch (NotBoundException e) {
             log.error("notboundexception: ", e);

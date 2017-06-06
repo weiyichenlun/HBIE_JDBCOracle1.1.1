@@ -51,7 +51,12 @@ public class OneToF_FPTT implements Runnable {
             List<SrchTaskBean> list = new ArrayList<>();
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
             if ((list.size() == 0)) {
-                int timeSleep = Integer.parseInt(interval);
+                int timeSleep = 1;
+                try {
+                    timeSleep = Integer.parseInt(interval);
+                } catch (NumberFormatException e) {
+                    log.error("interval {} format error. Use default interval(1)", interval);
+                }
                 try {
                     Thread.sleep(timeSleep * 1000);
                     log.info("sleeping");
@@ -180,7 +185,7 @@ public class OneToF_FPTT implements Runnable {
             } else {
                 exptMsg.append(FPTT_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
                 log.error("1ToF_FPTT search results insert into {} error. ProbeId={}", FPTT_tablename, srchTaskBean.getPROBEID());
-                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().substring(1, 128));
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
             }
 
         }

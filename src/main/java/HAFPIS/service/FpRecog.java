@@ -67,12 +67,11 @@ public class FpRecog implements Runnable {
             List<SrchTaskBean> list = new ArrayList<>();
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
             if ((list.size() == 0)) {
-                int timeSleep = 0;
+                int timeSleep = 1;
                 try {
                     timeSleep = Integer.parseInt(interval);
                 } catch (NumberFormatException e) {
-                    log.error("interval format error. should be number {}", interval);
-                    timeSleep = 1;
+                    log.error("interval {} format error. Use default interval(1)", interval);
                 }
                 try {
                     Thread.sleep(timeSleep * 1000);
@@ -338,23 +337,23 @@ public class FpRecog implements Runnable {
                 if (isSuc) {
                     srchTaskBean.setSTATUS(5);
                     log.info("LT search finished. ProbeId={}", srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, null);
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 5, null);
                 } else {
                     exptMsg.append(FPLT_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
                     log.error("LT search results insert into {} error. ProbeId={}", FPLT_tablename, srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().substring(1, 128));
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
                 }
             }
         } catch (RemoteException var6) {
             log.error("RemoteExp error: ", var6);
             exptMsg.append("RemoteExp error: ").append(var6);
             srchTaskBean.setEXPTMSG(exptMsg.toString());
-            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString().substring(0,128));
+            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
         } catch (MatcherException var7) {
             log.error("FPLT Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
             log.info("try to restart Matcher...");
-            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString().substring(0, 128));
+            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
         }
     }
 
@@ -451,20 +450,20 @@ public class FpRecog implements Runnable {
                 } else {
                     exptMsg.append(FPTT_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
                     log.error("TT search results insert into {} error. ProbeId={}", FPTT_tablename, srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().substring(1, 128));
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
                 }
             }
         } catch (RemoteException var6) {
             log.error("RemoteExp error: ", var6);
             exptMsg.append("RemoteExp error: ").append(var6);
             srchTaskBean.setEXPTMSG(exptMsg.toString());
-            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString().substring(0,128));
+            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
         } catch (MatcherException var7) {
             log.error("FPTT Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
             log.info("try to restart Matcher...");
 //            startTenFpMatcher();
-            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString().substring(0, 128));
+            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
         }
     }
 

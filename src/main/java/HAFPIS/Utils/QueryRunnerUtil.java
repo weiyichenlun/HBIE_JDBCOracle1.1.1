@@ -11,8 +11,23 @@ import org.slf4j.LoggerFactory;
  */
 public class QueryRunnerUtil {
     private static final Logger log = LoggerFactory.getLogger(QueryRunnerUtil.class);
-    private static BasicDataSource ds  = new BasicDataSource();
-    static {
+    private  BasicDataSource ds ;
+//    static {
+//        log.info("begin to initialize queryrunner...");
+//        String driver = ConfigUtil.getConfig("driver");
+//        String url = ConfigUtil.getConfig("url");
+//        String usr = ConfigUtil.getConfig("usr");
+//        String pwd = ConfigUtil.getConfig("pwd");
+//        ds.setDriverClassName(driver);
+//        ds.setUrl(url);
+//        ds.setUsername(usr);
+//        ds.setPassword(pwd);
+//        ds.setTestOnBorrow(true);
+//        log.info("queryrunner initialize finish...");
+//    }
+
+    private QueryRunnerUtil() {
+        this.ds = new BasicDataSource();
         log.info("begin to initialize queryrunner...");
         String driver = ConfigUtil.getConfig("driver");
         String url = ConfigUtil.getConfig("url");
@@ -26,13 +41,14 @@ public class QueryRunnerUtil {
         log.info("queryrunner initialize finish...");
     }
 
-    private QueryRunnerUtil(){}
-
     public static QueryRunner getInstance() {
         return QueryRunnerHolder.INSTANCE;
     }
 
     private static final class QueryRunnerHolder{
-        private static final QueryRunner INSTANCE = new QueryRunner(ds);
+        private static final QueryRunner INSTANCE = new QueryRunner(new QueryRunnerUtil().ds);
     }
+
+
+
 }

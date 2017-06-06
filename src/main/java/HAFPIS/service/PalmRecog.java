@@ -60,7 +60,12 @@ public class PalmRecog implements Runnable{
             List<SrchTaskBean> list = new ArrayList<>();
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
             if ((list.size() == 0)) {
-                int timeSleep = Integer.parseInt(interval);
+                int timeSleep = 1;
+                try {
+                    timeSleep = Integer.parseInt(interval);
+                } catch (NumberFormatException e) {
+                    log.error("interval {} format error. Use default interval(1)", interval);
+                }
                 try {
                     Thread.sleep(timeSleep * 1000);
                     log.info("sleeping");
@@ -244,22 +249,22 @@ public class PalmRecog implements Runnable{
                 if (isSuc) {
                     srchTaskBean.setSTATUS(5);
                     log.info("L2P search finished. ProbeId={}", srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, null);
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 5, null);
                 } else {
                     exptMsg.append(PPLT_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
                     log.error("L2P search results insert into {} error. ProbeId={}", PPLT_tablename, srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().substring(1, 128));
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
                 }
             }
         } catch (RemoteException var6) {
             log.error("RemoteExp error: ", var6);
             exptMsg.append("RemoteExp error: ").append(var6);
             srchTaskBean.setEXPTMSG(exptMsg.toString());
-            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString().substring(0,128));
+            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
         } catch (MatcherException var7) {
             log.error("L2P Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
-            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString().substring(0, 128));
+            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
         }
     }
 
@@ -328,22 +333,22 @@ public class PalmRecog implements Runnable{
                 if (isSuc) {
                     srchTaskBean.setSTATUS(5);
                     log.info("TT search finished. ProbeId={}", srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, null);
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 5, null);
                 } else {
                     exptMsg.append(PPTT_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
                     log.error("P2P search results insert into {} error. ProbeId={}", PPTT_tablename, srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().substring(1, 128));
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
                 }
             }
         } catch (RemoteException var6) {
             log.error("RemoteExp error: ", var6);
             exptMsg.append("RemoteExp error: ").append(var6);
             srchTaskBean.setEXPTMSG(exptMsg.toString());
-            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString().substring(0,128));
+            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
         } catch (MatcherException var7) {
             log.error("P2P Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
-            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString().substring(0, 128));
+            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
         }
     }
 

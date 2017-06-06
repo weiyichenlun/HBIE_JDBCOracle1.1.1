@@ -166,11 +166,11 @@ public class OneToF_PPLL implements Runnable {
                 if (isSuc) {
                     srchTaskBean.setSTATUS(5);
                     log.info("1ToF_PPLL search finished. ProbeId={}", srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, null);
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 5, null);
                 } else {
                     exptMsg.append(PPLL_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
                     log.error("1ToF_PPLL search results insert into {} error. ProbeId={}", PPLL_tablename, srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().substring(1, 128));
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
                 }
             }
         }

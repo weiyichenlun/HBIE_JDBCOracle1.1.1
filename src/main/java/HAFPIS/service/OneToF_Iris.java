@@ -51,7 +51,12 @@ public class OneToF_Iris implements Runnable {
             List<SrchTaskBean> list = new ArrayList<>();
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
             if ((list.size() == 0)) {
-                int timeSleep = Integer.parseInt(interval);
+                int timeSleep = 1;
+                try {
+                    timeSleep = Integer.parseInt(interval);
+                } catch (NumberFormatException e) {
+                    log.error("interval {} format error. Use default interval(1)", interval);
+                }
                 try {
                     Thread.sleep(timeSleep * 1000);
                     log.info("sleeping");
@@ -169,11 +174,11 @@ public class OneToF_Iris implements Runnable {
                 if (isSuc) {
                     srchTaskBean.setSTATUS(5);
                     log.info("Iris_1ToF search finished. ProbeId={}", srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, null);
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 5, null);
                 } else {
                     exptMsg.append(Iris_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
                     log.error("Iris_1ToF search results insert into {} error. ProbeId={}", Iris_tablename, srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().substring(1, 128));
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
                 }
             }
         }

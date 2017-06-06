@@ -44,7 +44,12 @@ public class IrisRecog implements Runnable {
             List<SrchTaskBean> list = new ArrayList<>();
             list = srchTaskDAO.getList(status, new int[]{7}, tasktypes, queryNum);
             if ((list.size() == 0)) {
-                int timeSleep = Integer.parseInt(interval);
+                int timeSleep = 1;
+                try {
+                    timeSleep = Integer.parseInt(interval);
+                } catch (NumberFormatException e) {
+                    log.error("interval {} format error. Use default interval(1)", interval);
+                }
                 try {
                     Thread.sleep(timeSleep * 1000);
                     log.info("sleeping");
@@ -146,22 +151,22 @@ public class IrisRecog implements Runnable {
                 if (isSuc) {
                     srchTaskBean.setSTATUS(5);
                     log.info("IrisTT search finished. ProbeId={}", srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, null);
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 5, null);
                 } else {
                     exptMsg.append(IrisTT_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
-                    log.error("FaceTT search results insert into {} error. ProbeId={}", IrisTT_tablename, srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().substring(1, 128));
+                    log.error("IrisTT search results insert into {} error. ProbeId={}", IrisTT_tablename, srchTaskBean.getPROBEID());
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
                 }
             }
         } catch (RemoteException var6) {
             log.error("RemoteExp error: ", var6);
             exptMsg.append("RemoteExp error: ").append(var6);
             srchTaskBean.setEXPTMSG(exptMsg.toString());
-            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString().substring(0,128));
+            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
         } catch (MatcherException var7) {
             log.error("IrisTT Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
-            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString().substring(0, 128));
+            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
         }
     }
 

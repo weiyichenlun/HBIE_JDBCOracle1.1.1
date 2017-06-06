@@ -60,9 +60,14 @@ public class LatFpRecog implements Runnable{
             List<SrchTaskBean> list = new ArrayList<>();
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
             if ((list.size() == 0)) {
-                int timeSleep = Integer.parseInt(interval);
+                int timeSleep = 1;
                 try {
-                    Thread.sleep(timeSleep * 10000);
+                    timeSleep = Integer.parseInt(interval);
+                } catch (NumberFormatException e) {
+                    log.error("interval {} format error. Use default interval(1)", interval);
+                }
+                try {
+                    Thread.sleep(timeSleep * 1000);
                     log.info("sleeping");
                 } catch (InterruptedException e) {
                     log.warn("Waiting Thread was interrupted: {}", e);
@@ -164,7 +169,7 @@ public class LatFpRecog implements Runnable{
             int tempCands = numOfCand / numOfOne;
             int tempRes = numOfCand % numOfOne;
             if (tempRes > tempCands / 2) {
-                tempCands = tempCands+1;
+                tempCands = tempCands + 1;
             }
             //按指位平均输出
             if (avgCand == 1) {
@@ -292,23 +297,23 @@ public class LatFpRecog implements Runnable{
                 if (isSuc) {
                     srchTaskBean.setSTATUS(5);
                     log.info("TL search finished. ProbeId={}", srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, null);
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 5, null);
                 } else {
                     exptMsg.append(FPTL_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
                     log.error("TL search results insert into {} error. ProbeId={}", FPTL_tablename, srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().substring(1, 128));
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
                 }
             }
         }  catch (RemoteException var6) {
             log.error("RemoteExp error: ", var6);
             exptMsg.append("RemoteExp error: ").append(var6);
             srchTaskBean.setEXPTMSG(exptMsg.toString());
-            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString().substring(0,128));
+            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
         } catch (MatcherException var7) {
             log.error("FPTL Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
-            log.info("try to restart Matcher...");
-            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString().substring(0, 128));
+//            log.info("try to restart Matcher...");
+            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
         }
     }
 
@@ -378,24 +383,24 @@ public class LatFpRecog implements Runnable{
                 if (isSuc) {
                     srchTaskBean.setSTATUS(5);
                     log.info("FPLL search finished. ProbeId={}", srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, null);
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), 5, null);
                 } else {
                     exptMsg.append(FPLL_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
                     log.error("FPLL search results insert into {} error. ProbeId={}", FPLL_tablename, srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().substring(1, 128));
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
                 }
             }
         } catch (RemoteException var6) {
             log.error("RemoteExp error: ", var6);
             exptMsg.append("RemoteExp error: ").append(var6);
             srchTaskBean.setEXPTMSG(exptMsg.toString());
-            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString().substring(0,128));
+            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
         } catch (MatcherException var7) {
             log.error("FPLL Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
             log.info("try to restart Matcher...");
 //            startTenFpMatcher();
-            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString().substring(0, 128));
+            srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
         }
     }
 
