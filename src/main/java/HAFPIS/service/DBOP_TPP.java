@@ -1,7 +1,7 @@
 package HAFPIS.service;
 
 import HAFPIS.DAO.DbopTaskDAO;
-import HAFPIS.DAO.PINFODAO;
+import HAFPIS.DAO.TPPDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.HbieUtil;
 import HAFPIS.Utils.QueryRunnerUtil;
@@ -34,7 +34,7 @@ public class DBOP_TPP implements Runnable {
     private String tablename_pinfo;
     int datatype = 0;
     private DbopTaskDAO dbopTaskDAO;
-    private PINFODAO pinfodao;
+    private TPPDAO pinfodao;
 
     @Override
     public void run() {
@@ -90,7 +90,7 @@ public class DBOP_TPP implements Runnable {
                                         HbieUtil.getInstance().hbie_IRIS.updateMatcher(id, -1);
                                         break;
                                     case 5:
-                                        pinfodao = new PINFODAO(tablename_pinfo);
+                                        pinfodao = new TPPDAO(tablename_pinfo);
                                         String imgmask = pinfodao.getImgMask(id);
                                         if (imgmask == null) {
                                             log.error("can not get imgmask for probeid: {}", id);

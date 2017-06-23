@@ -122,8 +122,8 @@ public class OneToF_Face implements Runnable {
                                 FaceRec faceRec = new FaceRec();
                                 faceRec.candid = new String(gallery.probeId).trim();
                                 THIDFace.VerifyFeature verifyFeature = new THIDFace.VerifyFeature();
-                                verifyFeature.feature1 = probe.facemnt;
-                                verifyFeature.feature2 = gallery.facemnt;
+                                verifyFeature.feature1 = probe.facemnt[0];
+                                verifyFeature.feature2 = gallery.facemnt[0];
                                 THIDFace.VerifyFeature.Result result = HbieUtil.getInstance().hbie_FACE.process(verifyFeature);
                                 faceRec.score = result.score;
                                 return faceRec;

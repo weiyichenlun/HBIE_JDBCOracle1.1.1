@@ -1,5 +1,6 @@
 package HAFPIS.service;
 
+import HAFPIS.DAO.PLPDAO;
 import HAFPIS.DAO.PPLLDAO;
 import HAFPIS.DAO.PPTLDAO;
 import HAFPIS.DAO.SrchTaskDAO;
@@ -139,8 +140,8 @@ public class LatPalmRecog implements Runnable {
                 ppllRec.taskid = srchTaskBean.getTASKIDD();
                 ppllRec.transno = srchTaskBean.getTRANSNO();
                 ppllRec.probeid = srchTaskBean.getPROBEID();
-                ppllRec.dbid = 1;
                 ppllRec.candid = cand.record.id;
+                ppllRec.dbid = PLPDAO.getDbId(ppllRec.candid);
                 ppllRec.score = cand.score;
                 ppllRec.position = 1;
                 if (ppllRec.score >= PPLL_threshold) {
@@ -206,7 +207,7 @@ public class LatPalmRecog implements Runnable {
             exptMsg = new StringBuilder(tempMsg);
         }
         srchPosMask = srchTaskBean.getSRCHPOSMASK();
-        if (srchPosMask.length() > 10) {
+        if (null != srchPosMask && srchPosMask.length() >= 10) {
             srchPosMask_Palm = srchPosMask.substring(0, 10);
         }else{
             srchPosMask_Palm = "1000110001";
@@ -221,8 +222,8 @@ public class LatPalmRecog implements Runnable {
         }
         numOfOne = srchDataRec.palmmntnum;
         if (srchDataRec.palmmntnum == 0) {
-            exptMsg.append(" PalmMnt features is null ");
-            log.warn("P2L: PalmMnt features are null. ProbeId=",srchTaskBean.getPROBEID());
+            exptMsg.append(" PalmMnt features are null ");
+            log.warn("P2L: PalmMnt features are null. ProbeId={}",srchTaskBean.getPROBEID());
         }
 
         try{
@@ -243,16 +244,20 @@ public class LatPalmRecog implements Runnable {
                 tempCands = tempCands + 1;
             }
             probe.id = srchTaskBean.getPROBEID();
-            if(avgCand==1){
-                for(int i=0; i<mask.length; i++){
-                    if(mask[i] == 1){
+            if (avgCand == 1) {
+                for (int i = 0; i < mask.length; i++) {
+                    if (mask[i] == 1) {
                         probe.feature[i] = features[i];
                         results = HbieUtil.getInstance().hbie_PLP.search(probe);
-                        for(int j=0; j< results.candidates.size(); j++){
+                        for (int j = 0; j < results.candidates.size(); j++) {
                             HSFPLatPalm.FourPalmSearchParam.Result cand = results.candidates.get(j);
                             PPTLRec pptlRec = new PPTLRec();
+                            pptlRec.taskid = srchTaskBean.getTASKIDD();
+                            pptlRec.transno = srchTaskBean.getTRANSNO();
+                            pptlRec.probeid = srchTaskBean.getPROBEID();
                             pptlRec.candid = cand.record.id;
-                            pptlRec.score  = cand.score;
+                            pptlRec.dbid = PLPDAO.getDbId(pptlRec.candid);
+                            pptlRec.score = cand.score;
                             pptlRec.position = cand.outputs[2].galleryPos + 1;
                             if (results.candidates.size() <= tempCands) {
                                 list.add(pptlRec);
@@ -268,21 +273,25 @@ public class LatPalmRecog implements Runnable {
                 }
                 tempList = CommonUtil.mergeResult(tempList);
                 list = CommonUtil.mergeResult(list);
-                if(list.size()>numOfCand){
-                    list = CommonUtil.getList(list,numOfCand);
-                }else {
-                    tempList = CommonUtil.getList(tempList, numOfCand-list.size());
+                if (list.size() > numOfCand) {
+                    list = CommonUtil.getList(list, numOfCand);
+                } else {
+                    tempList = CommonUtil.getList(tempList, numOfCand - list.size());
                     list = CommonUtil.mergeResult(list, tempList);
                 }
-            }else{
+            } else {
                 probe.feature = features;
                 results = HbieUtil.getInstance().hbie_PLP.search(probe);
                 for (HSFPLatPalm.FourPalmSearchParam.Result cand : results.candidates) {
                     PPTLRec pptlRec = new PPTLRec();
+                    pptlRec.taskid = srchTaskBean.getTASKIDD();
+                    pptlRec.transno = srchTaskBean.getTRANSNO();
+                    pptlRec.probeid = srchTaskBean.getPROBEID();
                     pptlRec.candid = cand.record.id;
-                    pptlRec.score  = cand.score;
+                    pptlRec.dbid = PLPDAO.getDbId(pptlRec.candid);
+                    pptlRec.score = cand.score;
                     pptlRec.position = cand.outputs[2].galleryPos + 1;
-                    if(pptlRec.score>threshold) {
+                    if (pptlRec.score > threshold) {
                         list.add(pptlRec);
                     }
                 }
@@ -292,7 +301,7 @@ public class LatPalmRecog implements Runnable {
             if ((list == null) || (list.size() == 0)) {
                 if (!exptMsg.toString().isEmpty()) {
                     srchTaskBean.setSTATUS(-1);
-                    log.error("PPTL search: No results. ProbeId={}, ExceptionMsg:{}", srchTaskBean.getPROBEID(), exptMsg);
+                    log.error("P2L search: No results. ProbeId={}, ExceptionMsg:{}", srchTaskBean.getPROBEID(), exptMsg);
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().substring(1, 128));
                 }else{
                     srchTaskBean.setEXPTMSG("No results");

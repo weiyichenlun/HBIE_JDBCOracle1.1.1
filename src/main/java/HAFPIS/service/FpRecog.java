@@ -2,6 +2,7 @@ package HAFPIS.service;
 
 import HAFPIS.DAO.FPLTDAO;
 import HAFPIS.DAO.FPTTDAO;
+import HAFPIS.DAO.TPPDAO;
 import HAFPIS.DAO.SrchTaskDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
@@ -106,9 +107,6 @@ public class FpRecog implements Runnable {
                                         log.debug("FPTT total cost : {} ms", (System.currentTimeMillis() - start));
                                     }
                                 }, "FPTT");
-//                                long start = System.currentTimeMillis();
-//                                FPTT(srchDataRecList, srchTaskBean);
-//                                log.debug("FPTT total cost : {} ms", (System.currentTimeMillis()-start));
                                 break;
                             case 3:
                                 SrchTaskBean finalSrchTaskBean1 = srchTaskBean;
@@ -120,9 +118,6 @@ public class FpRecog implements Runnable {
                                         log.debug("FPLT total cost : {} ms", (System.currentTimeMillis() - start1));
                                     }
                                 }, "FPLT");
-//                                long start1 = System.currentTimeMillis();
-//                                FPLT(srchDataRecList, srchTaskBean);
-//                                log.debug("FPLT total cost : {} ms", (System.currentTimeMillis()-start1));
                                 break;
                         }
                         listF.add(future);
@@ -132,14 +127,11 @@ public class FpRecog implements Runnable {
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
                 }
             }
-            for (int i = 0; i < listF.size(); i++) {
-                Future<String> f = listF.get(i);
+            for (Future<String> f : listF) {
                 try {
                     f.get();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
+                } catch (InterruptedException | ExecutionException e) {
+                    log.error("FpRecog get result error. ", e);
                 }
             }
             log.debug("total cost : {} ms", (System.currentTimeMillis()-start1));
@@ -224,8 +216,8 @@ public class FpRecog implements Runnable {
                             fpltRec.taskid = srchTaskBean.getTASKIDD();
                             fpltRec.transno = srchTaskBean.getTRANSNO();
                             fpltRec.probeid = srchTaskBean.getPROBEID();
-                            fpltRec.dbid = 1;
                             fpltRec.candid = cand.record.id;
+                            fpltRec.dbid = TPPDAO.getDbId(fpltRec.candid);
                             fpltRec.position = cand.fp + 1;
                             fpltRec.score = cand.score;
                             if (results.candidates.size() <= tempCands) {
@@ -251,8 +243,8 @@ public class FpRecog implements Runnable {
                             fpltRec.taskid = srchTaskBean.getTASKIDD();
                             fpltRec.transno = srchTaskBean.getTRANSNO();
                             fpltRec.probeid = srchTaskBean.getPROBEID();
-                            fpltRec.dbid = 1;
                             fpltRec.candid = cand.record.id;
+                            fpltRec.dbid = TPPDAO.getDbId(fpltRec.candid);;
                             fpltRec.position = cand.fp + 11;
                             fpltRec.score = cand.score;
                             if (results.candidates.size() <= tempCands) {
@@ -285,8 +277,8 @@ public class FpRecog implements Runnable {
                     fpltRec.taskid = srchTaskBean.getTASKIDD();
                     fpltRec.transno = srchTaskBean.getTRANSNO();
                     fpltRec.probeid = srchTaskBean.getPROBEID();
-                    fpltRec.dbid = 1;
                     fpltRec.candid = cand.record.id;
+                    fpltRec.dbid = TPPDAO.getDbId(fpltRec.candid);
                     fpltRec.position = cand.fp + 1;
                     fpltRec.score = cand.score;
                     if (fpltRec.score > FPLT_threshold) {
@@ -304,8 +296,8 @@ public class FpRecog implements Runnable {
                     fpltRec.taskid = srchTaskBean.getTASKIDD();
                     fpltRec.transno = srchTaskBean.getTRANSNO();
                     fpltRec.probeid = srchTaskBean.getPROBEID();
-                    fpltRec.dbid = 1;
                     fpltRec.candid = cand.record.id;
+                    fpltRec.dbid = TPPDAO.getDbId(fpltRec.candid);
                     fpltRec.position = cand.fp + 11;
                     fpltRec.score = cand.score;
                     if (fpltRec.score > FPLT_threshold) {
@@ -314,18 +306,18 @@ public class FpRecog implements Runnable {
                 }
                 list = CommonUtil.mergeResult(list);
             }
-            if(list ==null || list.size() ==0){
-                if(!exptMsg.toString().isEmpty()){
+            if (list == null || list.size() == 0) {
+                if (!exptMsg.toString().isEmpty()) {
                     srchTaskBean.setSTATUS(-1);
-                    log.error("FPLT search: No results. ProbeId={}, ExceptionMsg:{}",srchTaskBean.getPROBEID(), exptMsg);
+                    log.error("FPLT search: No results. ProbeId={}, ExceptionMsg:{}", srchTaskBean.getPROBEID(), exptMsg);
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().substring(1, 128));
-                }else{
+                } else {
                     srchTaskBean.setEXPTMSG("No results");
                     srchTaskBean.setSTATUS(6);
                     log.info("FPLT search: No results for ProbeId={}", srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), 6, "no results");
                 }
-            }else {
+            } else {
                 if (list.size() > numOfCand) {
                     list = CommonUtil.getList(list, numOfCand);
                 }
@@ -394,8 +386,8 @@ public class FpRecog implements Runnable {
                 fpttRec.taskid = srchTaskBean.getTASKIDD();
                 fpttRec.transno = srchTaskBean.getTRANSNO();
                 fpttRec.probeid = srchTaskBean.getPROBEID();
-                fpttRec.dbid = 1;
                 fpttRec.candid = cand.record.id;
+                fpttRec.dbid = TPPDAO.getDbId(fpttRec.candid);
                 fpttRec.rpscores = normalScore(cand.fpscores);
                 fpttRec.score = cand.score;
                 if (fpttRec.score >= FPTT_threshold) {
@@ -413,7 +405,7 @@ public class FpRecog implements Runnable {
                 fpttRec.taskid = srchTaskBean.getTASKIDD();
                 fpttRec.transno = srchTaskBean.getTRANSNO();
                 fpttRec.probeid = srchTaskBean.getPROBEID();
-                fpttRec.dbid = 1;
+                fpttRec.dbid = TPPDAO.getDbId(srchTaskBean.getPROBEID());
                 fpttRec.candid = cand.record.id;
                 fpttRec.fpscores = normalScore(cand.fpscores);
                 fpttRec.score = cand.score;

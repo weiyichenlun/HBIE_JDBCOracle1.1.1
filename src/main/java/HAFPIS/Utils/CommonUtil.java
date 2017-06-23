@@ -137,12 +137,16 @@ public class CommonUtil {
                         }
                         break;
                     case 6:
-                        if (temp.FaceMntLen[0] == 0) {
-                            temp.facemnt = null;
-                        } else {
-                            byte[] tempFea = new byte[temp.FaceMntLen[0]];
-                            dis.readFully(tempFea);
-                            temp.facemnt = tempFea;
+                        for (int i = 0; i < 3; i++) {
+                            int len = temp.FaceMntLen[i];
+                            if (len == 0) {
+                                temp.facemnt[i] = null;
+                            } else {
+                                byte[] tempFea = new byte[len];
+                                dis.readFully(tempFea);
+                                temp.facemnt[i] = tempFea;
+                                temp.facemntnum++;
+                            }
                         }
                         break;
                     case 7:
@@ -203,10 +207,9 @@ public class CommonUtil {
                 }
             }
         }
-        for (int i = 0; i < list.size(); i++) {
-            Rec fpRec = list.get(i);
-            if (fpRec.candid.endsWith("_")) {
-                fpRec.candid = fpRec.candid.substring(0, fpRec.candid.length() - 1);
+        for (T aList : list) {
+            if (aList.candid.endsWith("_")) {
+                aList.candid = aList.candid.substring(0, aList.candid.length() - 1);
             }
         }
         return sort(list);
@@ -223,7 +226,7 @@ public class CommonUtil {
         if (list.size() > numOfCand) {
             res.addAll(list.subList(0, numOfCand));
         } else {
-            res.addAll(res);
+            res.addAll(list);
         }
         return res;
     }
@@ -234,22 +237,14 @@ public class CommonUtil {
             return null;
         }
         else if(list == null){
-            for(int i=0; i<list_rest.size(); i++){
-                res.add(list_rest.get(i));
-            }
+            res.addAll(list_rest);
         }
         else if(list_rest == null){
-            for(int i=0; i<list.size(); i++) {
-                res.add(list.get(i));
-            }
+            res.addAll(list);
         }
         else{
-            for(int i=0; i<list.size(); i++) {
-                res.add(list.get(i));
-            }
-            for(int i=0; i<list_rest.size(); i++) {
-                res.add(list_rest.get(i));
-            }
+            res.addAll(list);
+            res.addAll(list_rest);
         }
         return mergeResult(res);
     }

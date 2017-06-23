@@ -14,9 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Blob;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -28,7 +26,7 @@ import java.util.concurrent.Future;
  * Created by ZP on 2017/6/5.
  */
 public class OneToF_PPLL implements Runnable {
-    private static final Logger log = LoggerFactory.getLogger(OneToF_FPLL.class);
+    private static final Logger log = LoggerFactory.getLogger(OneToF_PPLL.class);
     private int type;
     private String interval;
     private String queryNum;
@@ -99,7 +97,7 @@ public class OneToF_PPLL implements Runnable {
         if (srchDataRecList.size() <= 1) {
             srchTaskBean.setSTATUS(-1);
             srchTaskBean.setEXPTMSG("there is only one SrchDataRec");
-            log.error("there is only one SrchDataRec in srchDataRecList, FPLL_1ToF will stop");
+            log.error("there is only one SrchDataRec in srchDataRecList, PPLL_1ToF will stop");
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "only one srchdata record");
         } else {
             List<PPLLRec> list = new ArrayList<>();
@@ -109,7 +107,6 @@ public class OneToF_PPLL implements Runnable {
                 log.error("the probe latfpmnt is null. probeid={}", new String(probe.probeId));
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "probe latfpmnt is null");
             } else {
-                Map<String, Future<Float>> map = new HashMap<>();
                 List<Future<PPLLRec>> listF = new ArrayList<>();
                 for (int i = 1; i < srchDataRecList.size(); i++) {
                     SrchDataRec gallery = srchDataRecList.get(i);
@@ -122,9 +119,9 @@ public class OneToF_PPLL implements Runnable {
                                 PPLLRec fpllRec = new PPLLRec();
                                 fpllRec.candid = new String(gallery.probeId).trim();
                                 HSFPFourPalm.VerifyFeature verifyFeature = new HSFPFourPalm.VerifyFeature();
-                                verifyFeature.feature1[0] = probe.latfpmnt;
-                                verifyFeature.feature2[0] = gallery.latfpmnt;
-                                HSFPFourPalm.VerifyFeature.Result result = HbieUtil.getInstance().hbie_FP.process(verifyFeature);
+                                verifyFeature.feature1[2] = probe.latpalmmnt;
+                                verifyFeature.feature2[2] = gallery.latpalmmnt;
+                                HSFPFourPalm.VerifyFeature.Result result = HbieUtil.getInstance().hbie_PP.process(verifyFeature);
                                 fpllRec.score = result.score;
                                 return fpllRec;
                             }
@@ -142,7 +139,7 @@ public class OneToF_PPLL implements Runnable {
                         ppllRec.dbid = 0;
                         list.add(ppllRec);
                     } catch (InterruptedException | ExecutionException e) {
-                        log.info("FPLL_1ToF get record error, ", e);
+                        log.info("PPLL_1ToF get record error, ", e);
                     }
                 }
             }

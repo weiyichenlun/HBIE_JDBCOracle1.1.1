@@ -2,6 +2,7 @@ package HAFPIS.service;
 
 import HAFPIS.DAO.FaceTTDAO;
 import HAFPIS.DAO.SrchTaskDAO;
+import HAFPIS.DAO.TPPDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
 import HAFPIS.Utils.HbieUtil;
@@ -97,7 +98,7 @@ public class FaceRecog implements Runnable {
             exptMsg = new StringBuilder(tempMsg);
         }
         SrchDataRec srchDataRec = srchDataRecList.get(0);
-        byte[] feature = srchDataRec.facemnt;
+        byte[] feature = srchDataRec.facemnt[0];
         if (feature == null) {
             exptMsg.append("FaceTT feature is null. ");
             log.warn("FaceTT: feature is null. Probeid={}", srchTaskBean.getPROBEID());
@@ -120,8 +121,8 @@ public class FaceRecog implements Runnable {
                 faceRec.taskid = srchTaskBean.getTASKIDD();
                 faceRec.transno = srchTaskBean.getTRANSNO();
                 faceRec.probeid = srchTaskBean.getPROBEID();
-                faceRec.dbid = 1;
                 faceRec.candid = cand.record.id;
+                faceRec.dbid = TPPDAO.getDbId(faceRec.candid);
                 faceRec.score = cand.score;
                 faceRec.ffscores[0] = cand.score;
                 if(faceRec.score > FaceTT_threshold){

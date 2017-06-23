@@ -2,6 +2,7 @@ package HAFPIS.service;
 
 import HAFPIS.DAO.IrisTTDAO;
 import HAFPIS.DAO.SrchTaskDAO;
+import HAFPIS.DAO.TPPDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
 import HAFPIS.Utils.HbieUtil;
@@ -119,8 +120,8 @@ public class IrisRecog implements Runnable {
                 irisRec.taskid = srchTaskBean.getTASKIDD();
                 irisRec.transno = srchTaskBean.getTRANSNO();
                 irisRec.probeid = srchTaskBean.getPROBEID();
-                irisRec.dbid = 1;
                 irisRec.candid = cand.record.id;
+                irisRec.dbid = TPPDAO.getDbId(irisRec.candid);
                 irisRec.score = cand.score;
                 irisRec.iiscores = cand.scores;
                 if (irisRec.score > IrisTT_threshold) {

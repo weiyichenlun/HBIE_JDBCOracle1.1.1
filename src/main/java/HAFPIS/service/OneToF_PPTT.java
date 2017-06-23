@@ -149,6 +149,7 @@ public class OneToF_PPTT implements Runnable{
                             }
                             ppttRec.ppscores[j] = temp;
                         }
+                        ppttRec.score = tempScore;
 //                        HSFPFourPalm.VerifyFeature verifyFeature = new HSFPFourPalm.VerifyFeature();
 //                        verifyFeature.feature1 = probe.palmmnt;
 //                        verifyFeature.feature2 = gallery.palmmnt;

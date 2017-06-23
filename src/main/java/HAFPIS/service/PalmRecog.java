@@ -3,6 +3,7 @@ package HAFPIS.service;
 import HAFPIS.DAO.PPLTDAO;
 import HAFPIS.DAO.PPTTDAO;
 import HAFPIS.DAO.SrchTaskDAO;
+import HAFPIS.DAO.TPPDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
 import HAFPIS.Utils.HbieUtil;
@@ -181,8 +182,8 @@ public class PalmRecog implements Runnable{
                             ppltRec.taskid = srchTaskBean.getTASKIDD();
                             ppltRec.transno = srchTaskBean.getTRANSNO();
                             ppltRec.probeid = srchTaskBean.getPROBEID();
-                            ppltRec.dbid = 1;
                             ppltRec.candid = cand.record.id;
+                            ppltRec.dbid = TPPDAO.getDbId(ppltRec.candid);
                             ppltRec.position = cand.outputs[2].galleryPos;
                             ppltRec.score = cand.score;
                             if (results.candidates.size() <= PPLT_threshold) {
@@ -216,8 +217,8 @@ public class PalmRecog implements Runnable{
                     ppltRec.taskid = srchTaskBean.getTASKIDD();
                     ppltRec.transno = srchTaskBean.getTRANSNO();
                     ppltRec.probeid = srchTaskBean.getPROBEID();
-                    ppltRec.dbid = 1;
                     ppltRec.candid = cand.record.id;
+                    ppltRec.dbid = TPPDAO.getDbId(ppltRec.candid);
                     ppltRec.position = cand.outputs[2].galleryPos;
                     ppltRec.score = cand.score;
                     if (ppltRec.score >= PPLT_threshold) {
@@ -301,8 +302,8 @@ public class PalmRecog implements Runnable{
                 ppttRec.taskid = srchTaskBean.getTASKIDD();
                 ppttRec.transno = srchTaskBean.getTRANSNO();
                 ppttRec.probeid = srchTaskBean.getPROBEID();
-                ppttRec.dbid = 1;
                 ppttRec.candid = cand.record.id;
+                ppttRec.dbid = TPPDAO.getDbId(ppttRec.candid);
                 ppttRec.score  = cand.score;
                 ppttRec.position = cand.outputs[2].galleryPos;
                 if (ppttRec.score > PPTT_threshold) {

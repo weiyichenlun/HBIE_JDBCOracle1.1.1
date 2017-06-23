@@ -27,13 +27,14 @@ public class SrchDataRec implements Externalizable{
     public byte[] latfpmnt;
     public byte[][] palmmnt;
     public byte[] latpalmmnt;
-    public byte[] facemnt;
+    public byte[][] facemnt;
     public byte[][] irismnt;
 
     public int datatype;
     public int rpmntnum;
     public int fpmntnum;
     public int palmmntnum;
+    public int facemntnum;
     public int irismntnum;
 
     public SrchDataRec() {
@@ -54,12 +55,13 @@ public class SrchDataRec implements Externalizable{
         latfpmnt = new byte[0];
         palmmnt = new byte[4][];
         latpalmmnt = new byte[0];
-        facemnt = new byte[0];
+        facemnt = new byte[3][];
         irismnt = new byte[2][];
 
         rpmntnum = 0;
         fpmntnum = 0;
         palmmntnum = 0;
+        facemntnum = 0;
         irismntnum = 0;
     }
 
@@ -121,15 +123,23 @@ public class SrchDataRec implements Externalizable{
                 out.write(irismnt[i]);
             }
         }
+
+        for (int i = 0; i < facemnt.length; i++) {
+            if (facemnt[i] != null) {
+                out.write(facemnt[i]);
+            }
+        }
         if (latfpmnt != null && latfpmnt.length > 0) {
             out.write(latfpmnt);
         }
         if (latpalmmnt != null && latpalmmnt.length > 0) {
             out.write(latpalmmnt);
         }
-        if (facemnt != null && facemnt.length > 0) {
-            out.write(facemnt);
-        }
+
+//
+//        if (facemnt != null && facemnt.length > 0) {
+//            out.write(facemnt);
+//        }
         out.flush();
     }
 
@@ -177,8 +187,11 @@ public class SrchDataRec implements Externalizable{
         for (int i = 0; i < irismnt.length; i++) {
             in.readFully(irismnt[i]);
         }
+        for (int i = 0; i < facemnt.length; i++) {
+            in.readFully(facemnt[i]);
+        }
         in.readFully(latfpmnt);
         in.readFully(latpalmmnt);
-        in.readFully(facemnt);
+//        in.readFully(facemnt);
     }
 }
