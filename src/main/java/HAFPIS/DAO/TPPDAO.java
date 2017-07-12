@@ -37,7 +37,7 @@ public class TPPDAO {
             return qr.query(sb.toString(), rs -> {
                 String mask1 = null;
                 while (rs.next()) {
-                    mask1 = rs.getString(0);
+                    mask1 = rs.getString("imgmask");
                 }
                 return mask1;
             }, personid);
@@ -57,7 +57,7 @@ public class TPPDAO {
                 return 0;
             }, personid);
         } catch (SQLException e) {
-            log.error("get dbid error and use default dbid: {}. sql: {}, probeid: {}, exception: ",0, sql, personid, e);
+            log.error("get dbid error and use default dbid: {}. sql: {}, probeid: {}, exception: ", 0, sql, personid, e);
         }
         return 0;
     }

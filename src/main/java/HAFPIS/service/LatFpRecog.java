@@ -2,7 +2,6 @@ package HAFPIS.service;
 
 import HAFPIS.DAO.FPLLDAO;
 import HAFPIS.DAO.FPTLDAO;
-import HAFPIS.DAO.LPPDAO;
 import HAFPIS.DAO.SrchTaskDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
@@ -172,12 +171,15 @@ public class LatFpRecog implements Runnable{
             if (tempRes > tempCands / 2) {
                 tempCands = tempCands + 1;
             }
+            String filter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
+            if (filter != null) {
+                probe.filter = filter;
+            }
             //按指位平均输出
             if (avgCand == 1) {
                 for (int i = 0; i < posMask_Roll.length; i++) {
                     if (posMask_Roll[i] == 1) {
                         probe.image = features_roll[i];
-//                        probe.filter = "flag=={0}";
                         results = HbieUtil.getInstance().hbie_LPP.search(probe);
 
                         for (int j = 0; j < results.candidates.size(); j++) {
@@ -187,7 +189,7 @@ public class LatFpRecog implements Runnable{
                             fptlRec.transno = srchTaskBean.getTRANSNO();
                             fptlRec.probeid = srchTaskBean.getPROBEID();
                             fptlRec.candid = cand.record.id;
-                            fptlRec.dbid = LPPDAO.getDbId(fptlRec.candid);
+                            fptlRec.dbid = (int) cand.record.info.get("dbId");
                             fptlRec.score = cand.score;
                             fptlRec.position = i + 1;
                             if (results.candidates.size() <= tempCands) {
@@ -211,7 +213,7 @@ public class LatFpRecog implements Runnable{
                             fptlRec.transno = srchTaskBean.getTRANSNO();
                             fptlRec.probeid = srchTaskBean.getPROBEID();
                             fptlRec.candid = cand.record.id;
-                            fptlRec.dbid = LPPDAO.getDbId(fptlRec.candid);
+                            fptlRec.dbid = (int) cand.record.info.get("dbId");
                             fptlRec.score = cand.score;
                             fptlRec.position = i + 10 + 1;
                             if (results.candidates.size() < tempCands) {
@@ -244,7 +246,7 @@ public class LatFpRecog implements Runnable{
                             fptlRec.transno = srchTaskBean.getTRANSNO();
                             fptlRec.probeid = srchTaskBean.getPROBEID();
                             fptlRec.candid = cand.record.id;
-                            fptlRec.dbid = LPPDAO.getDbId(fptlRec.candid);
+                            fptlRec.dbid = (int) cand.record.info.get("dbId");
                             fptlRec.score = cand.score;
                             fptlRec.position = i + 1;
                             if (fptlRec.score > FPTL_threshold) {
@@ -264,7 +266,7 @@ public class LatFpRecog implements Runnable{
                             fptlRec.transno = srchTaskBean.getTRANSNO();
                             fptlRec.probeid = srchTaskBean.getPROBEID();
                             fptlRec.candid = cand.record.id;
-                            fptlRec.dbid = LPPDAO.getDbId(fptlRec.candid );
+                            fptlRec.dbid = (int) cand.record.info.get("dbId");
                             fptlRec.score = cand.score;
                             fptlRec.position = i + 10 + 1;
                             if (fptlRec.score > threshold) {
@@ -343,6 +345,10 @@ public class LatFpRecog implements Runnable{
             } else {
                 probe.maxCands = numOfCand = CONSTANTS.MAXCANDS;
             }
+            String filter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
+            if (filter != null) {
+                probe.filter = filter;
+            }
 
             SearchResults<HSFPLatFp.LatFpSearchParam.Result> results = null;
             results = HbieUtil.getInstance().hbie_LPP.search(probe);
@@ -353,7 +359,7 @@ public class LatFpRecog implements Runnable{
                 fpllRec.transno = srchTaskBean.getTRANSNO();
                 fpllRec.probeid = srchTaskBean.getPROBEID();
                 fpllRec.candid = cand.record.id;
-                fpllRec.dbid = LPPDAO.getDbId(fpllRec.candid);
+                fpllRec.dbid = (int) cand.record.info.get("dbId");
                 fpllRec.score = cand.score;
                 fpllRec.position = 1;//现场指纹比对默认指位设置为1
                 if (fpllRec.score >= FPLL_threshold) {

@@ -10,6 +10,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -247,5 +248,18 @@ public class CommonUtil {
             res.addAll(list_rest);
         }
         return mergeResult(res);
+    }
+
+    public synchronized static String getFilter(Clob clob) {
+        String filter = null;
+        if (clob != null) {
+            try {
+                int len = (int) clob.length();
+                filter = clob.getSubString(1, len);
+            } catch (SQLException e) {
+                log.error("get filter from clob error. ", e);
+            }
+        }
+        return filter;
     }
 }

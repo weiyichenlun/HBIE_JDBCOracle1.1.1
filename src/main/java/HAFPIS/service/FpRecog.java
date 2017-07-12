@@ -2,7 +2,6 @@ package HAFPIS.service;
 
 import HAFPIS.DAO.FPLTDAO;
 import HAFPIS.DAO.FPTTDAO;
-import HAFPIS.DAO.TPPDAO;
 import HAFPIS.DAO.SrchTaskDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
@@ -195,6 +194,7 @@ public class FpRecog implements Runnable {
             if (tempRes > tempCands / 2) {
                 tempCands = tempCands + 1;
             }
+            String filter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
 
             SearchResults<HSFPTenFp.LatFpSearchParam.Result> results = null;
             List<FPLTRec> list = new ArrayList<>();
@@ -207,7 +207,11 @@ public class FpRecog implements Runnable {
                 for (int i = 0; i < posMask_Roll.length; i++) {
                     if (posMask_Roll[i] == 1) {
                         probe.fp_score_weight[i] = posMask_Roll[i];
-                        probe.filter = "flag=={0}";
+                        if (filter != null) {
+                            probe.filter = "(flag=={0})" + " && " + filter;
+                        } else {
+                            probe.filter = "flag=={0}";
+                        }
                         results = HbieUtil.getInstance().hbie_FP.search(probe);
 
                         for (int j = 0; j < results.candidates.size(); j++) {
@@ -217,7 +221,7 @@ public class FpRecog implements Runnable {
                             fpltRec.transno = srchTaskBean.getTRANSNO();
                             fpltRec.probeid = srchTaskBean.getPROBEID();
                             fpltRec.candid = cand.record.id;
-                            fpltRec.dbid = TPPDAO.getDbId(fpltRec.candid);
+                            fpltRec.dbid = (int) cand.record.info.get("dbId");
                             fpltRec.position = cand.fp + 1;
                             fpltRec.score = cand.score;
                             if (results.candidates.size() <= tempCands) {
@@ -234,7 +238,11 @@ public class FpRecog implements Runnable {
                 for (int i = 0; i < posMask_Flat.length; i++) {
                     if (posMask_Flat[i] == 1) {
                         probe.fp_score_weight[i] = posMask_Flat[i];
-                        probe.filter = "flag=={1}";
+                        if (filter != null) {
+                            probe.filter = "(flag=={1})" + " && " + filter;
+                        } else {
+                            probe.filter = "flag=={1}";
+                        }
                         results = HbieUtil.getInstance().hbie_FP.search(probe);
 
                         for (int j = 0; j < results.candidates.size(); j++) {
@@ -244,7 +252,7 @@ public class FpRecog implements Runnable {
                             fpltRec.transno = srchTaskBean.getTRANSNO();
                             fpltRec.probeid = srchTaskBean.getPROBEID();
                             fpltRec.candid = cand.record.id;
-                            fpltRec.dbid = TPPDAO.getDbId(fpltRec.candid);;
+                            fpltRec.dbid = (int) cand.record.info.get("dbId");
                             fpltRec.position = cand.fp + 11;
                             fpltRec.score = cand.score;
                             if (results.candidates.size() <= tempCands) {
@@ -270,7 +278,11 @@ public class FpRecog implements Runnable {
                 for (int i = 0; i < posMask_Roll.length; i++) {
                     probe.fp_score_weight[i] = posMask_Roll[i];
                 }
-                probe.filter = "flag=={0}";
+                if (filter != null) {
+                    probe.filter = "(flag=={0})" + " && " + filter;
+                } else {
+                    probe.filter = "flag=={0}";
+                }
                 results = HbieUtil.getInstance().hbie_FP.search(probe);
                 for (HSFPTenFp.LatFpSearchParam.Result cand : results.candidates) {
                     FPLTRec fpltRec = new FPLTRec();
@@ -278,7 +290,7 @@ public class FpRecog implements Runnable {
                     fpltRec.transno = srchTaskBean.getTRANSNO();
                     fpltRec.probeid = srchTaskBean.getPROBEID();
                     fpltRec.candid = cand.record.id;
-                    fpltRec.dbid = TPPDAO.getDbId(fpltRec.candid);
+                    fpltRec.dbid = (int) cand.record.info.get("dbId");
                     fpltRec.position = cand.fp + 1;
                     fpltRec.score = cand.score;
                     if (fpltRec.score > FPLT_threshold) {
@@ -289,7 +301,11 @@ public class FpRecog implements Runnable {
                 for (int i = 0; i < posMask_Flat.length; i++) {
                     probe.fp_score_weight[i] = posMask_Flat[i];
                 }
-                probe.filter = "flag=={1}";
+                if (filter != null) {
+                    probe.filter = "(flag=={1})" + " && " + filter;
+                } else {
+                    probe.filter = "flag=={1}";
+                }
                 results = HbieUtil.getInstance().hbie_FP.search(probe);
                 for (HSFPTenFp.LatFpSearchParam.Result cand : results.candidates) {
                     FPLTRec fpltRec = new FPLTRec();
@@ -297,7 +313,7 @@ public class FpRecog implements Runnable {
                     fpltRec.transno = srchTaskBean.getTRANSNO();
                     fpltRec.probeid = srchTaskBean.getPROBEID();
                     fpltRec.candid = cand.record.id;
-                    fpltRec.dbid = TPPDAO.getDbId(fpltRec.candid);
+                    fpltRec.dbid = (int) cand.record.info.get("dbId");
                     fpltRec.position = cand.fp + 11;
                     fpltRec.score = cand.score;
                     if (fpltRec.score > FPLT_threshold) {
@@ -375,9 +391,14 @@ public class FpRecog implements Runnable {
                 numOfCand = CONSTANTS.MAXCANDS;
                 probe.maxCands = CONSTANTS.MAXCANDS;
             }
+            String filter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
             probe.id = srchTaskBean.getPROBEID();
             probe.features = srchDataRec.rpmnt;
-            probe.filter = "flag=={0}";
+            if (filter != null) {
+                probe.filter = "(flag=={0})" + " && " + filter;
+            } else {
+                probe.filter = "flag=={0}";
+            }
             SearchResults<HSFPTenFp.TenFpSearchParam.Result> results = null;
             long start1 = System.currentTimeMillis();
             results = HbieUtil.getInstance().hbie_FP.search(probe);
@@ -387,7 +408,7 @@ public class FpRecog implements Runnable {
                 fpttRec.transno = srchTaskBean.getTRANSNO();
                 fpttRec.probeid = srchTaskBean.getPROBEID();
                 fpttRec.candid = cand.record.id;
-                fpttRec.dbid = TPPDAO.getDbId(fpttRec.candid);
+                fpttRec.dbid = (int) cand.record.info.get("dbId");
                 fpttRec.rpscores = normalScore(cand.fpscores);
                 fpttRec.score = cand.score;
                 if (fpttRec.score >= FPTT_threshold) {
@@ -395,7 +416,11 @@ public class FpRecog implements Runnable {
                 }
             }
             probe.features = srchDataRec.fpmnt;
-            probe.filter = "flag=={1}";
+            if (filter != null) {
+                probe.filter = "(flag=={1})" + " && " + filter;
+            } else {
+                probe.filter = "flag=={1}";
+            }
             long start11 = System.currentTimeMillis();
             results = HbieUtil.getInstance().hbie_FP.search(probe);
             long start2 = System.currentTimeMillis();
@@ -405,8 +430,8 @@ public class FpRecog implements Runnable {
                 fpttRec.taskid = srchTaskBean.getTASKIDD();
                 fpttRec.transno = srchTaskBean.getTRANSNO();
                 fpttRec.probeid = srchTaskBean.getPROBEID();
-                fpttRec.dbid = TPPDAO.getDbId(srchTaskBean.getPROBEID());
                 fpttRec.candid = cand.record.id;
+                fpttRec.dbid = (int) cand.record.info.get("dbId");
                 fpttRec.fpscores = normalScore(cand.fpscores);
                 fpttRec.score = cand.score;
                 if (fpttRec.score >= FPTT_threshold) {

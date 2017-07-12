@@ -59,7 +59,7 @@ public class FPLTDAO {
         try {
             return qr.update(del_sql, taskid) > 0;
         } catch (SQLException e) {
-            log.error("Delete records before inserting records error: delSql={}, ExceptionMsg={}", del_sql, e);
+            log.error("Delete records before inserting records error: delSql={}, ExceptionMsg=", del_sql, e);
             return false;
         }
     }
