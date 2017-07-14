@@ -19,6 +19,8 @@ import java.rmi.RemoteException;
 import java.sql.Blob;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Created by ZP on 2017/5/17.
@@ -34,6 +36,7 @@ public class IrisRecog implements Runnable {
     private String IrisTT_tablename;
     private int[] tasktypes = new int[2];
     private SrchTaskDAO srchTaskDAO;
+    private ExecutorService executorService = Executors.newFixedThreadPool(CONSTANTS.NCORES);
 
     @Override
     public void run() {
@@ -58,9 +61,9 @@ public class IrisRecog implements Runnable {
                     log.warn("Waiting Thread was interrupted: {}", e);
                 }
             }
-            SrchTaskBean srchTaskBean = null;
+//            SrchTaskBean srchTaskBean = null;
             for (int i = 0; i < list.size(); i++) {
-                srchTaskBean = list.get(i);
+                final SrchTaskBean srchTaskBean = list.get(i);
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
                 Blob srchdata = srchTaskBean.getSRCHDATA();
                 int dataType = srchTaskBean.getDATATYPE();
@@ -73,7 +76,8 @@ public class IrisRecog implements Runnable {
                         switch (tasktype) {
                             case 1:
                                 long start = System.currentTimeMillis();
-                                IrisTT(srchDataRecList, srchTaskBean);
+//                                IrisTT(srchDataRecList, srchTaskBean);
+                                executorService.submit(() -> IrisTT(srchDataRecList, srchTaskBean));
                                 log.debug("IrisTT total cost : {} ms", (System.currentTimeMillis() - start));
                                 break;
                         }

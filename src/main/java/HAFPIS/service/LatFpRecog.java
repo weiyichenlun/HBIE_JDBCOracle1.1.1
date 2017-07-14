@@ -20,6 +20,8 @@ import java.rmi.RemoteException;
 import java.sql.Blob;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * 指纹识别 TL和LL
@@ -39,6 +41,8 @@ public class LatFpRecog implements Runnable{
     private int[] tasktypes = new int[2];
     private int[] datatypes = new int[2];
     private SrchTaskDAO srchTaskDAO;
+    private static final int NUM_OF_CORES = Runtime.getRuntime().availableProcessors();
+    private ExecutorService executorService = Executors.newFixedThreadPool(NUM_OF_CORES);
 
 
     @Override
@@ -73,9 +77,9 @@ public class LatFpRecog implements Runnable{
                     log.warn("Waiting Thread was interrupted: {}", e);
                 }
             }
-            SrchTaskBean srchTaskBean = null;
+//            SrchTaskBean srchTaskBean = null;
             for (int i = 0; i < list.size(); i++) {
-                srchTaskBean = list.get(i);
+                final SrchTaskBean srchTaskBean = list.get(i);
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
                 Blob srchdata = srchTaskBean.getSRCHDATA();
                 int dataType = srchTaskBean.getDATATYPE();
@@ -88,12 +92,14 @@ public class LatFpRecog implements Runnable{
                         switch (tasktype) {
                             case 2:
                                 long start = System.currentTimeMillis();
-                                FPTL(srchDataRecList, srchTaskBean);
+//                                FPTL(srchDataRecList, srchTaskBean);
+                                executorService.submit(() -> FPTL(srchDataRecList, srchTaskBean));
                                 log.debug("FPTL total cost : {} ms", (System.currentTimeMillis()-start));
                                 break;
                             case 4:
                                 long start1 = System.currentTimeMillis();
-                                FPLL(srchDataRecList, srchTaskBean);
+//                                FPLL(srchDataRecList, srchTaskBean);
+                                executorService.submit(() -> FPLL(srchDataRecList, srchTaskBean));
                                 log.debug("FPLL total cost : {} ms", (System.currentTimeMillis()-start1));
                                 break;
                         }

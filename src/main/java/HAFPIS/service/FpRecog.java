@@ -45,7 +45,7 @@ public class FpRecog implements Runnable {
     private int[] tasktypes = new int[2];
     private int[] datatypes = new int[2];
     private SrchTaskDAO srchTaskDAO;
-
+    private ExecutorService executorService = Executors.newFixedThreadPool(CONSTANTS.NCORES);
 
     @Override
     public void run() {
@@ -102,7 +102,8 @@ public class FpRecog implements Runnable {
                                     @Override
                                     public void run() {
                                         long start = System.currentTimeMillis();
-                                        FPTT(srchDataRecList, finalSrchTaskBean);
+//                                        FPTT(srchDataRecList, finalSrchTaskBean);
+                                        executorService.submit(() -> FPTT(srchDataRecList, finalSrchTaskBean));
                                         log.debug("FPTT total cost : {} ms", (System.currentTimeMillis() - start));
                                     }
                                 }, "FPTT");
@@ -113,7 +114,8 @@ public class FpRecog implements Runnable {
                                     @Override
                                     public void run() {
                                         long start1 = System.currentTimeMillis();
-                                        FPLT(srchDataRecList, finalSrchTaskBean1);
+//                                        FPLT(srchDataRecList, finalSrchTaskBean1);
+                                        executorService.submit(() -> FPLT(srchDataRecList, finalSrchTaskBean1));
                                         log.debug("FPLT total cost : {} ms", (System.currentTimeMillis() - start1));
                                     }
                                 }, "FPLT");

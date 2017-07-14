@@ -5,6 +5,8 @@ package HAFPIS.Utils;
  * Created by ZP on 2017/5/15.
  */
 public class CONSTANTS {
+    public static final int NCORES = Runtime.getRuntime().availableProcessors();
+
     public static final int[] srchOrder = new int[]{0, 4, 5, 9};
     public static final int[] feaOrder = new int[]{0, 2, 1, 3};
 

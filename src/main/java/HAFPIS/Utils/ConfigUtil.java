@@ -28,8 +28,8 @@ public class ConfigUtil {
     private static File configFile = null;
     private static long fileLastModified = 0;
     private static final String ERROR_MESSAGE = "ERROR";
-//    private static String configFileName = "config/hbie.cfg.properties";
-    private static String configFileName = "hbie.cfg.properties";
+    private static String configFileName = "config/hbie.cfg.properties";
+//    private static String configFileName = "hbie.cfg.properties";
 
     private static synchronized void init() {
         configFile = new File(configFileName);
