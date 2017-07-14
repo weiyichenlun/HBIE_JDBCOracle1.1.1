@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
+ *
  * Created by ZP on 2017/5/17.
  */
 public class IrisRecog implements Runnable {
@@ -45,7 +46,7 @@ public class IrisRecog implements Runnable {
         }
         srchTaskDAO = new SrchTaskDAO(tablename);
         while (true) {
-            List<SrchTaskBean> list = new ArrayList<>();
+            List<SrchTaskBean> list;
             list = srchTaskDAO.getList(status, new int[]{7}, tasktypes, queryNum);
             if ((list.size() == 0)) {
                 int timeSleep = 1;
@@ -62,14 +63,13 @@ public class IrisRecog implements Runnable {
                 }
             }
 //            SrchTaskBean srchTaskBean = null;
-            for (int i = 0; i < list.size(); i++) {
-                final SrchTaskBean srchTaskBean = list.get(i);
+            for (final SrchTaskBean srchTaskBean : list) {
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
                 Blob srchdata = srchTaskBean.getSRCHDATA();
                 int dataType = srchTaskBean.getDATATYPE();
                 if (srchdata != null) {
                     List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
-                    if (srchDataRecList.size() <= 0) {
+                    if (null == srchDataRecList || srchDataRecList.size() <= 0) {
                         log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
                     } else {
                         int tasktype = srchTaskBean.getTASKTYPE();
@@ -172,6 +172,14 @@ public class IrisRecog implements Runnable {
             log.error("IrisTT Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+        } catch (Exception e) {
+            if (e instanceof IllegalArgumentException) {
+                log.error("IrisTT illegal parameters error. ", e);
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString() + e.toString());
+            } else {
+                log.error("IrisTT exception ", e);
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString()+e.toString());
+            }
         }
     }
 

@@ -60,7 +60,7 @@ public class PalmRecog implements Runnable{
         }
         srchTaskDAO = new SrchTaskDAO(tablename);
         while (true) {
-            List<SrchTaskBean> list = new ArrayList<>();
+            List<SrchTaskBean> list;
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
             if ((list.size() == 0)) {
                 int timeSleep = 1;
@@ -77,8 +77,7 @@ public class PalmRecog implements Runnable{
                 }
             }
 //            SrchTaskBean srchTaskBean = null;
-            for (int i = 0; i < list.size(); i++) {
-                final SrchTaskBean srchTaskBean = list.get(i);
+            for (final SrchTaskBean srchTaskBean : list) {
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
                 Blob srchdata = srchTaskBean.getSRCHDATA();
                 int dataType = srchTaskBean.getDATATYPE();
@@ -94,13 +93,13 @@ public class PalmRecog implements Runnable{
                                 long start = System.currentTimeMillis();
 //                                PPTT(srchDataRecList, srchTaskBean);
                                 executorService.submit(() -> PPTT(srchDataRecList, srchTaskBean));
-                                log.debug("PPTT total cost : {} ms", (System.currentTimeMillis()-start));
+                                log.debug("PPTT total cost : {} ms", (System.currentTimeMillis() - start));
                                 break;
                             case 3:
                                 long start1 = System.currentTimeMillis();
 //                                PPLT(srchDataRecList, srchTaskBean);
                                 executorService.submit(() -> PPLT(srchDataRecList, srchTaskBean));
-                                log.debug("PPLT total cost : {} ms", (System.currentTimeMillis()-start1));
+                                log.debug("PPLT total cost : {} ms", (System.currentTimeMillis() - start1));
                                 break;
                         }
                     }
@@ -146,8 +145,8 @@ public class PalmRecog implements Runnable{
             log.warn("L2P: feature is null. ProbeId={}",srchTaskBean.getPROBEID());
         }
         //根据srchPosMash进行比对条件设置
-        for(int i=0; i<mask.length; i++){
-            if(mask[i]) {
+        for (boolean aMask : mask) {
+            if (aMask) {
                 numOfOne = numOfOne + 1;
             }
         }
@@ -270,6 +269,14 @@ public class PalmRecog implements Runnable{
             log.error("L2P Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+        } catch (Exception e) {
+            if (e instanceof IllegalArgumentException) {
+                log.error("L2P illegal parameters error. ", e);
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString() + e.toString());
+            } else {
+                log.error("L2P exception ", e);
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString()+e.toString());
+            }
         }
     }
 
@@ -337,7 +344,7 @@ public class PalmRecog implements Runnable{
                 boolean isSuc = ppttdao.updateRes(list);
                 if (isSuc) {
                     srchTaskBean.setSTATUS(5);
-                    log.info("TT search finished. ProbeId={}", srchTaskBean.getPROBEID());
+                    log.info("P2P search finished. ProbeId={}", srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), 5, null);
                 } else {
                     exptMsg.append(PPTT_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
@@ -354,6 +361,14 @@ public class PalmRecog implements Runnable{
             log.error("P2P Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+        } catch (Exception e) {
+            if (e instanceof IllegalArgumentException) {
+                log.error("P2P illegal parameters error. ", e);
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString() + e.toString());
+            } else {
+                log.error("P2P exception ", e);
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString()+e.toString());
+            }
         }
     }
 

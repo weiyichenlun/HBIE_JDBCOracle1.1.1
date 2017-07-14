@@ -61,7 +61,7 @@ public class LatFpRecog implements Runnable{
         }
         srchTaskDAO = new SrchTaskDAO(tablename);
         while (true) {
-            List<SrchTaskBean> list = new ArrayList<>();
+            List<SrchTaskBean> list;
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
             if ((list.size() == 0)) {
                 int timeSleep = 1;
@@ -78,8 +78,7 @@ public class LatFpRecog implements Runnable{
                 }
             }
 //            SrchTaskBean srchTaskBean = null;
-            for (int i = 0; i < list.size(); i++) {
-                final SrchTaskBean srchTaskBean = list.get(i);
+            for (final SrchTaskBean srchTaskBean : list) {
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
                 Blob srchdata = srchTaskBean.getSRCHDATA();
                 int dataType = srchTaskBean.getDATATYPE();
@@ -94,13 +93,13 @@ public class LatFpRecog implements Runnable{
                                 long start = System.currentTimeMillis();
 //                                FPTL(srchDataRecList, srchTaskBean);
                                 executorService.submit(() -> FPTL(srchDataRecList, srchTaskBean));
-                                log.debug("FPTL total cost : {} ms", (System.currentTimeMillis()-start));
+                                log.debug("FPTL total cost : {} ms", (System.currentTimeMillis() - start));
                                 break;
                             case 4:
                                 long start1 = System.currentTimeMillis();
 //                                FPLL(srchDataRecList, srchTaskBean);
                                 executorService.submit(() -> FPLL(srchDataRecList, srchTaskBean));
-                                log.debug("FPLL total cost : {} ms", (System.currentTimeMillis()-start1));
+                                log.debug("FPLL total cost : {} ms", (System.currentTimeMillis() - start1));
                                 break;
                         }
                     }
@@ -158,7 +157,7 @@ public class LatFpRecog implements Runnable{
                 numOfOne = numOfOne + 1;
             }
         }
-        try{
+        try {
             //设置比对参数
             List<FPTLRec> list_rest = new ArrayList<>();
             List<FPTLRec> list = new ArrayList<>();
@@ -283,18 +282,18 @@ public class LatFpRecog implements Runnable{
                 }
                 list = CommonUtil.mergeResult(list);
             }
-            if(list ==null || list.size() ==0){
-                if(!exptMsg.toString().isEmpty()){
+            if (list == null || list.size() == 0) {
+                if (!exptMsg.toString().isEmpty()) {
                     srchTaskBean.setSTATUS(-1);
                     log.error("FPTL search: No results. ProbeId={}, ExceptionMsg:{}", srchTaskBean.getPROBEID(), exptMsg);
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().substring(1, 128));
-                }else{
+                } else {
                     srchTaskBean.setEXPTMSG("No results");
                     srchTaskBean.setSTATUS(6);
                     log.info("FPTL search: No results for ProbeId={}", srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), 6, "no results");
                 }
-            }else{
+            } else {
                 if (list.size() > numOfCand) {
                     list = CommonUtil.getList(list, numOfCand);
                 }
@@ -313,7 +312,7 @@ public class LatFpRecog implements Runnable{
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
                 }
             }
-        }  catch (RemoteException var6) {
+        } catch (RemoteException var6) {
             log.error("RemoteExp error: ", var6);
             exptMsg.append("RemoteExp error: ").append(var6);
             srchTaskBean.setEXPTMSG(exptMsg.toString());
@@ -323,6 +322,14 @@ public class LatFpRecog implements Runnable{
             exptMsg.append("RemoteExp error: ").append(var7);
 //            log.info("try to restart Matcher...");
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+        } catch (Exception e) {
+            if (e instanceof IllegalArgumentException) {
+                log.error("FPTL illegal parameters error. ", e);
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString() + e.toString());
+            } else {
+                log.error("FPTL exception ", e);
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString() + e.toString());
+            }
         }
     }
 
@@ -414,6 +421,14 @@ public class LatFpRecog implements Runnable{
             log.info("try to restart Matcher...");
 //            startTenFpMatcher();
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+        } catch (Exception e) {
+            if (e instanceof IllegalArgumentException) {
+                log.error("FPLL illegal parameters error. ", e);
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString() + e.toString());
+            } else {
+                log.error("FPLL exception ", e);
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString()+e.toString());
+            }
         }
     }
 

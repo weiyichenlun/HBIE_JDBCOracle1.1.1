@@ -60,7 +60,7 @@ public class LatPalmRecog implements Runnable {
         }
         srchTaskDAO = new SrchTaskDAO(tablename);
         while (true) {
-            List<SrchTaskBean> list = new ArrayList<>();
+            List<SrchTaskBean> list;
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
             if ((list.size() == 0)) {
                 int timeSleep = 1;
@@ -77,8 +77,7 @@ public class LatPalmRecog implements Runnable {
                 }
             }
 //            SrchTaskBean srchTaskBean = null;
-            for (int i = 0; i < list.size(); i++) {
-                final SrchTaskBean srchTaskBean = list.get(i);
+            for (final SrchTaskBean srchTaskBean : list) {
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
                 Blob srchdata = srchTaskBean.getSRCHDATA();
                 int dataType = srchTaskBean.getDATATYPE();
@@ -93,13 +92,13 @@ public class LatPalmRecog implements Runnable {
                                 long start = System.currentTimeMillis();
 //                                PPTL(srchDataRecList, srchTaskBean);
                                 executorService.submit(() -> PPTL(srchDataRecList, srchTaskBean));
-                                log.debug("P2L total cost : {} ms", (System.currentTimeMillis()-start));
+                                log.debug("P2L total cost : {} ms", (System.currentTimeMillis() - start));
                                 break;
                             case 4:
                                 long start1 = System.currentTimeMillis();
 //                                PPLL(srchDataRecList, srchTaskBean);
                                 executorService.submit(() -> PPLL(srchDataRecList, srchTaskBean));
-                                log.debug("L2L total cost : {} ms", (System.currentTimeMillis()-start1));
+                                log.debug("L2L total cost : {} ms", (System.currentTimeMillis() - start1));
                                 break;
                         }
                     }
@@ -193,6 +192,14 @@ public class LatPalmRecog implements Runnable {
             log.error("L2L Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+        } catch (Exception e) {
+            if (e instanceof IllegalArgumentException) {
+                log.error("L2L illegal parameters error. ", e);
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString() + e.toString());
+            } else {
+                log.error("L2L exception ", e);
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString()+e.toString());
+            }
         }
     }
 
@@ -325,24 +332,32 @@ public class LatPalmRecog implements Runnable {
                 boolean isSuc = pptldao.updateRes(list);
                 if (isSuc) {
                     srchTaskBean.setSTATUS(5);
-                    log.info("PPTL search finished. ProbeId={}", srchTaskBean.getPROBEID());
+                    log.info("P2L search finished. ProbeId={}", srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), 5, null);
                 } else {
                     exptMsg.append(PPTL_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
-                    log.error("PPTL search results insert into {} error. ProbeId={}", PPTL_tablename, srchTaskBean.getPROBEID());
+                    log.error("P2L search results insert into {} error. ProbeId={}", PPTL_tablename, srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
                 }
             }
         } catch (RemoteException var6) {
-            log.error("PPTL RemoteExp error: ", var6);
+            log.error("P2L RemoteExp error: ", var6);
             exptMsg.append("RemoteExp error: ").append(var6);
             srchTaskBean.setEXPTMSG(exptMsg.toString());
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
         } catch (MatcherException var7) {
-            log.error("PPTL Matcher error: ", var7);
+            log.error("P2L Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
 //            log.info("try to restart Matcher...");
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+        } catch (Exception e) {
+            if (e instanceof IllegalArgumentException) {
+                log.error("P2L illegal parameters error. ", e);
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString() + e.toString());
+            } else {
+                log.error("P2L exception ", e);
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString()+e.toString());
+            }
         }
     }
 
