@@ -2,7 +2,6 @@ package HAFPIS.service;
 
 import HAFPIS.DAO.FaceTTDAO;
 import HAFPIS.DAO.SrchTaskDAO;
-import HAFPIS.DAO.TPPDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
 import HAFPIS.Utils.HbieUtil;
@@ -125,7 +124,7 @@ public class FaceRecog implements Runnable {
                 faceRec.transno = srchTaskBean.getTRANSNO();
                 faceRec.probeid = srchTaskBean.getPROBEID();
                 faceRec.candid = cand.record.id;
-                faceRec.dbid = TPPDAO.getDbId(faceRec.candid);
+                faceRec.dbid = (int) cand.record.info.get("dbId");
                 faceRec.score = cand.score;
                 faceRec.ffscores[0] = cand.score;
                 if(faceRec.score > FaceTT_threshold){

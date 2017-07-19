@@ -3,7 +3,6 @@ package HAFPIS.service;
 import HAFPIS.DAO.PPLTDAO;
 import HAFPIS.DAO.PPTTDAO;
 import HAFPIS.DAO.SrchTaskDAO;
-import HAFPIS.DAO.TPPDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
 import HAFPIS.Utils.HbieUtil;
@@ -117,6 +116,7 @@ public class PalmRecog implements Runnable{
 //        String srchPosMask="10001100011111111111";
         String srchPosMask_Palm;
         StringBuilder exptMsg;
+        StringBuilder sb = new StringBuilder();
         int numOfOne = 0;
         int avgCand=0;
         String tempMsg = srchTaskBean.getEXPTMSG();
@@ -173,6 +173,24 @@ public class PalmRecog implements Runnable{
             // 比对参数设置
             probe.id      = srchTaskBean.getPROBEID();
             probe.feature = feature;
+
+            String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
+            String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
+            if (null == demoFilter || demoFilter.trim().isEmpty()) {
+            } else {
+                sb.append(" && ").append(demoFilter);
+            }
+            if (null == dbFilter || dbFilter.trim().isEmpty()) {
+            } else {
+                sb.append(" && ").append(dbFilter);
+            }
+            if (sb.toString().length() > 2) {
+                sb.replace(0, 2, "");
+            }
+            System.out.println(sb.toString());
+
+            probe.filter = sb.toString();
+
 //            probe.recordAllScores = true;
             if (avgCand == 1) {
                 for (int i = 0; i < mask.length; i++) {
@@ -186,7 +204,7 @@ public class PalmRecog implements Runnable{
                             ppltRec.transno = srchTaskBean.getTRANSNO();
                             ppltRec.probeid = srchTaskBean.getPROBEID();
                             ppltRec.candid = cand.record.id;
-                            ppltRec.dbid = TPPDAO.getDbId(ppltRec.candid);
+                            ppltRec.dbid = (int) cand.record.info.get("dbId");
                             ppltRec.position = cand.outputs[2].galleryPos;
                             ppltRec.score = cand.score;
                             if (results.candidates.size() <= PPLT_threshold) {
@@ -221,7 +239,7 @@ public class PalmRecog implements Runnable{
                     ppltRec.transno = srchTaskBean.getTRANSNO();
                     ppltRec.probeid = srchTaskBean.getPROBEID();
                     ppltRec.candid = cand.record.id;
-                    ppltRec.dbid = TPPDAO.getDbId(ppltRec.candid);
+                    ppltRec.dbid = (int) cand.record.info.get("dbId");
                     ppltRec.position = cand.outputs[2].galleryPos;
                     ppltRec.score = cand.score;
                     if (ppltRec.score >= PPLT_threshold) {
@@ -230,18 +248,18 @@ public class PalmRecog implements Runnable{
                 }
                 list = CommonUtil.mergeResult(list);
             }
-            if(list ==null || list.size() ==0){
-                if(!exptMsg.toString().isEmpty()){
+            if (list == null || list.size() == 0) {
+                if (!exptMsg.toString().isEmpty()) {
                     srchTaskBean.setSTATUS(-1);
                     log.error("L2P search: No results. ProbeId={}, ExceptionMsg:{}", srchTaskBean.getPROBEID(), exptMsg);
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().substring(1, 128));
-                }else{
+                } else {
                     srchTaskBean.setEXPTMSG("No results");
                     srchTaskBean.setSTATUS(6);
                     log.info("L2P search: No results for ProbeId={}", srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), 6, "no results");
                 }
-            }else {
+            } else {
                 if (list.size() > numOfCand) {
                     list = CommonUtil.getList(list, numOfCand);
                 }
@@ -284,6 +302,7 @@ public class PalmRecog implements Runnable{
         HSFPFourPalm.FourPalmSearchParam probe   = new HSFPFourPalm.FourPalmSearchParam();
         PPTTDAO ppttdao = new PPTTDAO(PPTT_tablename);
         StringBuilder exptMsg;
+        StringBuilder sb = new StringBuilder();
         String tempMsg = srchTaskBean.getEXPTMSG();
         if (tempMsg == null) {
             exptMsg = new StringBuilder();
@@ -307,6 +326,25 @@ public class PalmRecog implements Runnable{
             } else {
                 probe.maxCands = numOfCand = CONSTANTS.MAXCANDS;
             }
+
+            String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
+            String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
+            //文字信息过滤
+            if (null == demoFilter || demoFilter.trim().isEmpty()) {
+            } else {
+                sb.append(" && ").append(demoFilter);
+            }
+            if (null == dbFilter || dbFilter.trim().isEmpty()) {
+            } else {
+                sb.append(" && ").append(dbFilter);
+            }
+            if (sb.toString().length() > 2) {
+                sb.replace(0, 2, "");
+            }
+            System.out.println(sb.toString());
+
+            probe.filter = sb.toString();
+
             SearchResults<HSFPFourPalm.FourPalmSearchParam.Result> results = HbieUtil.getInstance().hbie_PP.search(probe);
             for (HSFPFourPalm.FourPalmSearchParam.Result cand : results.candidates) {
                 PPTTRec ppttRec = new PPTTRec();
@@ -314,7 +352,7 @@ public class PalmRecog implements Runnable{
                 ppttRec.transno = srchTaskBean.getTRANSNO();
                 ppttRec.probeid = srchTaskBean.getPROBEID();
                 ppttRec.candid = cand.record.id;
-                ppttRec.dbid = TPPDAO.getDbId(ppttRec.candid);
+                ppttRec.dbid = (int) cand.record.info.get("dbId");
                 ppttRec.score  = cand.score;
                 ppttRec.position = cand.outputs[2].galleryPos;
                 if (ppttRec.score > PPTT_threshold) {

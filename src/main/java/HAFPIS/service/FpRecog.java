@@ -129,6 +129,7 @@ public class FpRecog implements Runnable {
         FPLTDAO fpltdao = new FPLTDAO(FPLT_tablename);
         StringBuilder exptMsg ;
         String srchPosMask;
+        StringBuilder sb = new StringBuilder();
         int numOfOne = 0;
         int avgCand=0;
         float[] posMask_Roll = new float[10];
@@ -181,7 +182,9 @@ public class FpRecog implements Runnable {
             if (tempRes > tempCands / 2) {
                 tempCands = tempCands + 1;
             }
-            String filter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
+
+            String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
+            String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
 
             SearchResults<HSFPTenFp.LatFpSearchParam.Result> results = null;
             List<FPLTRec> list = new ArrayList<>();
@@ -194,11 +197,19 @@ public class FpRecog implements Runnable {
                 for (int i = 0; i < posMask_Roll.length; i++) {
                     if (posMask_Roll[i] == 1) {
                         probe.fp_score_weight[i] = posMask_Roll[i];
-                        if (null == filter || filter.isEmpty()) {
-                            probe.filter = "flag=={0}";
+                        //文字信息过滤
+                        sb.append("flag=={0}");
+                        if (null == demoFilter || demoFilter.trim().isEmpty()) {
                         } else {
-                            probe.filter = "(flag=={0})" + " && " + filter;
+                            sb.append(" && ").append(demoFilter);
                         }
+                        if (null == dbFilter || dbFilter.trim().isEmpty()) {
+                        } else {
+                            sb.append(" && ").append(dbFilter);
+                        }
+                        System.out.println(sb.toString());
+
+                        probe.filter = sb.toString();
                         results = HbieUtil.getInstance().hbie_FP.search(probe);
 
                         for (int j = 0; j < results.candidates.size(); j++) {
@@ -225,11 +236,20 @@ public class FpRecog implements Runnable {
                 for (int i = 0; i < posMask_Flat.length; i++) {
                     if (posMask_Flat[i] == 1) {
                         probe.fp_score_weight[i] = posMask_Flat[i];
-                        if (null == filter || filter.isEmpty()) {
-                            probe.filter = "flag=={0}";
+                        sb = new StringBuilder();
+                        sb.append("flag=={1}");
+                        if (null == demoFilter || demoFilter.trim().isEmpty()) {
                         } else {
-                            probe.filter = "(flag=={0})" + " && " + filter;
+                            sb.append(" && ").append(demoFilter);
                         }
+                        if (null == dbFilter || dbFilter.trim().isEmpty()) {
+                        } else {
+                            sb.append(" && ").append(dbFilter);
+                        }
+                        System.out.println(sb.toString());
+
+                        probe.filter = sb.toString();
+
                         results = HbieUtil.getInstance().hbie_FP.search(probe);
 
                         for (int j = 0; j < results.candidates.size(); j++) {
@@ -263,11 +283,19 @@ public class FpRecog implements Runnable {
                 }
             } else {
                 System.arraycopy(posMask_Roll, 0, probe.fp_score_weight, 0, posMask_Roll.length);
-                if (null == filter || filter.isEmpty()) {
-                    probe.filter = "flag=={0}";
+                sb = new StringBuilder();
+                sb.append("flag=={0}");
+                if (null == demoFilter || demoFilter.trim().isEmpty()) {
                 } else {
-                    probe.filter = "(flag=={0})" + " && " + filter;
+                    sb.append(" && ").append(demoFilter);
                 }
+                if (null == dbFilter || dbFilter.trim().isEmpty()) {
+                } else {
+                    sb.append(" && ").append(dbFilter);
+                }
+                System.out.println(sb.toString());
+
+                probe.filter = sb.toString();
                 results = HbieUtil.getInstance().hbie_FP.search(probe);
                 for (HSFPTenFp.LatFpSearchParam.Result cand : results.candidates) {
                     FPLTRec fpltRec = new FPLTRec();
@@ -284,11 +312,19 @@ public class FpRecog implements Runnable {
                 }
 
                 System.arraycopy(posMask_Flat, 0, probe.fp_score_weight, 0, posMask_Flat.length);
-                if (null == filter || filter.isEmpty()) {
-                    probe.filter = "flag=={0}";
+                sb = new StringBuilder();
+                sb.append("flag=={1}");
+                if (null == demoFilter || demoFilter.trim().isEmpty()) {
                 } else {
-                    probe.filter = "(flag=={0})" + " && " + filter;
+                    sb.append(" && ").append(demoFilter);
                 }
+                if (null == dbFilter || dbFilter.trim().isEmpty()) {
+                } else {
+                    sb.append(" && ").append(dbFilter);
+                }
+                System.out.println(sb.toString());
+
+                probe.filter = sb.toString();
                 results = HbieUtil.getInstance().hbie_FP.search(probe);
                 for (HSFPTenFp.LatFpSearchParam.Result cand : results.candidates) {
                     FPLTRec fpltRec = new FPLTRec();
@@ -327,11 +363,11 @@ public class FpRecog implements Runnable {
                 boolean isSuc = fpltdao.updateRes(list);
                 if (isSuc) {
                     srchTaskBean.setSTATUS(5);
-                    log.info("LT search finished. ProbeId={}", srchTaskBean.getPROBEID());
+                    log.info("FPLT search finished. ProbeId={}", srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), 5, null);
                 } else {
                     exptMsg.append(FPLT_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
-                    log.error("LT search results insert into {} error. ProbeId={}", FPLT_tablename, srchTaskBean.getPROBEID());
+                    log.error("FPLT search results insert into {} error. ProbeId={}", FPLT_tablename, srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
                 }
             }
@@ -363,6 +399,7 @@ public class FpRecog implements Runnable {
         FPTTDAO fpttdao = new FPTTDAO(FPTT_tablename);
         String tempMsg = srchTaskBean.getEXPTMSG();
         StringBuilder exptMsg;
+        StringBuilder sb = new StringBuilder();
         if (tempMsg == null) {
             exptMsg = new StringBuilder();
         } else {
@@ -384,14 +421,24 @@ public class FpRecog implements Runnable {
                 numOfCand = CONSTANTS.MAXCANDS;
                 probe.maxCands = CONSTANTS.MAXCANDS;
             }
-            String filter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
             probe.id = srchTaskBean.getPROBEID();
             probe.features = srchDataRec.rpmnt;
-            if (null == filter || filter.isEmpty()) {
-                probe.filter = "flag=={0}";
+
+            String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
+            String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
+            //文字信息过滤
+            sb.append("flag=={0}");
+            if (null == demoFilter || demoFilter.trim().isEmpty()) {
             } else {
-                probe.filter = "(flag=={0})" + " && " + filter;
+                sb.append(" && ").append(demoFilter);
             }
+            if (null == dbFilter || dbFilter.trim().isEmpty()) {
+            } else {
+                sb.append(" && ").append(dbFilter);
+            }
+            System.out.println(sb.toString());
+
+            probe.filter = sb.toString();
             SearchResults<HSFPTenFp.TenFpSearchParam.Result> results = null;
             long start1 = System.currentTimeMillis();
             results = HbieUtil.getInstance().hbie_FP.search(probe);
@@ -409,11 +456,19 @@ public class FpRecog implements Runnable {
                 }
             }
             probe.features = srchDataRec.fpmnt;
-            if (null == filter || filter.isEmpty()) {
-                probe.filter = "flag=={0}";
+            sb = new StringBuilder();
+            sb.append("flag=={1}");
+            if (null == demoFilter || demoFilter.trim().isEmpty()) {
             } else {
-                probe.filter = "(flag=={0})" + " && " + filter;
+                sb.append(" && ").append(demoFilter);
             }
+            if (null == dbFilter || dbFilter.trim().isEmpty()) {
+            } else {
+                sb.append(" && ").append(dbFilter);
+            }
+            System.out.println(sb.toString());
+
+            probe.filter = sb.toString();
             long start11 = System.currentTimeMillis();
             results = HbieUtil.getInstance().hbie_FP.search(probe);
             long start2 = System.currentTimeMillis();
@@ -436,12 +491,12 @@ public class FpRecog implements Runnable {
             if (list == null || list.size() == 0) {
                 if (!exptMsg.toString().isEmpty()) {
                     srchTaskBean.setSTATUS(-1);
-                    log.error("TT search: No results. ProbeId={}, ExceptionMsg:{}", srchTaskBean.getPROBEID(), exptMsg);
+                    log.error("FPTT search: No results. ProbeId={}, ExceptionMsg:{}", srchTaskBean.getPROBEID(), exptMsg);
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
                 } else {
                     srchTaskBean.setEXPTMSG("No results");
                     srchTaskBean.setSTATUS(6);
-                    log.info("TT search: No results for ProbeId={}", srchTaskBean.getPROBEID());
+                    log.info("FPTT search: No results for ProbeId={}", srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), 6, "no results");
                 }
             } else {
@@ -455,11 +510,11 @@ public class FpRecog implements Runnable {
                 boolean isSuc = fpttdao.updateRes(list);
                 if (isSuc) {
                     srchTaskBean.setSTATUS(5);
-                    log.info("TT search finished. ProbeId={}", srchTaskBean.getPROBEID());
+                    log.info("FPTT search finished. ProbeId={}", srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), 5, null);
                 } else {
                     exptMsg.append(FPTT_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
-                    log.error("TT search results insert into {} error. ProbeId={}", FPTT_tablename, srchTaskBean.getPROBEID());
+                    log.error("FPTT search results insert into {} error. ProbeId={}", FPTT_tablename, srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
                 }
             }

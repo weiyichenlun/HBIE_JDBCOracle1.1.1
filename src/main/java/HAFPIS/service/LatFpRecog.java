@@ -116,6 +116,7 @@ public class LatFpRecog implements Runnable{
         FPTLDAO fptldao = new FPTLDAO(FPTL_tablename);
         StringBuilder exptMsg ;
         String srchPosMask;
+        StringBuilder sb = new StringBuilder();
         int numOfOne = 0;
         int avgCand=0;
         float threshold = 0F;
@@ -176,10 +177,22 @@ public class LatFpRecog implements Runnable{
             if (tempRes > tempCands / 2) {
                 tempCands = tempCands + 1;
             }
-            String filter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
-            if (filter != null) {
-                probe.filter = filter;
+            String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
+            String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
+            if (null == demoFilter || demoFilter.trim().isEmpty()) {
+            } else {
+                sb.append(" && ").append(demoFilter);
             }
+            if (null == dbFilter || dbFilter.trim().isEmpty()) {
+            } else {
+                sb.append(" && ").append(dbFilter);
+            }
+            if (sb.toString().length() > 2) {
+                sb.replace(0, 2, "");
+            }
+            System.out.println(sb.toString());
+
+            probe.filter = sb.toString();
             //按指位平均输出
             if (avgCand == 1) {
                 for (int i = 0; i < posMask_Roll.length; i++) {
@@ -304,11 +317,11 @@ public class LatFpRecog implements Runnable{
                 boolean isSuc = fptldao.updateRes(list);
                 if (isSuc) {
                     srchTaskBean.setSTATUS(5);
-                    log.info("TL search finished. ProbeId={}", srchTaskBean.getPROBEID());
+                    log.info("FPTL search finished. ProbeId={}", srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), 5, null);
                 } else {
                     exptMsg.append(FPTL_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());
-                    log.error("TL search results insert into {} error. ProbeId={}", FPTL_tablename, srchTaskBean.getPROBEID());
+                    log.error("FPTL search results insert into {} error. ProbeId={}", FPTL_tablename, srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
                 }
             }
@@ -337,6 +350,7 @@ public class LatFpRecog implements Runnable{
         HSFPLatFp.LatFpSearchParam probe = new HSFPLatFp.LatFpSearchParam();
         FPLLDAO fplldao = new FPLLDAO(FPLL_tablename);
         StringBuilder exptMsg ;
+        StringBuilder sb = new StringBuilder();
         String tempMsg = srchTaskBean.getEXPTMSG();
         if (tempMsg == null) {
             exptMsg = new StringBuilder();
@@ -358,11 +372,22 @@ public class LatFpRecog implements Runnable{
             } else {
                 probe.maxCands = numOfCand = CONSTANTS.MAXCANDS;
             }
-            String filter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
-            if (filter != null) {
-                probe.filter = filter;
+            String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
+            String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
+            if (null == demoFilter || demoFilter.trim().isEmpty()) {
+            } else {
+                sb.append(" && ").append(demoFilter);
             }
+            if (null == dbFilter || dbFilter.trim().isEmpty()) {
+            } else {
+                sb.append(" && ").append(dbFilter);
+            }
+            if (sb.toString().length() > 2) {
+                sb.replace(0, 2, "");
+            }
+            System.out.println(sb.toString());
 
+            probe.filter = sb.toString();
             SearchResults<HSFPLatFp.LatFpSearchParam.Result> results = null;
             results = HbieUtil.getInstance().hbie_LPP.search(probe);
             List<FPLLRec> list = new ArrayList<>();
@@ -383,12 +408,12 @@ public class LatFpRecog implements Runnable{
             if (list == null || list.size() == 0) {
                 if (!exptMsg.toString().isEmpty()) {
                     srchTaskBean.setSTATUS(-1);
-                    log.error("LL search: No results. ProbeId={}, ExceptionMsg:{}", srchTaskBean.getPROBEID(), exptMsg);
+                    log.error("FPLL search: No results. ProbeId={}, ExceptionMsg:{}", srchTaskBean.getPROBEID(), exptMsg);
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
                 } else {
                     srchTaskBean.setEXPTMSG("No results");
                     srchTaskBean.setSTATUS(6);
-                    log.info("LL search: No results for ProbeId={}", srchTaskBean.getPROBEID());
+                    log.info("FPLL search: No results for ProbeId={}", srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), 6, "no results");
                 }
             } else {

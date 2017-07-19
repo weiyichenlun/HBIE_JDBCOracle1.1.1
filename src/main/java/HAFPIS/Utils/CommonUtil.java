@@ -255,11 +255,38 @@ public class CommonUtil {
         if (clob != null) {
             try {
                 int len = (int) clob.length();
+                if (len <= 0) {
+                    return filter;
+                }
                 filter = clob.getSubString(1, len);
             } catch (SQLException e) {
                 log.error("get filter from clob error. ", e);
             }
         }
-        return filter;
+        return "(" + filter + ")";
+    }
+
+    public static String getDBsFilter(String srchDbMask) {
+        StringBuilder filter = new StringBuilder();
+        if (null == srchDbMask || srchDbMask.trim().isEmpty()) {
+            return null;
+        }
+        for (int i = 0; i < srchDbMask.length(); i++) {
+            if (srchDbMask.charAt(i) == '1') {
+                filter.append("dbId=={").append(i+1).append("}").append("&&");
+            }
+        }
+        String filterStr = filter.toString();
+        if (filterStr.isEmpty()) {
+            return null;
+        }
+        int tempIdx = filterStr.length();
+        return "(" + filterStr.substring(0, filterStr.length() - 2) + ")";
+    }
+
+    public static void main(String[] args) {
+        String test = "100000000001000010000100000";
+        String res = getDBsFilter(test);
+        System.out.println(res);
     }
 }

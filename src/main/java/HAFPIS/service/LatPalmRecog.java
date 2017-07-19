@@ -1,6 +1,5 @@
 package HAFPIS.service;
 
-import HAFPIS.DAO.PLPDAO;
 import HAFPIS.DAO.PPLLDAO;
 import HAFPIS.DAO.PPTLDAO;
 import HAFPIS.DAO.SrchTaskDAO;
@@ -115,6 +114,7 @@ public class LatPalmRecog implements Runnable {
         PPLLDAO pplldao = new PPLLDAO(PPLL_tablename);
         String tempMsg = srchTaskBean.getEXPTMSG();
         StringBuilder exptMsg;
+        StringBuilder sb = new StringBuilder();
         if (tempMsg == null) {
             exptMsg = new StringBuilder();
         } else {
@@ -136,6 +136,24 @@ public class LatPalmRecog implements Runnable {
             } else {
                 probe.maxCands = numOfCand = CONSTANTS.MAXCANDS;
             }
+
+            String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
+            String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
+            if (null == demoFilter || demoFilter.trim().isEmpty()) {
+            } else {
+                sb.append(" && ").append(demoFilter);
+            }
+            if (null == dbFilter || dbFilter.trim().isEmpty()) {
+            } else {
+                sb.append(" && ").append(dbFilter);
+            }
+            if (sb.toString().length() > 2) {
+                sb.replace(0, 2, "");
+            }
+            System.out.println(sb.toString());
+
+            probe.filter = sb.toString();
+
             SearchResults<HSFPLatPalm.LatPalmSearchParam.Result> results = null;
             results = HbieUtil.getInstance().hbie_PLP.search(probe);
             List<PPLLRec> list = new ArrayList<>();
@@ -145,7 +163,7 @@ public class LatPalmRecog implements Runnable {
                 ppllRec.transno = srchTaskBean.getTRANSNO();
                 ppllRec.probeid = srchTaskBean.getPROBEID();
                 ppllRec.candid = cand.record.id;
-                ppllRec.dbid = PLPDAO.getDbId(ppllRec.candid);
+                ppllRec.dbid = (int) cand.record.info.get("dbId");
                 ppllRec.score = cand.score;
                 ppllRec.position = 1;
                 if (ppllRec.score >= PPLL_threshold) {
@@ -208,6 +226,7 @@ public class LatPalmRecog implements Runnable {
         PPTLDAO pptldao = new PPTLDAO(PPTL_tablename);
         String tempMsg = srchTaskBean.getEXPTMSG();
         StringBuilder exptMsg;
+        StringBuilder sb = new StringBuilder();
         String srchPosMask;
         String srchPosMask_Palm;
         int numOfOne = 0;
@@ -255,6 +274,22 @@ public class LatPalmRecog implements Runnable {
             if (tempRes > tempCands / 2) {
                 tempCands = tempCands + 1;
             }
+            String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
+            String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
+            if (null == demoFilter || demoFilter.trim().isEmpty()) {
+            } else {
+                sb.append(" && ").append(demoFilter);
+            }
+            if (null == dbFilter || dbFilter.trim().isEmpty()) {
+            } else {
+                sb.append(" && ").append(dbFilter);
+            }
+            if (sb.toString().length() > 2) {
+                sb.replace(0, 2, "");
+            }
+            System.out.println(sb.toString());
+
+            probe.filter = sb.toString();
             probe.id = srchTaskBean.getPROBEID();
             if (avgCand == 1) {
                 for (int i = 0; i < mask.length; i++) {
@@ -268,7 +303,7 @@ public class LatPalmRecog implements Runnable {
                             pptlRec.transno = srchTaskBean.getTRANSNO();
                             pptlRec.probeid = srchTaskBean.getPROBEID();
                             pptlRec.candid = cand.record.id;
-                            pptlRec.dbid = PLPDAO.getDbId(pptlRec.candid);
+                            pptlRec.dbid = (int) cand.record.info.get("dbId");
                             pptlRec.score = cand.score;
                             pptlRec.position = cand.outputs[2].galleryPos + 1;
                             if (results.candidates.size() <= tempCands) {
@@ -300,7 +335,7 @@ public class LatPalmRecog implements Runnable {
                     pptlRec.transno = srchTaskBean.getTRANSNO();
                     pptlRec.probeid = srchTaskBean.getPROBEID();
                     pptlRec.candid = cand.record.id;
-                    pptlRec.dbid = PLPDAO.getDbId(pptlRec.candid);
+                    pptlRec.dbid = (int) cand.record.info.get("dbId");
                     pptlRec.score = cand.score;
                     pptlRec.position = cand.outputs[2].galleryPos + 1;
                     if (pptlRec.score > threshold) {
