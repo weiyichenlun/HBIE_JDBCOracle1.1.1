@@ -198,15 +198,16 @@ public class FpRecog implements Runnable {
                     if (posMask_Roll[i] == 1) {
                         probe.fp_score_weight[i] = posMask_Roll[i];
                         //文字信息过滤
-                        sb.append("flag=={0}");
+                        sb.append("flag=={0}&&");
                         if (null == demoFilter || demoFilter.trim().isEmpty()) {
                         } else {
-                            sb.append(" && ").append(demoFilter);
+                            sb.append(demoFilter).append("&&");
                         }
                         if (null == dbFilter || dbFilter.trim().isEmpty()) {
                         } else {
-                            sb.append(" && ").append(dbFilter);
+                            sb.append(dbFilter).append("&&");
                         }
+                        sb.setLength(sb.length() - 2);
                         System.out.println(sb.toString());
 
                         probe.filter = sb.toString();
@@ -237,15 +238,16 @@ public class FpRecog implements Runnable {
                     if (posMask_Flat[i] == 1) {
                         probe.fp_score_weight[i] = posMask_Flat[i];
                         sb = new StringBuilder();
-                        sb.append("flag=={1}");
+                        sb.append("flag=={1}&&");
                         if (null == demoFilter || demoFilter.trim().isEmpty()) {
                         } else {
-                            sb.append(" && ").append(demoFilter);
+                            sb.append(demoFilter).append("&&");
                         }
                         if (null == dbFilter || dbFilter.trim().isEmpty()) {
                         } else {
-                            sb.append(" && ").append(dbFilter);
+                            sb.append(dbFilter).append("&&");
                         }
+                        sb.setLength(sb.length() - 2);
                         System.out.println(sb.toString());
 
                         probe.filter = sb.toString();
@@ -284,15 +286,16 @@ public class FpRecog implements Runnable {
             } else {
                 System.arraycopy(posMask_Roll, 0, probe.fp_score_weight, 0, posMask_Roll.length);
                 sb = new StringBuilder();
-                sb.append("flag=={0}");
+                sb.append("flag=={0}&&");
                 if (null == demoFilter || demoFilter.trim().isEmpty()) {
                 } else {
-                    sb.append(" && ").append(demoFilter);
+                    sb.append(demoFilter).append("&&");
                 }
                 if (null == dbFilter || dbFilter.trim().isEmpty()) {
                 } else {
-                    sb.append(" && ").append(dbFilter);
+                    sb.append(dbFilter).append("&&");
                 }
+                sb.setLength(sb.length() - 2);
                 System.out.println(sb.toString());
 
                 probe.filter = sb.toString();
@@ -313,15 +316,16 @@ public class FpRecog implements Runnable {
 
                 System.arraycopy(posMask_Flat, 0, probe.fp_score_weight, 0, posMask_Flat.length);
                 sb = new StringBuilder();
-                sb.append("flag=={1}");
+                sb.append("flag=={1}&&");
                 if (null == demoFilter || demoFilter.trim().isEmpty()) {
                 } else {
-                    sb.append(" && ").append(demoFilter);
+                    sb.append(demoFilter).append("&&");
                 }
                 if (null == dbFilter || dbFilter.trim().isEmpty()) {
                 } else {
-                    sb.append(" && ").append(dbFilter);
+                    sb.append(dbFilter).append("&&");
                 }
+                sb.setLength(sb.length() - 2);
                 System.out.println(sb.toString());
 
                 probe.filter = sb.toString();
@@ -427,15 +431,16 @@ public class FpRecog implements Runnable {
             String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
             //文字信息过滤
-            sb.append("flag=={0}");
+            sb.append("flag=={0}&&");
             if (null == demoFilter || demoFilter.trim().isEmpty()) {
             } else {
-                sb.append(" && ").append(demoFilter);
+                sb.append(demoFilter).append("&&");
             }
             if (null == dbFilter || dbFilter.trim().isEmpty()) {
             } else {
-                sb.append(" && ").append(dbFilter);
+                sb.append(dbFilter).append("&&");
             }
+            sb.setLength(sb.length() - 2);
             System.out.println(sb.toString());
 
             probe.filter = sb.toString();
@@ -457,15 +462,16 @@ public class FpRecog implements Runnable {
             }
             probe.features = srchDataRec.fpmnt;
             sb = new StringBuilder();
-            sb.append("flag=={1}");
+            sb.append("flag=={1}&&");
             if (null == demoFilter || demoFilter.trim().isEmpty()) {
             } else {
-                sb.append(" && ").append(demoFilter);
+                sb.append(demoFilter).append("&&");
             }
             if (null == dbFilter || dbFilter.trim().isEmpty()) {
             } else {
-                sb.append(" && ").append(dbFilter);
+                sb.append(dbFilter).append("&&");
             }
+            sb.setLength(sb.length() - 2);
             System.out.println(sb.toString());
 
             probe.filter = sb.toString();

@@ -141,14 +141,14 @@ public class LatPalmRecog implements Runnable {
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
             if (null == demoFilter || demoFilter.trim().isEmpty()) {
             } else {
-                sb.append(" && ").append(demoFilter);
+                sb.append(demoFilter).append("&&");
             }
             if (null == dbFilter || dbFilter.trim().isEmpty()) {
             } else {
-                sb.append(" && ").append(dbFilter);
+                sb.append(dbFilter).append("&&");
             }
-            if (sb.toString().length() > 2) {
-                sb.replace(0, 2, "");
+            if (sb.length() >= 2) {
+                sb.setLength(sb.length() - 2);
             }
             System.out.println(sb.toString());
 
@@ -278,14 +278,14 @@ public class LatPalmRecog implements Runnable {
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
             if (null == demoFilter || demoFilter.trim().isEmpty()) {
             } else {
-                sb.append(" && ").append(demoFilter);
+                sb.append(demoFilter).append("&&");
             }
             if (null == dbFilter || dbFilter.trim().isEmpty()) {
             } else {
-                sb.append(" && ").append(dbFilter);
+                sb.append(dbFilter).append("&&");
             }
-            if (sb.toString().length() > 2) {
-                sb.replace(0, 2, "");
+            if (sb.length() >= 2) {
+                sb.setLength(sb.length() - 2);
             }
             System.out.println(sb.toString());
 
