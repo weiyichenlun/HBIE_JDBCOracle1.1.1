@@ -273,15 +273,17 @@ public class CommonUtil {
         }
         for (int i = 0; i < srchDbMask.length(); i++) {
             if (srchDbMask.charAt(i) == '1') {
-                filter.append("dbId=={").append(i+1).append("}").append("&&");
+                filter.append("dbId=={").append(i+1).append("}").append("||");
             }
         }
+        if (filter.length() >= 2) {
+            filter.setLength(filter.length() - 2);
+        }
         String filterStr = filter.toString();
-        if (filterStr.isEmpty()) {
+        if (filterStr.trim().isEmpty()) {
             return null;
         }
-        int tempIdx = filterStr.length();
-        return "(" + filterStr.substring(0, filterStr.length() - 2) + ")";
+        return "(" + filterStr + ")";
     }
 
     public static void main(String[] args) {
