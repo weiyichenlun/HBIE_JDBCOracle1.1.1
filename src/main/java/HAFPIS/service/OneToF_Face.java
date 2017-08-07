@@ -17,11 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 /**
  * Created by ZP on 2017/5/19.
@@ -37,6 +33,8 @@ public class OneToF_Face implements Runnable {
     private int[] tasktypes = new int[2];
     private int[] datatypes = new int[2];
     private SrchTaskDAO srchTaskDAO;
+    private ExecutorService executorService = Executors.newFixedThreadPool(5);
+
 
     @Override
     public void run() {
@@ -47,6 +45,16 @@ public class OneToF_Face implements Runnable {
         } else{
             log.warn("the type is wrong. type={}", type);
         }
+        Runtime.getRuntime().addShutdownHook(new Thread(()->{
+            System.out.println("----------------");
+            try {
+                executorService.awaitTermination(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+            }
+            executorService.shutdown();
+            srchTaskDAO.updateStatus(datatypes, tasktypes);
+            System.out.println("Face1ToF executorservice is shutting down");
+        }));
         while (true) {
             List<SrchTaskBean> list = new ArrayList<>();
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
@@ -87,7 +95,6 @@ public class OneToF_Face implements Runnable {
     }
 
     private void Face(List<SrchDataRec> srchDataRecList, SrchTaskBean srchTaskBean) {
-        ExecutorService executorService = Executors.newFixedThreadPool(5);
         FaceTTDAO facedao = new FaceTTDAO(Face_tablename);
         String tempMsg = srchTaskBean.getEXPTMSG();
         StringBuilder exptMsg;
@@ -116,26 +123,23 @@ public class OneToF_Face implements Runnable {
                     if (gallery.facemnt == null) {
                         log.warn("gallery facemnt is null! the position is {} and probeid is {}", i + 1, new String(gallery.probeId));
                     } else {
-                        Future<FaceRec> rec = executorService.submit(new Callable<FaceRec>() {
-                            @Override
-                            public FaceRec call() throws Exception {
-                                FaceRec faceRec = new FaceRec();
-                                faceRec.candid = new String(gallery.probeId).trim();
-                                THIDFace.VerifyFeature verifyFeature = new THIDFace.VerifyFeature();
-                                verifyFeature.feature1 = probe.facemnt[0];
-                                verifyFeature.feature2 = gallery.facemnt[0];
-                                THIDFace.VerifyFeature.Result result = HbieUtil.getInstance().hbie_FACE.process(verifyFeature);
-                                faceRec.score = result.score;
-                                return faceRec;
-                            }
+                        Future<FaceRec> rec = executorService.submit(() -> {
+                            FaceRec faceRec = new FaceRec();
+                            faceRec.candid = new String(gallery.probeId).trim();
+                            THIDFace.VerifyFeature verifyFeature = new THIDFace.VerifyFeature();
+                            verifyFeature.feature1 = probe.facemnt[0];
+                            verifyFeature.feature2 = gallery.facemnt[0];
+                            THIDFace.VerifyFeature.Result result = HbieUtil.getInstance().hbie_FACE.process(verifyFeature);
+                            faceRec.score = result.score;
+                            return faceRec;
                         });
                         listF.add(rec);
                     }
                 }
-                for (int i = 0; i < listF.size(); i++) {
+                for (Future<FaceRec> aListF : listF) {
                     FaceRec faceRec = null;
                     try {
-                        faceRec = listF.get(i).get();
+                        faceRec = aListF.get();
                         faceRec.taskid = srchTaskBean.getTASKIDD();
                         faceRec.transno = srchTaskBean.getTRANSNO();
                         faceRec.probeid = srchTaskBean.getPROBEID();

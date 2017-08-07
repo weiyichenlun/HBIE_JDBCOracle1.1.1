@@ -17,11 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 /**
  * 指纹1ToF比对
@@ -38,6 +34,7 @@ public class OneToF_FPTT implements Runnable {
     private int[] tasktypes = new int[2];
     private int[] datatypes = new int[2];
     private SrchTaskDAO srchTaskDAO;
+    private ExecutorService executorService = Executors.newFixedThreadPool(5);
     @Override
     public void run() {
         srchTaskDAO = new SrchTaskDAO(tablename);
@@ -47,6 +44,16 @@ public class OneToF_FPTT implements Runnable {
         } else {
             log.warn("FPTT_1ToF the type is wrong. type={}", type);
         }
+        Runtime.getRuntime().addShutdownHook(new Thread(()->{
+            System.out.println("----------------");
+            try {
+                executorService.awaitTermination(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+            }
+            executorService.shutdown();
+            srchTaskDAO.updateStatus(datatypes, tasktypes);
+            System.out.println("FPTT1ToF executorservice is shutting down");
+        }));
         while (true) {
             List<SrchTaskBean> list = new ArrayList<>();
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
@@ -87,7 +94,6 @@ public class OneToF_FPTT implements Runnable {
     }
 
     private void FPTT(List<SrchDataRec> srchDataRecList, SrchTaskBean srchTaskBean) {
-        ExecutorService executorService = Executors.newFixedThreadPool(5);
         FPTTDAO fpttdao = new FPTTDAO(FPTT_tablename);
         String tempMsg = srchTaskBean.getEXPTMSG();
         StringBuilder exptMsg;

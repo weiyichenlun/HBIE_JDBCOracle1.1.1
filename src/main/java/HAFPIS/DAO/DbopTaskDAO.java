@@ -66,4 +66,15 @@ public class DbopTaskDAO {
             return false;
         }
     }
+
+    public synchronized void updateStatus(int datatype) {
+        StringBuilder sql = new StringBuilder("update ");
+        sql.append(tablename).append(" set status=3 where status=4 and datatype=?");
+        try{
+            System.out.println(sql.toString());
+            qr.update(sql.toString(), datatype);
+        } catch (SQLException e) {
+            log.error("update status error before shutting down");
+        }
+    }
 }

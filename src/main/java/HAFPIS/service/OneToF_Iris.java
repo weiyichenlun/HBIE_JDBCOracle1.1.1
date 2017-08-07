@@ -17,11 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 /**
  * Created by ZP on 2017/5/19.
@@ -37,6 +33,7 @@ public class OneToF_Iris implements Runnable {
     private int[] tasktypes = new int[2];
     private int[] datatypes = new int[2];
     private SrchTaskDAO srchTaskDAO;
+    ExecutorService executorService = Executors.newFixedThreadPool(5);
 
     @Override
     public void run() {
@@ -47,6 +44,16 @@ public class OneToF_Iris implements Runnable {
         } else{
             log.warn("the type is wrong. type={}", type);
         }
+        Runtime.getRuntime().addShutdownHook(new Thread(()->{
+            System.out.println("----------------");
+            try {
+                executorService.awaitTermination(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+            }
+            executorService.shutdown();
+            srchTaskDAO.updateStatus(datatypes, tasktypes);
+            System.out.println("Iris1ToF executorservice is shutting down");
+        }));
         while (true) {
             List<SrchTaskBean> list = new ArrayList<>();
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
@@ -86,7 +93,6 @@ public class OneToF_Iris implements Runnable {
     }
 
     private void Iris(List<SrchDataRec> srchDataRecList, SrchTaskBean srchTaskBean) {
-        ExecutorService executorService = Executors.newFixedThreadPool(5);
         IrisTTDAO irisdao = new IrisTTDAO(Iris_tablename);
         String tempMsg = srchTaskBean.getEXPTMSG();
         StringBuilder exptMsg;

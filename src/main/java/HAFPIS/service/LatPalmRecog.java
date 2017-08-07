@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 现场掌纹比对 P2L和L2L
@@ -58,6 +59,16 @@ public class LatPalmRecog implements Runnable {
             datatypes[1] = 5;
         }
         srchTaskDAO = new SrchTaskDAO(tablename);
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("----------------");
+            try {
+                executorService.awaitTermination(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+            }
+            executorService.shutdown();
+            srchTaskDAO.updateStatus(datatypes, tasktypes);
+            System.out.println("LatPalm executorservice is shutting down");
+        }));
         while (true) {
             List<SrchTaskBean> list;
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
@@ -139,6 +150,8 @@ public class LatPalmRecog implements Runnable {
 
             String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
+            log.info(srchTaskBean.getSRCHDBSMASK());
+
             if (null == demoFilter || demoFilter.trim().isEmpty()) {
             } else {
                 sb.append(demoFilter).append("&&");
@@ -238,10 +251,21 @@ public class LatPalmRecog implements Runnable {
             exptMsg = new StringBuilder(tempMsg);
         }
         srchPosMask = srchTaskBean.getSRCHPOSMASK();
-        if (null != srchPosMask && srchPosMask.length() >= 10) {
-            srchPosMask_Palm = srchPosMask.substring(0, 10);
-        }else{
+        if (srchPosMask == null || srchPosMask.length() == 0) {
             srchPosMask_Palm = "1000110001";
+        } else if (srchPosMask.length() > 0 && srchPosMask.length() <= 10) {
+            char[] tempMask = "0000000000".toCharArray();
+            for (int i = 0; i < 4; i++) {
+                if (srchPosMask.charAt(CONSTANTS.srchOrder[i]) == '1') {
+                    tempMask[CONSTANTS.srchOrder[i]] = '1';
+                }
+            }
+            srchPosMask_Palm = String.valueOf(tempMask);
+        } else {
+            srchPosMask_Palm = srchPosMask.substring(0, 10);
+            if (srchPosMask_Palm.equals("0000000000")) {
+                srchPosMask_Palm = "1000110001";
+            }
         }
         SrchDataRec srchDataRec = srchDataRecList.get(0);
         byte[][] features = srchDataRec.palmmnt;
@@ -276,6 +300,8 @@ public class LatPalmRecog implements Runnable {
             }
             String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
+            log.info(srchTaskBean.getSRCHDBSMASK());
+
             if (null == demoFilter || demoFilter.trim().isEmpty()) {
             } else {
                 sb.append(demoFilter).append("&&");
@@ -290,6 +316,7 @@ public class LatPalmRecog implements Runnable {
             System.out.println(sb.toString());
 
             probe.filter = sb.toString();
+            probe.scoreThreshold = PPTL_threshold;
             probe.id = srchTaskBean.getPROBEID();
             if (avgCand == 1) {
                 for (int i = 0; i < mask.length; i++) {
@@ -306,15 +333,21 @@ public class LatPalmRecog implements Runnable {
                             pptlRec.dbid = (int) cand.record.info.get("dbId");
                             pptlRec.score = cand.score;
                             pptlRec.position = cand.outputs[2].galleryPos + 1;
-                            if (results.candidates.size() <= tempCands) {
+                            if (j < tempCands) {
                                 list.add(pptlRec);
                             } else {
-                                if (j < tempCands && pptlRec.score >= threshold) {
-                                    list.add(pptlRec);
-                                } else {
-                                    tempList.add(pptlRec);
-                                }
+                                tempList.add(pptlRec);
                             }
+
+//                            if (results.candidates.size() <= tempCands) {
+//                                list.add(pptlRec);
+//                            } else {
+//                                if (j < tempCands && pptlRec.score >= threshold) {
+//                                    list.add(pptlRec);
+//                                } else {
+//                                    tempList.add(pptlRec);
+//                                }
+//                            }
                         }
                     }
                 }
@@ -338,9 +371,11 @@ public class LatPalmRecog implements Runnable {
                     pptlRec.dbid = (int) cand.record.info.get("dbId");
                     pptlRec.score = cand.score;
                     pptlRec.position = cand.outputs[2].galleryPos + 1;
-                    if (pptlRec.score > threshold) {
-                        list.add(pptlRec);
-                    }
+                    list.add(pptlRec);
+
+//                    if (pptlRec.score > threshold) {
+//                        list.add(pptlRec);
+//                    }
                 }
                 list = CommonUtil.mergeResult(list);
             }

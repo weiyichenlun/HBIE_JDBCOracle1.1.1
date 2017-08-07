@@ -41,8 +41,8 @@ public class HAFPIS_Main {
             log.info("请输入一个配置文件名称(例如HSFP.properties):  ");
             System.exit(-1);
         } else {
-            System.out.println(HAFPIS_Main.class.getResource(""));
-            System.out.println(HAFPIS_Main.class.getResource("/"));
+//            System.out.println(HAFPIS_Main.class.getResource(""));
+//            System.out.println(HAFPIS_Main.class.getResource("/"));
             prop = ConfigUtil.getProp(args);
             type = (String) prop.get("type");
             interval = (String) prop.get("interval");
@@ -147,9 +147,22 @@ public class HAFPIS_Main {
                     fpRecog.setQueryNum(querynum);
                     fpRecog.setStatus(status);
                     fpRecog.setTablename(tablename);
-                    fpRecog.setFPTT_threshold(Float.parseFloat(FPTT_threshold));
+                    float temp = 0;
+                    try {
+                        temp = Float.parseFloat(FPTT_threshold);
+                    } catch (NumberFormatException e) {
+                        log.warn("FPTT_threshold number formate error. Use default threshold 0F");
+                    }
+                    fpRecog.setFPTT_threshold(temp);
                     fpRecog.setFPTT_tablename(FPTT_tablename);
-                    fpRecog.setFPLT_threshold(Float.parseFloat(FPLT_threshold));
+
+                    temp = 0;
+                    try {
+                        temp = Float.parseFloat(FPTT_threshold);
+                    } catch (NumberFormatException e) {
+                        log.warn("FPLT_threshold number formate error. Use default threshold 0F");
+                    }
+                    fpRecog.setFPLT_threshold(temp);
                     fpRecog.setFPLT_tablename(FPLT_tablename);
                     Thread fpThread = new Thread(fpRecog, "FPThread");
                     fpThread.start();
@@ -167,9 +180,22 @@ public class HAFPIS_Main {
                     latFpRecog.setQueryNum(querynum);
                     latFpRecog.setStatus(status);
                     latFpRecog.setTablename(tablename);
-                    latFpRecog.setFPTL_threshold(Float.parseFloat(FPTL_threshold));
+                    temp = 0;
+                    try {
+                        temp = Float.parseFloat(FPTL_threshold);
+                    } catch (NumberFormatException e) {
+                        log.warn("FPTL_threshold number formate error. Use default threshold 0F");
+                    }
+                    latFpRecog.setFPTL_threshold(temp);
                     latFpRecog.setFPTL_tablename(FPTL_tablename);
-                    latFpRecog.setFPLL_threshold(Float.parseFloat(FPLL_threshold));
+
+                    temp = 0;
+                    try {
+                        temp = Float.parseFloat(FPLL_threshold);
+                    } catch (NumberFormatException e) {
+                        log.warn("FPLL_threshold number formate error. Use default threshold 0F");
+                    }
+                    latFpRecog.setFPLL_threshold(temp);
                     latFpRecog.setFPLL_tablename(FPLL_tablename);
                     Thread latfpThread = new Thread(latFpRecog, "LatFPThread");
                     latfpThread.start();
@@ -188,9 +214,22 @@ public class HAFPIS_Main {
                     palmRecog.setStatus(status);
                     palmRecog.setTablename(tablename);
                     palmRecog.setPPTT_tablename(PPTT_tablename);
-                    palmRecog.setPPTT_threshold(Float.parseFloat(PPTT_threshold));
+                    temp = 0;
+                    try {
+                        temp = Float.parseFloat(PPTT_threshold);
+                    } catch (NumberFormatException e) {
+                        log.warn("PPTT_threshold number formate error. Use default threshold 0F");
+                    }
+                    palmRecog.setPPTT_threshold(temp);
                     palmRecog.setPPLT_tablename(PPLT_tablename);
-                    palmRecog.setPPLT_threshold(Float.parseFloat(PPLT_threshold));
+
+                    temp = 0;
+                    try {
+                        temp = Float.parseFloat(PPLT_threshold);
+                    } catch (NumberFormatException e) {
+                        log.warn("PPLT_threshold number formate error. Use default threshold 0F");
+                    }
+                    palmRecog.setPPLT_threshold(temp);
                     Thread palmThread = new Thread(palmRecog, "PalmThread");
                     palmThread.start();
                     break;
@@ -208,9 +247,22 @@ public class HAFPIS_Main {
                     latPalmRecog.setStatus(status);
                     latPalmRecog.setTablename(tablename);
                     latPalmRecog.setPPTL_tablename(PPTL_tablename);
-                    latPalmRecog.setPPTL_threshold(Float.parseFloat(PPTL_threshold));
+                    temp = 0;
+                    try {
+                        temp = Float.parseFloat(PPTL_threshold);
+                    } catch (NumberFormatException e) {
+                        log.warn("PPTL_threshold number formate error. Use default threshold 0F");
+                    }
+                    latPalmRecog.setPPTL_threshold(temp);
                     latPalmRecog.setPPLL_tablename(PPLL_tablename);
-                    latPalmRecog.setPPLL_threshold(Float.parseFloat(PPLL_threshold));
+
+                    temp = 0;
+                    try {
+                        temp = Float.parseFloat(PPLL_threshold);
+                    } catch (NumberFormatException e) {
+                        log.warn("PPLL_threshold number formate error. Use default threshold 0F");
+                    }
+                    latPalmRecog.setPPLL_threshold(temp);
                     Thread latpalmThread = new Thread(latPalmRecog, "LatpalmThread");
                     latpalmThread.start();
                     break;
@@ -224,7 +276,13 @@ public class HAFPIS_Main {
                     faceRecog.setStatus(status);
                     faceRecog.setTablename(tablename);
                     faceRecog.setFaceTT_tablename(FaceTT_tablename);
-                    faceRecog.setFaceTT_threshold(Float.parseFloat(FaceTT_threshold));
+                    temp = 0;
+                    try {
+                        temp = Float.parseFloat(FaceTT_tablename);
+                    } catch (NumberFormatException e) {
+                        log.warn("FaceTT_threshold number formate error. Use default threshold 0F");
+                    }
+                    faceRecog.setFaceTT_threshold(temp);
                     Thread faceThread = new Thread(faceRecog, "FaceThread");
                     faceThread.start();
                     break;
@@ -238,7 +296,13 @@ public class HAFPIS_Main {
                     irisRecog.setStatus(status);
                     irisRecog.setTablename(tablename);
                     irisRecog.setIrisTT_tablename(IrisTT_tablename);
-                    irisRecog.setIrisTT_threshold(Float.parseFloat(IrisTT_threshold));
+                    temp = 0;
+                    try {
+                        temp = Float.parseFloat(IrisTT_threshold);
+                    } catch (NumberFormatException e) {
+                        log.warn("IrisTT_threshold number formate error. Use default threshold 0F");
+                    }
+                    irisRecog.setIrisTT_threshold(temp);
                     Thread irisThread = new Thread(irisRecog, "Iris_Thread");
                     irisThread.start();
                     break;
@@ -348,5 +412,13 @@ public class HAFPIS_Main {
                     break;
             }
         }
+//        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+//            try {
+//                Thread.sleep(2000);
+//            } catch (InterruptedException e) {
+//
+//            }
+//            System.out.println("Test................");
+//        }));
     }
 }

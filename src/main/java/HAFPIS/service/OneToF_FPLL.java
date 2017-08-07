@@ -17,11 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 /**
  * 现场指纹1ToF
@@ -38,6 +34,7 @@ public class OneToF_FPLL implements Runnable {
     private int[] tasktypes = new int[2];
     private int[] datatypes = new int[2];
     private SrchTaskDAO srchTaskDAO;
+    private ExecutorService executorService = Executors.newFixedThreadPool(5);
 
     @Override
     public void run() {
@@ -48,6 +45,16 @@ public class OneToF_FPLL implements Runnable {
         } else{
             log.warn("the type is wrong. type={}", type);
         }
+        Runtime.getRuntime().addShutdownHook(new Thread(()->{
+            System.out.println("----------------");
+            try {
+                executorService.awaitTermination(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+            }
+            executorService.shutdown();
+            srchTaskDAO.updateStatus(datatypes, tasktypes);
+            System.out.println("FPLL1ToF executorservice is shutting down");
+        }));
         while (true) {
             List<SrchTaskBean> list = new ArrayList<>();
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
@@ -88,7 +95,6 @@ public class OneToF_FPLL implements Runnable {
     }
 
     private void FPLL(List<SrchDataRec> srchDataRecList, SrchTaskBean srchTaskBean) {
-        ExecutorService executorService = Executors.newFixedThreadPool(5);
         FPLLDAO fplldao = new FPLLDAO(FPLL_tablename);
         String tempMsg = srchTaskBean.getEXPTMSG();
         StringBuilder exptMsg;

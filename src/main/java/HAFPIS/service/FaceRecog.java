@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 人脸比对 TT
@@ -36,7 +37,7 @@ public class FaceRecog implements Runnable {
     private String FaceTT_tablename;
     private int[] tasktypes = new int[2];
     private SrchTaskDAO srchTaskDAO;
-    private ExecutorService executorService = Executors.newFixedThreadPool(CONSTANTS.NCORES);
+    private ExecutorService executorService = Executors.newFixedThreadPool(CONSTANTS.NCORES/2);
 
     @Override
     public void run() {
@@ -44,6 +45,16 @@ public class FaceRecog implements Runnable {
             tasktypes[0] = 1;
         }
         srchTaskDAO = new SrchTaskDAO(tablename);
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("----------------");
+            try {
+                executorService.awaitTermination(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+            }
+            executorService.shutdown();
+            srchTaskDAO.updateStatus(new int[]{6}, tasktypes);
+            System.out.println("Face executorservice is shutting down");
+        }));
         while (true) {
             List<SrchTaskBean> list;
             list = srchTaskDAO.getList(status, new int[]{6}, tasktypes, queryNum);
@@ -107,6 +118,7 @@ public class FaceRecog implements Runnable {
         }
 
         try{
+            probe.scoreThreshold = FaceTT_threshold;
             probe.feature = feature;
             probe.id = srchTaskBean.getPROBEID();
             int numOfCand = srchTaskBean.getNUMOFCAND();
@@ -127,9 +139,11 @@ public class FaceRecog implements Runnable {
                 faceRec.dbid = (int) cand.record.info.get("dbId");
                 faceRec.score = cand.score;
                 faceRec.ffscores[0] = cand.score;
-                if(faceRec.score > FaceTT_threshold){
-                    list.add(faceRec);
-                }
+                list.add(faceRec);
+//
+//                if(faceRec.score > FaceTT_threshold){
+//                    list.add(faceRec);
+//                }
             }
 
             if(list.size() == 0){

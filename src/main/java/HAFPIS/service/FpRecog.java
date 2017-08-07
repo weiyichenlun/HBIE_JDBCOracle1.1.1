@@ -3,10 +3,7 @@ package HAFPIS.service;
 import HAFPIS.DAO.FPLTDAO;
 import HAFPIS.DAO.FPTTDAO;
 import HAFPIS.DAO.SrchTaskDAO;
-import HAFPIS.Utils.CONSTANTS;
-import HAFPIS.Utils.CommonUtil;
-import HAFPIS.Utils.ConfigUtil;
-import HAFPIS.Utils.HbieUtil;
+import HAFPIS.Utils.*;
 import HAFPIS.domain.FPLTRec;
 import HAFPIS.domain.FPTTRec;
 import HAFPIS.domain.SrchDataRec;
@@ -25,6 +22,7 @@ import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 指纹识别 TT和LT
@@ -61,6 +59,16 @@ public class FpRecog implements Runnable {
             datatypes[1] = 4;
         }
         srchTaskDAO = new SrchTaskDAO(tablename);
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("----------------");
+            try {
+                executorService.awaitTermination(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+            }
+            executorService.shutdown();
+            srchTaskDAO.updateStatus(datatypes, tasktypes);
+            System.out.println("Fp executorservice is shutting down");
+        }));
         while (true) {
             List<SrchTaskBean> list;
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
@@ -142,13 +150,26 @@ public class FpRecog implements Runnable {
             exptMsg = new StringBuilder(tempMsg);
         }
         srchPosMask = srchTaskBean.getSRCHPOSMASK();
-        if (srchPosMask == null) {
+        if (srchPosMask == null || srchPosMask.length() == 0) {
             srchPosMask="11111111111111111111";
+        } else if (srchPosMask.length() > 0 && srchPosMask.length() < 20) {
+            char[] tempMask = "00000000000000000000".toCharArray();
+            for (int i = 0; i < srchPosMask.length(); i++) {
+                if (srchPosMask.charAt(i) == '1') {
+                    tempMask[i] = '1';
+                }
+            }
+            srchPosMask = String.valueOf(tempMask);
+        } else {
+            String temp = srchPosMask.substring(0, 20);
+            if (temp.equals("00000000000000000000")) {
+                srchPosMask = "11111111111111111111";
+            }
         }
         byte[][] features = new byte[2][];
         SrchDataRec srchDataRec = srchDataRecList.get(0);
         features[0] = srchDataRec.latfpmnt;
-        features[1] = null;
+        features[1] = srchDataRec.latfpmnt_auto;
         if (features[0] == null) {
             exptMsg.append(" latfp feature is null");
             log.warn("FPLT: feature is null. probeid=", srchTaskBean.getPROBEID());
@@ -170,6 +191,9 @@ public class FpRecog implements Runnable {
             //准备比对
             probe.id = srchTaskBean.getPROBEID();
             probe.feature_manual = features[0];
+            if (features[1] != null && features[1].length == 3072) {
+                probe.feature_auto = features[1];
+            }
             int numOfCand = srchTaskBean.getNUMOFCAND();
             if (numOfCand > 0) {
                 probe.maxCands = numOfCand;
@@ -185,6 +209,8 @@ public class FpRecog implements Runnable {
 
             String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
+            log.info(srchTaskBean.getSRCHDBSMASK());
+
 
             SearchResults<HSFPTenFp.LatFpSearchParam.Result> results = null;
             List<FPLTRec> list = new ArrayList<>();
@@ -192,13 +218,15 @@ public class FpRecog implements Runnable {
             for(int i=0; i<10; i++){
                 probe.fp_score_weight[i] = 0F;
             }
+
+            probe.scoreThreshold = FPLT_threshold;
             //按指位平均输出
             if (avgCand == 1) {
                 for (int i = 0; i < posMask_Roll.length; i++) {
                     if (posMask_Roll[i] == 1) {
                         probe.fp_score_weight[i] = posMask_Roll[i];
                         //文字信息过滤
-                        sb.append("flag=={0}&&");
+                        sb.append("(flag=={0})&&");
                         if (null == demoFilter || demoFilter.trim().isEmpty()) {
                         } else {
                             sb.append(demoFilter).append("&&");
@@ -208,11 +236,10 @@ public class FpRecog implements Runnable {
                             sb.append(dbFilter).append("&&");
                         }
                         sb.setLength(sb.length() - 2);
-                        System.out.println(sb.toString());
 
                         probe.filter = sb.toString();
+                        log.info("The total filter is :\n"+sb.toString());
                         results = HbieUtil.getInstance().hbie_FP.search(probe);
-
                         for (int j = 0; j < results.candidates.size(); j++) {
                             HSFPTenFp.LatFpSearchParam.Result cand = results.candidates.get(j);
                             FPLTRec fpltRec = new FPLTRec();
@@ -223,22 +250,22 @@ public class FpRecog implements Runnable {
                             fpltRec.dbid = (int) cand.record.info.get("dbId");
                             fpltRec.position = cand.fp + 1;
                             fpltRec.score = cand.score;
-                            if (results.candidates.size() <= tempCands) {
-                                list.add(fpltRec);
-                            } else if (j < tempCands && fpltRec.score >= FPLT_threshold) {
+
+                            if (j < tempCands) {
                                 list.add(fpltRec);
                             } else {
                                 list_rest.add(fpltRec);
                             }
                         }
                         probe.fp_score_weight[i] = 0F;
+
                     }
                 }
                 for (int i = 0; i < posMask_Flat.length; i++) {
                     if (posMask_Flat[i] == 1) {
                         probe.fp_score_weight[i] = posMask_Flat[i];
                         sb = new StringBuilder();
-                        sb.append("flag=={1}&&");
+                        sb.append("(flag=={1})&&");
                         if (null == demoFilter || demoFilter.trim().isEmpty()) {
                         } else {
                             sb.append(demoFilter).append("&&");
@@ -248,12 +275,11 @@ public class FpRecog implements Runnable {
                             sb.append(dbFilter).append("&&");
                         }
                         sb.setLength(sb.length() - 2);
-                        System.out.println(sb.toString());
 
                         probe.filter = sb.toString();
+                        log.info("The total filter is :\n"+sb.toString());
 
                         results = HbieUtil.getInstance().hbie_FP.search(probe);
-
                         for (int j = 0; j < results.candidates.size(); j++) {
                             HSFPTenFp.LatFpSearchParam.Result cand = results.candidates.get(j);
                             FPLTRec fpltRec = new FPLTRec();
@@ -264,9 +290,7 @@ public class FpRecog implements Runnable {
                             fpltRec.dbid = (int) cand.record.info.get("dbId");
                             fpltRec.position = cand.fp + 11;
                             fpltRec.score = cand.score;
-                            if (results.candidates.size() <= tempCands) {
-                                list.add(fpltRec);
-                            } else if (j < tempCands && fpltRec.score >= FPLT_threshold) {
+                            if (j < tempCands) {
                                 list.add(fpltRec);
                             } else {
                                 list_rest.add(fpltRec);
@@ -286,7 +310,7 @@ public class FpRecog implements Runnable {
             } else {
                 System.arraycopy(posMask_Roll, 0, probe.fp_score_weight, 0, posMask_Roll.length);
                 sb = new StringBuilder();
-                sb.append("flag=={0}&&");
+                sb.append("(flag=={0})&&");
                 if (null == demoFilter || demoFilter.trim().isEmpty()) {
                 } else {
                     sb.append(demoFilter).append("&&");
@@ -296,9 +320,9 @@ public class FpRecog implements Runnable {
                     sb.append(dbFilter).append("&&");
                 }
                 sb.setLength(sb.length() - 2);
-                System.out.println(sb.toString());
 
                 probe.filter = sb.toString();
+                log.info("The total filter is :\n"+sb.toString());
                 results = HbieUtil.getInstance().hbie_FP.search(probe);
                 for (HSFPTenFp.LatFpSearchParam.Result cand : results.candidates) {
                     FPLTRec fpltRec = new FPLTRec();
@@ -309,14 +333,12 @@ public class FpRecog implements Runnable {
                     fpltRec.dbid = (int) cand.record.info.get("dbId");
                     fpltRec.position = cand.fp + 1;
                     fpltRec.score = cand.score;
-                    if (fpltRec.score > FPLT_threshold) {
-                        list.add(fpltRec);
-                    }
+                    list.add(fpltRec);
                 }
 
                 System.arraycopy(posMask_Flat, 0, probe.fp_score_weight, 0, posMask_Flat.length);
                 sb = new StringBuilder();
-                sb.append("flag=={1}&&");
+                sb.append("(flag=={1})&&");
                 if (null == demoFilter || demoFilter.trim().isEmpty()) {
                 } else {
                     sb.append(demoFilter).append("&&");
@@ -326,9 +348,9 @@ public class FpRecog implements Runnable {
                     sb.append(dbFilter).append("&&");
                 }
                 sb.setLength(sb.length() - 2);
-                System.out.println(sb.toString());
 
                 probe.filter = sb.toString();
+                log.info("The total filter is :\n"+sb.toString());
                 results = HbieUtil.getInstance().hbie_FP.search(probe);
                 for (HSFPTenFp.LatFpSearchParam.Result cand : results.candidates) {
                     FPLTRec fpltRec = new FPLTRec();
@@ -339,9 +361,7 @@ public class FpRecog implements Runnable {
                     fpltRec.dbid = (int) cand.record.info.get("dbId");
                     fpltRec.position = cand.fp + 11;
                     fpltRec.score = cand.score;
-                    if (fpltRec.score > FPLT_threshold) {
-                        list.add(fpltRec);
-                    }
+                    list.add(fpltRec);
                 }
                 list = CommonUtil.mergeResult(list);
             }
@@ -427,11 +447,14 @@ public class FpRecog implements Runnable {
             }
             probe.id = srchTaskBean.getPROBEID();
             probe.features = srchDataRec.rpmnt;
+            probe.scoreThreshold = FPTT_threshold;
 
             String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
+            log.info(srchTaskBean.getSRCHDBSMASK());
+
             //文字信息过滤
-            sb.append("flag=={0}&&");
+            sb.append("(flag=={0})&&");
             if (null == demoFilter || demoFilter.trim().isEmpty()) {
             } else {
                 sb.append(demoFilter).append("&&");
@@ -441,9 +464,10 @@ public class FpRecog implements Runnable {
                 sb.append(dbFilter).append("&&");
             }
             sb.setLength(sb.length() - 2);
-            System.out.println(sb.toString());
 
             probe.filter = sb.toString();
+            log.info("The total filter is :\n"+sb.toString());
+
             SearchResults<HSFPTenFp.TenFpSearchParam.Result> results = null;
             long start1 = System.currentTimeMillis();
             results = HbieUtil.getInstance().hbie_FP.search(probe);
@@ -456,13 +480,11 @@ public class FpRecog implements Runnable {
                 fpttRec.dbid = (int) cand.record.info.get("dbId");
                 fpttRec.rpscores = normalScore(cand.fpscores);
                 fpttRec.score = cand.score;
-                if (fpttRec.score >= FPTT_threshold) {
-                    list.add(fpttRec);
-                }
+                list.add(fpttRec);
             }
             probe.features = srchDataRec.fpmnt;
             sb = new StringBuilder();
-            sb.append("flag=={1}&&");
+            sb.append("(flag=={1})&&");
             if (null == demoFilter || demoFilter.trim().isEmpty()) {
             } else {
                 sb.append(demoFilter).append("&&");
@@ -472,9 +494,10 @@ public class FpRecog implements Runnable {
                 sb.append(dbFilter).append("&&");
             }
             sb.setLength(sb.length() - 2);
-            System.out.println(sb.toString());
 
             probe.filter = sb.toString();
+            log.info("The total filter is :\n"+sb.toString());
+
             long start11 = System.currentTimeMillis();
             results = HbieUtil.getInstance().hbie_FP.search(probe);
             long start2 = System.currentTimeMillis();
@@ -488,9 +511,7 @@ public class FpRecog implements Runnable {
                 fpttRec.dbid = (int) cand.record.info.get("dbId");
                 fpttRec.fpscores = normalScore(cand.fpscores);
                 fpttRec.score = cand.score;
-                if (fpttRec.score >= FPTT_threshold) {
-                    list.add(fpttRec);
-                }
+                list.add(fpttRec);
             }
             list = CommonUtil.mergeResult(list);
             log.info("convert result and merge list cost {} ms", (System.currentTimeMillis() - start2));

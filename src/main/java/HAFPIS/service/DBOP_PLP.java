@@ -13,10 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 /**
  * DBOP-TPP
@@ -43,7 +40,17 @@ public class DBOP_PLP implements Runnable {
             log.error("wrong datatype {}, the thread will stop", type);
             System.exit(-1);
         }
-        ExecutorService executorService = Executors.newFixedThreadPool(1);
+        ExecutorService executorService = Executors.newFixedThreadPool(5);
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("----------------");
+            try {
+                executorService.awaitTermination(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+            }
+            executorService.shutdown();
+            dbopTaskDAO.updateStatus(5);
+            System.out.println("DBOP_PLP executorservice is shutting down");
+        }));
         while (true) {
             List<DbopTaskBean> list = new ArrayList<>();
             list = dbopTaskDAO.get(status, datatype, queryNum);
@@ -69,55 +76,59 @@ public class DBOP_PLP implements Runnable {
             }else {
 //                DbopTaskBean dbopTaskBean = null;
                 List<Future<String>> listF = new ArrayList<>();
-                for (int i = 0; i < list.size(); i++) {
-                    final DbopTaskBean dbopTaskBean = list.get(i);
+                for (final DbopTaskBean dbopTaskBean : list) {
                     dbopTaskBean.setStatus(4);
                     dbopTaskDAO.update(dbopTaskBean.getTaskIdd(), 4, null);
-                    Future<String> f = executorService.submit(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                int tasktype = dbopTaskBean.getTaskType();
-                                String id = dbopTaskBean.getProbeId();
-                                switch (tasktype) {
-                                    case 6:
+                    Future<String> f = executorService.submit(() -> {
+                        try {
+                            int tasktype = dbopTaskBean.getTaskType();
+                            String id = dbopTaskBean.getProbeId();
+                            switch (tasktype) {
+                                case 6:
+                                    if (HbieUtil.getInstance().hbie_PLP != null) {
                                         HbieUtil.getInstance().hbie_PLP.updateMatcher(id, -1);
-                                        break;
-                                    case 5:
+                                    }
+                                    break;
+                                case 5:
+                                    if (HbieUtil.getInstance().hbie_PLP != null) {
                                         HbieUtil.getInstance().hbie_PLP.updateMatcher(id, 1);
-                                        break;
-                                    case 7:
+                                    }
+                                    break;
+                                case 7:
+                                    if (HbieUtil.getInstance().hbie_PLP != null) {
                                         HbieUtil.getInstance().hbie_PLP.updateMatcher(id, -1);
                                         HbieUtil.getInstance().hbie_PLP.updateMatcher(id, 1);
-                                        break;
-                                    default:
-                                        log.error("tasktype error {}.", tasktype);
-                                        break;
-                                }
-                            } catch (RemoteException | MatcherException e) {
-                                log.warn("matcher error: ", e);
-                                dbopTaskDAO.update(dbopTaskBean.getTaskIdd(), 3, "matcher error " + e);
+                                    }
+                                    break;
+                                default:
+                                    log.error("tasktype error {}.", tasktype);
+                                    break;
                             }
+                        } catch (RemoteException | MatcherException e) {
+                            log.warn("matcher error: ", e);
+                            dbopTaskDAO.update(dbopTaskBean.getTaskIdd(), 3, "matcher error " + e);
                         }
                     }, dbopTaskBean.getTaskIdd());
                     listF.add(f);
                 }
                 String taskid = null;
-                for (int i = 0; i < listF.size(); i++) {
-                    Future<String> temp = listF.get(i);
-                    try {
-                        taskid = temp.get();
-                    } catch (InterruptedException | ExecutionException e) {
-                        log.error("get future result error. ", e);
-                    }
-                }
-                if (taskid != null) {
-                    boolean is = dbopTaskDAO.update(taskid, 5, null);
-                    if (is) {
-                        log.info("DbopTask taskid-{} finish.", taskid);
-                    } else {
-                        log.info("DbopTask taskid-{} update error.", taskid);
-                        dbopTaskDAO.update(taskid, 5, null);
+                for (Future<String> temp : listF) {
+                    while (true) {
+                        try {
+                            taskid = temp.get();
+                        } catch (InterruptedException | ExecutionException e) {
+                            log.error("get future result error. ", e);
+                        }
+                        if (taskid != null) {
+                            boolean is = dbopTaskDAO.update(taskid, 5, null);
+                            if (is) {
+                                log.info("DbopTask taskid-{} finish.", taskid);
+                            } else {
+                                log.info("DbopTask taskid-{} update error.", taskid);
+                                dbopTaskDAO.update(taskid, -1, "update "+taskid+" error");
+                            }
+                            break;
+                        }
                     }
                 }
             }

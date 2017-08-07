@@ -5,10 +5,7 @@ import HAFPIS.domain.SrchDataRec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.DataInputStream;
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.SQLException;
@@ -109,9 +106,22 @@ public class CommonUtil {
                         if (temp.RpMntLen[0] == 0) {
                             temp.latfpmnt = null;
                         } else {
-                            byte[] tempFea = new byte[temp.RpMntLen[0]];
-                            dis.readFully(tempFea);
-                            temp.latfpmnt = tempFea;
+                            int len = temp.RpMntLen[0];
+                            if (len == 6304) {
+                                byte[] head = new byte[160];
+                                dis.readFully(head);
+                                byte[] tempFea1 = new byte[3072];
+                                byte[] tempFea2 = new byte[3072];
+                                dis.readFully(tempFea1);
+                                dis.readFully(tempFea2);
+                                temp.latfpmnt = tempFea1;
+                                temp.latfpmnt_auto = tempFea2;
+                            } else if (len == 3072) {
+                                byte[] tempFea1 = new byte[3072];
+                                dis.readFully(tempFea1);
+                                temp.latfpmnt = tempFea1;
+                                temp.latfpmnt_auto = null;
+                            }
                         }
 
                         break;
@@ -256,14 +266,25 @@ public class CommonUtil {
             try {
                 int len = (int) clob.length();
                 if (len <= 0) {
-                    return filter;
+                    return null;
                 }
-                filter = clob.getSubString(1, len);
+                char[] temp = new char[len];
+                try {
+                    int n = clob.getCharacterStream().read(temp, 0, len);
+                } catch (IOException e) {
+                    log.error("clob get stream error");
+                }
+//                filter = clob.getSubString(1, len);
+                filter = new String(temp);
+                filter = decode(filter);
+                log.info("The demofilter is: \n"+filter);
             } catch (SQLException e) {
                 log.error("get filter from clob error. ", e);
             }
+//            return "(" + filter + ")";
+            return filter;
         }
-        return "(" + filter + ")";
+        return null;
     }
 
     public static String getDBsFilter(String srchDbMask) {
@@ -280,15 +301,35 @@ public class CommonUtil {
             filter.setLength(filter.length() - 2);
         }
         String filterStr = filter.toString();
+        System.out.println("dbid filter is: "+filterStr);
         if (filterStr.trim().isEmpty()) {
             return null;
         }
         return "(" + filterStr + ")";
     }
 
+    public static String decode(String s) {
+        byte[] res = new byte[s.length() / 2];
+        for (int i = 0; i < res.length; i++) {
+
+            try {
+                res[i] = (byte) (0xff & Integer.parseInt(s.substring(i * 2, i * 2 + 2), 16));
+            } catch (NumberFormatException e) {
+                log.error(e.toString());
+            }
+
+        }
+        try {
+            s = new String(res, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            log.error(e.toString());
+        }
+        return s;
+    }
+
     public static void main(String[] args) {
-        String test = "100000000001000010000100000";
-        String res = getDBsFilter(test);
+        String test = "284C4F474943414C5F545950453D3D317C7C4C4F474943414C5F545950453D3D327C7C4C4F474943414C5F545950453D3D337C7C4C4F474943414C5F545950453D3D347C7C4C4F474943414C5F545950453D3D357C7C4C4F474943414C5F545950453D3D37292626285842444D5F434F4445443D3D317C7C5842444D5F434F4445443D3D327C7C5842444D5F434F4445443D3D3329";
+        String res = decode(test);
         System.out.println(res);
     }
 }

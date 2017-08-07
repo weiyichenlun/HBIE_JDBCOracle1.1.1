@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -44,6 +45,16 @@ public class IrisRecog implements Runnable {
             tasktypes[0] = 1;
         }
         srchTaskDAO = new SrchTaskDAO(tablename);
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("----------------");
+            try {
+                executorService.awaitTermination(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+            }
+            executorService.shutdown();
+            srchTaskDAO.updateStatus(new int[]{7}, tasktypes);
+            System.out.println("Iris executorservice is shutting down");
+        }));
         while (true) {
             List<SrchTaskBean> list;
             list = srchTaskDAO.getList(status, new int[]{7}, tasktypes, queryNum);
@@ -110,6 +121,7 @@ public class IrisRecog implements Runnable {
             List<IrisRec> list = new ArrayList<>();
             probe.features = features;
             probe.id = srchTaskBean.getPROBEID();
+            probe.scoreThreshold = IrisTT_threshold;
             int numOfCand = srchTaskBean.getNUMOFCAND();
             if (numOfCand > 0) {
                 probe.maxCands = (int) (numOfCand * 1.5);
@@ -127,9 +139,11 @@ public class IrisRecog implements Runnable {
                 irisRec.dbid = (int) cand.record.info.get("dbId");
                 irisRec.score = cand.score;
                 irisRec.iiscores = cand.scores;
-                if (irisRec.score > IrisTT_threshold) {
-                    list.add(irisRec);
-                }
+                list.add(irisRec);
+
+//                if (irisRec.score > IrisTT_threshold) {
+//                    list.add(irisRec);
+//                }
             }
             if((list.size() == 0)){
                 if (!exptMsg.toString().isEmpty()) {

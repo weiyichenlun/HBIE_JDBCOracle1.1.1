@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 掌纹比对 P2P和L2P
@@ -58,6 +59,16 @@ public class PalmRecog implements Runnable{
             datatypes[1] = 5;
         }
         srchTaskDAO = new SrchTaskDAO(tablename);
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("----------------");
+            try {
+                executorService.awaitTermination(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+            }
+            executorService.shutdown();
+            srchTaskDAO.updateStatus(datatypes, tasktypes);
+            System.out.println("FourPalm executorservice is shutting down");
+        }));
         while (true) {
             List<SrchTaskBean> list;
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
@@ -127,10 +138,21 @@ public class PalmRecog implements Runnable{
         }
         SrchDataRec srchDataRec = srchDataRecList.get(0);
         String srchPosMask = srchTaskBean.getSRCHPOSMASK();
-        if (srchPosMask == null || srchPosMask.length() < 10) {
+        if (srchPosMask == null || srchPosMask.length() == 0) {
             srchPosMask_Palm = "1000110001";
+        } else if (srchPosMask.length() > 0 && srchPosMask.length() <= 10) {
+            char[] tempMask = "0000000000".toCharArray();
+            for (int i = 0; i < 4; i++) {
+                if (srchPosMask.charAt(CONSTANTS.srchOrder[i]) == '1') {
+                    tempMask[CONSTANTS.srchOrder[i]] = '1';
+                }
+            }
+            srchPosMask_Palm = String.valueOf(tempMask);
         } else {
             srchPosMask_Palm = srchPosMask.substring(0, 10);
+            if (srchPosMask_Palm.equals("0000000000")) {
+                srchPosMask_Palm = "1000110001";
+            }
         }
         boolean[] mask = new boolean[4];
         for (int i = 0; i < 4; i++) {
@@ -176,6 +198,9 @@ public class PalmRecog implements Runnable{
 
             String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
+            log.info(srchTaskBean.getSRCHDBSMASK());
+
+
             if (null == demoFilter || demoFilter.trim().isEmpty()) {
             } else {
                 sb.append(demoFilter).append("&&");
@@ -190,6 +215,7 @@ public class PalmRecog implements Runnable{
             System.out.println(sb.toString());
 
             probe.filter = sb.toString();
+            probe.scoreThreshold = PPLT_threshold;
 
 //            probe.recordAllScores = true;
             if (avgCand == 1) {
@@ -207,13 +233,19 @@ public class PalmRecog implements Runnable{
                             ppltRec.dbid = (int) cand.record.info.get("dbId");
                             ppltRec.position = cand.outputs[2].galleryPos;
                             ppltRec.score = cand.score;
-                            if (results.candidates.size() <= PPLT_threshold) {
-                                list.add(ppltRec);
-                            } else if (j < tempCands && ppltRec.score >= PPLT_threshold) {
+                            if (j < tempCands) {
                                 list.add(ppltRec);
                             } else {
                                 tempList.add(ppltRec);
                             }
+
+//                            if (results.candidates.size() <= tempCands) {
+//                                list.add(ppltRec);
+//                            } else if (j < tempCands && ppltRec.score >= PPLT_threshold) {
+//                                list.add(ppltRec);
+//                            } else {
+//                                tempList.add(ppltRec);
+//                            }
                         }
                     }
                     probe.ppMask[i] = false;
@@ -242,9 +274,11 @@ public class PalmRecog implements Runnable{
                     ppltRec.dbid = (int) cand.record.info.get("dbId");
                     ppltRec.position = cand.outputs[2].galleryPos;
                     ppltRec.score = cand.score;
-                    if (ppltRec.score >= PPLT_threshold) {
-                        list.add(ppltRec);
-                    }
+                    list.add(ppltRec);
+
+//                    if (ppltRec.score >= PPLT_threshold) {
+//                        list.add(ppltRec);
+//                    }
                 }
                 list = CommonUtil.mergeResult(list);
             }
@@ -329,6 +363,8 @@ public class PalmRecog implements Runnable{
 
             String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
+            log.info(srchTaskBean.getSRCHDBSMASK());
+
             //文字信息过滤
             if (null == demoFilter || demoFilter.trim().isEmpty()) {
             } else {
@@ -344,6 +380,7 @@ public class PalmRecog implements Runnable{
             System.out.println(sb.toString());
 
             probe.filter = sb.toString();
+            probe.scoreThreshold = PPTT_threshold;
 
             SearchResults<HSFPFourPalm.FourPalmSearchParam.Result> results = HbieUtil.getInstance().hbie_PP.search(probe);
             for (HSFPFourPalm.FourPalmSearchParam.Result cand : results.candidates) {
@@ -355,9 +392,11 @@ public class PalmRecog implements Runnable{
                 ppttRec.dbid = (int) cand.record.info.get("dbId");
                 ppttRec.score  = cand.score;
                 ppttRec.position = cand.outputs[2].galleryPos;
-                if (ppttRec.score > PPTT_threshold) {
-                    list.add(ppttRec);
-                }
+                list.add(ppttRec);
+
+//                if (ppttRec.score > PPTT_threshold) {
+//                    list.add(ppttRec);
+//                }
             }
 
             if (list.size() == 0) {

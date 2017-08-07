@@ -87,4 +87,28 @@ public class SrchTaskDAO {
             log.error("UPDATE DB error: ", e);
         }
     }
+
+    public synchronized void updateStatus(int[] datatypes, int[] tasktypes) {
+        StringBuilder sb = new StringBuilder("update ");
+        sb.append(tablename).append(" set status=3 where status=4 and datatype in (");
+        for (int i=0; i<datatypes.length; i++) {
+            if (datatypes[i] > 0) {
+                sb.append(datatypes[i]).append(",");
+            }
+        }
+        sb.deleteCharAt(sb.length() - 1).append(")");
+        sb.append(" and tasktype in (");
+        for (int tasktype : tasktypes) {
+            if (tasktype != 0) {
+                sb.append(tasktype).append(",");
+            }
+        }
+        sb.deleteCharAt(sb.length() - 1).append(")");
+        try{
+            System.out.println(sb.toString());
+            qr.update(sb.toString());
+        } catch (SQLException e) {
+            log.error("update status error before program shutdown. ");
+        }
+    }
 }
