@@ -58,20 +58,7 @@ public class IrisRecog implements Runnable {
         while (true) {
             List<SrchTaskBean> list;
             list = srchTaskDAO.getList(status, new int[]{7}, tasktypes, queryNum);
-            if ((list.size() == 0)) {
-                int timeSleep = 1;
-                try {
-                    timeSleep = Integer.parseInt(interval);
-                } catch (NumberFormatException e) {
-                    log.error("interval {} format error. Use default interval(1)", interval);
-                }
-                try {
-                    Thread.sleep(timeSleep * 1000);
-                    log.debug("sleeping");
-                } catch (InterruptedException e) {
-                    log.warn("Waiting Thread was interrupted: {}", e);
-                }
-            }
+            CommonUtil.checkList(list, interval);
 //            SrchTaskBean srchTaskBean = null;
             for (final SrchTaskBean srchTaskBean : list) {
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
@@ -121,6 +108,12 @@ public class IrisRecog implements Runnable {
             List<IrisRec> list = new ArrayList<>();
             probe.features = features;
             probe.id = srchTaskBean.getPROBEID();
+
+            String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
+            String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
+            log.info(srchTaskBean.getSRCHDBSMASK());
+            probe.filter = CommonUtil.mergeFilter(demoFilter, dbFilter);
+            log.info("The total filter is :\n{}", probe.filter);
             probe.scoreThreshold = IrisTT_threshold;
             int numOfCand = srchTaskBean.getNUMOFCAND();
             if (numOfCand > 0) {
@@ -140,10 +133,6 @@ public class IrisRecog implements Runnable {
                 irisRec.score = cand.score;
                 irisRec.iiscores = cand.scores;
                 list.add(irisRec);
-
-//                if (irisRec.score > IrisTT_threshold) {
-//                    list.add(irisRec);
-//                }
             }
             if((list.size() == 0)){
                 if (!exptMsg.toString().isEmpty()) {

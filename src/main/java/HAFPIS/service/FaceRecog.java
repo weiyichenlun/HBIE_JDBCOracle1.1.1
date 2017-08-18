@@ -58,20 +58,7 @@ public class FaceRecog implements Runnable {
         while (true) {
             List<SrchTaskBean> list;
             list = srchTaskDAO.getList(status, new int[]{6}, tasktypes, queryNum);
-            if ((list.size() == 0)) {
-                int timeSleep = 1;
-                try {
-                    timeSleep = Integer.parseInt(interval);
-                } catch (NumberFormatException e) {
-                    log.error("interval {} format error. Use default interval(1)", interval);
-                }
-                try {
-                    Thread.sleep(timeSleep * 1000);
-                    log.debug("sleeping");
-                } catch (InterruptedException e) {
-                    log.warn("Waiting Thread was interrupted: {}", e);
-                }
-            }
+            CommonUtil.checkList(list, interval);
 //            SrchTaskBean srchTaskBean = null;
             for (final SrchTaskBean srchTaskBean : list) {
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
@@ -118,6 +105,13 @@ public class FaceRecog implements Runnable {
         }
 
         try{
+
+            String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
+            String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
+            log.info(srchTaskBean.getSRCHDBSMASK());
+            probe.filter = CommonUtil.mergeFilter(demoFilter, dbFilter);
+            log.info("The total filter is :\n{}", probe.filter);
+
             probe.scoreThreshold = FaceTT_threshold;
             probe.feature = feature;
             probe.id = srchTaskBean.getPROBEID();
@@ -140,10 +134,6 @@ public class FaceRecog implements Runnable {
                 faceRec.score = cand.score;
                 faceRec.ffscores[0] = cand.score;
                 list.add(faceRec);
-//
-//                if(faceRec.score > FaceTT_threshold){
-//                    list.add(faceRec);
-//                }
             }
 
             if(list.size() == 0){

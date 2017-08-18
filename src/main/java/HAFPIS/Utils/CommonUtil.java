@@ -2,6 +2,7 @@ package HAFPIS.Utils;
 
 import HAFPIS.domain.Rec;
 import HAFPIS.domain.SrchDataRec;
+import HAFPIS.domain.SrchTaskBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -337,7 +338,7 @@ public class CommonUtil {
         if (flag != null && flag.trim().length() > 0) {
             sb.append("(").append(flag).append(")").append("&&");
         }
-        if (demoFilterEnable && demofilter != null && demofilter.trim().length() > 0) {
+        if (!demoFilterEnable && demofilter != null && demofilter.trim().length() > 0) {
             sb.append(demofilter).append("&&");
         }
         if (dbfilter != null && dbfilter.trim().length() > 0) {
@@ -349,6 +350,28 @@ public class CommonUtil {
             sb.setLength(sb.length() - 2);
         }
         return sb.toString();
+    }
+
+    /**
+     * check whether list is empty. If true, wait for interval seconds
+     * @param list
+     * @param interval
+     */
+    public static void checkList(List<SrchTaskBean> list, String interval) {
+        if ((list.size() == 0)) {
+            int timeSleep = 1;
+            try {
+                timeSleep = Integer.parseInt(interval);
+            } catch (NumberFormatException e) {
+                log.error("interval {} format error. Use default interval(1)", interval);
+            }
+            try {
+                Thread.sleep(timeSleep * 1000);
+                log.debug("sleeping");
+            } catch (InterruptedException e) {
+                log.warn("Waiting Thread was interrupted: {}", e);
+            }
+        }
     }
 
     public static void main(String[] args) {

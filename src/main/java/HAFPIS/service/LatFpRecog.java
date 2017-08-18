@@ -74,20 +74,7 @@ public class LatFpRecog implements Runnable{
         while (true) {
             List<SrchTaskBean> list;
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
-            if ((list.size() == 0)) {
-                int timeSleep = 1;
-                try {
-                    timeSleep = Integer.parseInt(interval);
-                } catch (NumberFormatException e) {
-                    log.error("interval {} format error. Use default interval(1)", interval);
-                }
-                try {
-                    Thread.sleep(timeSleep * 1000);
-                    log.debug("sleeping");
-                } catch (InterruptedException e) {
-                    log.warn("Waiting Thread was interrupted: {}", e);
-                }
-            }
+            CommonUtil.checkList(list, interval);
 //            SrchTaskBean srchTaskBean = null;
             for (final SrchTaskBean srchTaskBean : list) {
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
@@ -204,23 +191,8 @@ public class LatFpRecog implements Runnable{
             String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
             log.info(srchTaskBean.getSRCHDBSMASK());
-
-//            if (!ConfigUtil.getConfig("demo_filter_enable").equals("0")) {
-//                if (null == demoFilter || demoFilter.trim().isEmpty()) {
-//                } else {
-//                    sb.append(demoFilter).append("&&");
-//                }
-//            }
-//            if (null == dbFilter || dbFilter.trim().isEmpty()) {
-//            } else {
-//                sb.append(dbFilter).append("&&");
-//            }
-//            if (sb.length() >= 2) {
-//                sb.setLength(sb.length() - 2);
-//            }
-//
-//            probe.filter = sb.toString();
             probe.filter = CommonUtil.mergeFilter(demoFilter, dbFilter);
+            log.info("The total filter is :\n{}", probe.filter);
             probe.scoreThreshold = FPTL_threshold;
             //按指位平均输出
             if (avgCand == 1) {
@@ -244,14 +216,6 @@ public class LatFpRecog implements Runnable{
                             } else {
                                 list_rest.add(fptlRec);
                             }
-
-//                            if (results.candidates.size() <= tempCands) {
-//                                list.add(fptlRec);
-//                            } else if (j < tempCands && fptlRec.score >= FPTL_threshold) {
-//                                list.add(fptlRec);
-//                            } else {
-//                                list_rest.add(fptlRec);
-//                            }
                         }
                     }
                 }
@@ -274,14 +238,6 @@ public class LatFpRecog implements Runnable{
                             } else {
                                 list_rest.add(fptlRec);
                             }
-
-//                            if (results.candidates.size() < tempCands) {
-//                                list.add(fptlRec);
-//                            } else if (j < tempCands && fptlRec.score >= FPTL_threshold) {
-//                                list.add(fptlRec);
-//                            } else {
-//                                list_rest.add(fptlRec);
-//                            }
                         }
                     }
                 }
@@ -309,10 +265,6 @@ public class LatFpRecog implements Runnable{
                             fptlRec.score = cand.score;
                             fptlRec.position = i + 1;
                             list.add(fptlRec);
-
-//                            if (fptlRec.score > FPTL_threshold) {
-//                                list.add(fptlRec);
-//                            }
                         }
                     }
                 }
@@ -331,9 +283,6 @@ public class LatFpRecog implements Runnable{
                             fptlRec.score = cand.score;
                             fptlRec.position = i + 10 + 1;
                             list.add(fptlRec);
-//                            if (fptlRec.score > threshold) {
-//                                list.add(fptlRec);
-//                            }
                         }
                     }
                 }
@@ -424,22 +373,8 @@ public class LatFpRecog implements Runnable{
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
             log.info(srchTaskBean.getSRCHDBSMASK());
 
-//            if (!ConfigUtil.getConfig("demo_filter_enable").equals("0")) {
-//                if (null == demoFilter || demoFilter.trim().isEmpty()) {
-//                } else {
-//                    sb.append(demoFilter).append("&&");
-//                }
-//            }
-//            if (null == dbFilter || dbFilter.trim().isEmpty()) {
-//            } else {
-//                sb.append(dbFilter).append("&&");
-//            }
-//            if (sb.length() >= 2) {
-//                sb.setLength(sb.length() - 2);
-//            }
-//
-//            probe.filter = sb.toString();
             probe.filter = CommonUtil.mergeFilter(demoFilter, dbFilter);
+            log.info("The total filter is :\n{}", probe.filter);
             probe.scoreThreshold = FPLL_threshold;
             SearchResults<HSFPLatFp.LatFpSearchParam.Result> results = null;
             results = HbieUtil.getInstance().hbie_LPP.search(probe);

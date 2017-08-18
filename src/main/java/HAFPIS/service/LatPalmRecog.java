@@ -72,20 +72,7 @@ public class LatPalmRecog implements Runnable {
         while (true) {
             List<SrchTaskBean> list;
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
-            if ((list.size() == 0)) {
-                int timeSleep = 1;
-                try {
-                    timeSleep = Integer.parseInt(interval);
-                } catch (NumberFormatException e) {
-                    log.error("interval {} format error. Use default interval(1)", interval);
-                }
-                try {
-                    Thread.sleep(timeSleep * 10000);
-                    log.debug("sleeping");
-                } catch (InterruptedException e) {
-                    log.warn("Waiting Thread was interrupted: {}", e);
-                }
-            }
+            CommonUtil.checkList(list, interval);
 //            SrchTaskBean srchTaskBean = null;
             for (final SrchTaskBean srchTaskBean : list) {
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
@@ -151,24 +138,8 @@ public class LatPalmRecog implements Runnable {
             String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
             log.info(srchTaskBean.getSRCHDBSMASK());
-
-//            if (!ConfigUtil.getConfig("demo_filter_enable").equals("0")) {
-//                if (null == demoFilter || demoFilter.trim().isEmpty()) {
-//                } else {
-//                    sb.append(demoFilter).append("&&");
-//                }
-//            }
-//            if (null == dbFilter || dbFilter.trim().isEmpty()) {
-//            } else {
-//                sb.append(dbFilter).append("&&");
-//            }
-//            if (sb.length() >= 2) {
-//                sb.setLength(sb.length() - 2);
-//            }
-//            System.out.println(sb.toString());
-//
-//            probe.filter = sb.toString();
             probe.filter = CommonUtil.mergeFilter(demoFilter, dbFilter);
+            log.info("The total filter is :\n{}", probe.filter);
             SearchResults<HSFPLatPalm.LatPalmSearchParam.Result> results = null;
             results = HbieUtil.getInstance().hbie_PLP.search(probe);
             List<PPLLRec> list = new ArrayList<>();
@@ -303,24 +274,8 @@ public class LatPalmRecog implements Runnable {
             String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
             log.info(srchTaskBean.getSRCHDBSMASK());
-
-//            if (!ConfigUtil.getConfig("demo_filter_enable").equals("0")) {
-//                if (null == demoFilter || demoFilter.trim().isEmpty()) {
-//                } else {
-//                    sb.append(demoFilter).append("&&");
-//                }
-//            }
-//            if (null == dbFilter || dbFilter.trim().isEmpty()) {
-//            } else {
-//                sb.append(dbFilter).append("&&");
-//            }
-//            if (sb.length() >= 2) {
-//                sb.setLength(sb.length() - 2);
-//            }
-//            System.out.println(sb.toString());
-//
-//            probe.filter = sb.toString();
             probe.filter = CommonUtil.mergeFilter(demoFilter, dbFilter);
+            log.info("The total filter is :\n{}", probe.filter);
             probe.scoreThreshold = PPTL_threshold;
             probe.id = srchTaskBean.getPROBEID();
             if (avgCand == 1) {
@@ -343,16 +298,6 @@ public class LatPalmRecog implements Runnable {
                             } else {
                                 tempList.add(pptlRec);
                             }
-
-//                            if (results.candidates.size() <= tempCands) {
-//                                list.add(pptlRec);
-//                            } else {
-//                                if (j < tempCands && pptlRec.score >= threshold) {
-//                                    list.add(pptlRec);
-//                                } else {
-//                                    tempList.add(pptlRec);
-//                                }
-//                            }
                         }
                     }
                 }
@@ -377,10 +322,6 @@ public class LatPalmRecog implements Runnable {
                     pptlRec.score = cand.score;
                     pptlRec.position = cand.outputs[2].galleryPos + 1;
                     list.add(pptlRec);
-
-//                    if (pptlRec.score > threshold) {
-//                        list.add(pptlRec);
-//                    }
                 }
                 list = CommonUtil.mergeResult(list);
             }

@@ -72,21 +72,7 @@ public class PalmRecog implements Runnable{
         while (true) {
             List<SrchTaskBean> list;
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
-            if ((list.size() == 0)) {
-                int timeSleep = 1;
-                try {
-                    timeSleep = Integer.parseInt(interval);
-                } catch (NumberFormatException e) {
-                    log.error("interval {} format error. Use default interval(1)", interval);
-                }
-                try {
-                    Thread.sleep(timeSleep * 1000);
-                    log.debug("sleeping");
-                } catch (InterruptedException e) {
-                    log.warn("Waiting Thread was interrupted: {}", e);
-                }
-            }
-//            SrchTaskBean srchTaskBean = null;
+            CommonUtil.checkList(list, interval);
             for (final SrchTaskBean srchTaskBean : list) {
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
                 Blob srchdata = srchTaskBean.getSRCHDATA();
@@ -101,13 +87,11 @@ public class PalmRecog implements Runnable{
                         switch (tasktype) {
                             case 1:
                                 long start = System.currentTimeMillis();
-//                                PPTT(srchDataRecList, srchTaskBean);
                                 executorService.submit(() -> PPTT(srchDataRecList, srchTaskBean));
                                 log.debug("PPTT total cost : {} ms", (System.currentTimeMillis() - start));
                                 break;
                             case 3:
                                 long start1 = System.currentTimeMillis();
-//                                PPLT(srchDataRecList, srchTaskBean);
                                 executorService.submit(() -> PPLT(srchDataRecList, srchTaskBean));
                                 log.debug("PPLT total cost : {} ms", (System.currentTimeMillis() - start1));
                                 break;
@@ -124,7 +108,6 @@ public class PalmRecog implements Runnable{
     private void PPLT(List<SrchDataRec> srchDataRecList, SrchTaskBean srchTaskBean) {
         HSFPFourPalm.LatPalmSearchParam probe   = new HSFPFourPalm.LatPalmSearchParam();
         PPLTDAO ppltdao = new PPLTDAO(PPLT_tablename);
-//        String srchPosMask="10001100011111111111";
         String srchPosMask_Palm;
         StringBuilder exptMsg;
         StringBuilder sb = new StringBuilder();
@@ -199,28 +182,9 @@ public class PalmRecog implements Runnable{
             String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
             log.info(srchTaskBean.getSRCHDBSMASK());
-
-
-//            if (!ConfigUtil.getConfig("demo_filter_enable").equals("0")) {
-//                if (null == demoFilter || demoFilter.trim().isEmpty()) {
-//                } else {
-//                    sb.append(demoFilter).append("&&");
-//                }
-//            }
-//            if (null == dbFilter || dbFilter.trim().isEmpty()) {
-//            } else {
-//                sb.append(dbFilter).append("&&");
-//            }
-//            if (sb.length() >= 2) {
-//                sb.setLength(sb.length() - 2);
-//            }
-//            System.out.println(sb.toString());
-//
-//            probe.filter = sb.toString();
             probe.filter = CommonUtil.mergeFilter(demoFilter, dbFilter);
+            log.info("The total filter is :\n{}", probe.filter);
             probe.scoreThreshold = PPLT_threshold;
-
-//            probe.recordAllScores = true;
             if (avgCand == 1) {
                 for (int i = 0; i < mask.length; i++) {
                     if (mask[i]) {
@@ -241,14 +205,6 @@ public class PalmRecog implements Runnable{
                             } else {
                                 tempList.add(ppltRec);
                             }
-
-//                            if (results.candidates.size() <= tempCands) {
-//                                list.add(ppltRec);
-//                            } else if (j < tempCands && ppltRec.score >= PPLT_threshold) {
-//                                list.add(ppltRec);
-//                            } else {
-//                                tempList.add(ppltRec);
-//                            }
                         }
                     }
                     probe.ppMask[i] = false;
@@ -278,10 +234,6 @@ public class PalmRecog implements Runnable{
                     ppltRec.position = cand.outputs[2].galleryPos;
                     ppltRec.score = cand.score;
                     list.add(ppltRec);
-
-//                    if (ppltRec.score >= PPLT_threshold) {
-//                        list.add(ppltRec);
-//                    }
                 }
                 list = CommonUtil.mergeResult(list);
             }
@@ -367,25 +319,8 @@ public class PalmRecog implements Runnable{
             String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
             log.info(srchTaskBean.getSRCHDBSMASK());
-
-            //文字信息过滤
-//            if (!ConfigUtil.getConfig("demo_filter_enable").equals("0")) {
-//                if (null == demoFilter || demoFilter.trim().isEmpty()) {
-//                } else {
-//                    sb.append(demoFilter).append("&&");
-//                }
-//            }
-//            if (null == dbFilter || dbFilter.trim().isEmpty()) {
-//            } else {
-//                sb.append(dbFilter).append("&&");
-//            }
-//            if (sb.length() >= 2) {
-//                sb.setLength(sb.length() - 2);
-//            }
-//            System.out.println(sb.toString());
-//
-//            probe.filter = sb.toString();
             probe.filter = CommonUtil.mergeFilter(demoFilter, dbFilter);
+            log.info("The total filter is :\n{}", probe.filter);
             probe.scoreThreshold = PPTT_threshold;
 
             SearchResults<HSFPFourPalm.FourPalmSearchParam.Result> results = HbieUtil.getInstance().hbie_PP.search(probe);
@@ -399,10 +334,6 @@ public class PalmRecog implements Runnable{
                 ppttRec.score  = cand.score;
                 ppttRec.position = cand.outputs[2].galleryPos;
                 list.add(ppttRec);
-
-//                if (ppttRec.score > PPTT_threshold) {
-//                    list.add(ppttRec);
-//                }
             }
 
             if (list.size() == 0) {
