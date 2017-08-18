@@ -58,20 +58,7 @@ public class OneToF_FPLL implements Runnable {
         while (true) {
             List<SrchTaskBean> list = new ArrayList<>();
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
-            if ((list.size() == 0)) {
-                int timeSleep = 1;
-                try {
-                    timeSleep = Integer.parseInt(interval);
-                } catch (NumberFormatException e) {
-                    log.error("interval {} format error. Use default interval(1)", interval);
-                }
-                try {
-                    Thread.sleep(timeSleep * 1000);
-                    log.debug("sleeping");
-                } catch (InterruptedException e) {
-                    log.warn("Waiting Thread was interrupted: {}", e);
-                }
-            }
+            CommonUtil.checkList(list, interval);
             SrchTaskBean srchTaskBean = null;
             for (int i = 0; i < list.size(); i++) {
                 srchTaskBean = list.get(i);
