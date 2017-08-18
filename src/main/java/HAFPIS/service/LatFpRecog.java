@@ -205,19 +205,22 @@ public class LatFpRecog implements Runnable{
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
             log.info(srchTaskBean.getSRCHDBSMASK());
 
-            if (null == demoFilter || demoFilter.trim().isEmpty()) {
-            } else {
-                sb.append(demoFilter).append("&&");
-            }
-            if (null == dbFilter || dbFilter.trim().isEmpty()) {
-            } else {
-                sb.append(dbFilter).append("&&");
-            }
-            if (sb.length() >= 2) {
-                sb.setLength(sb.length() - 2);
-            }
-
-            probe.filter = sb.toString();
+//            if (!ConfigUtil.getConfig("demo_filter_enable").equals("0")) {
+//                if (null == demoFilter || demoFilter.trim().isEmpty()) {
+//                } else {
+//                    sb.append(demoFilter).append("&&");
+//                }
+//            }
+//            if (null == dbFilter || dbFilter.trim().isEmpty()) {
+//            } else {
+//                sb.append(dbFilter).append("&&");
+//            }
+//            if (sb.length() >= 2) {
+//                sb.setLength(sb.length() - 2);
+//            }
+//
+//            probe.filter = sb.toString();
+            probe.filter = CommonUtil.mergeFilter(demoFilter, dbFilter);
             probe.scoreThreshold = FPTL_threshold;
             //按指位平均输出
             if (avgCand == 1) {
@@ -421,19 +424,22 @@ public class LatFpRecog implements Runnable{
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
             log.info(srchTaskBean.getSRCHDBSMASK());
 
-            if (null == demoFilter || demoFilter.trim().isEmpty()) {
-            } else {
-                sb.append(demoFilter).append("&&");
-            }
-            if (null == dbFilter || dbFilter.trim().isEmpty()) {
-            } else {
-                sb.append(dbFilter).append("&&");
-            }
-            if (sb.length() >= 2) {
-                sb.setLength(sb.length() - 2);
-            }
-
-            probe.filter = sb.toString();
+//            if (!ConfigUtil.getConfig("demo_filter_enable").equals("0")) {
+//                if (null == demoFilter || demoFilter.trim().isEmpty()) {
+//                } else {
+//                    sb.append(demoFilter).append("&&");
+//                }
+//            }
+//            if (null == dbFilter || dbFilter.trim().isEmpty()) {
+//            } else {
+//                sb.append(dbFilter).append("&&");
+//            }
+//            if (sb.length() >= 2) {
+//                sb.setLength(sb.length() - 2);
+//            }
+//
+//            probe.filter = sb.toString();
+            probe.filter = CommonUtil.mergeFilter(demoFilter, dbFilter);
             probe.scoreThreshold = FPLL_threshold;
             SearchResults<HSFPLatFp.LatFpSearchParam.Result> results = null;
             results = HbieUtil.getInstance().hbie_LPP.search(probe);

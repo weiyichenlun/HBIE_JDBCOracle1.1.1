@@ -327,6 +327,30 @@ public class CommonUtil {
         return s;
     }
 
+    public static String mergeFilter(String demofilter, String dbfilter) {
+        return mergeFilter(null, demofilter, dbfilter);
+    }
+
+    public static String mergeFilter(String flag, String demofilter, String dbfilter) {
+        StringBuilder sb = new StringBuilder();
+        boolean demoFilterEnable = ConfigUtil.getConfig("demo_filter_enable").endsWith("0");
+        if (flag != null && flag.trim().length() > 0) {
+            sb.append("(").append(flag).append(")").append("&&");
+        }
+        if (demoFilterEnable && demofilter != null && demofilter.trim().length() > 0) {
+            sb.append(demofilter).append("&&");
+        }
+        if (dbfilter != null && dbfilter.trim().length() > 0) {
+            sb.append(dbfilter).append("&&");
+        }
+        if (sb.length() == 0) {
+            return null;
+        } else {
+            sb.setLength(sb.length() - 2);
+        }
+        return sb.toString();
+    }
+
     public static void main(String[] args) {
         String test = "284C4F474943414C5F545950453D3D317C7C4C4F474943414C5F545950453D3D327C7C4C4F474943414C5F545950453D3D337C7C4C4F474943414C5F545950453D3D347C7C4C4F474943414C5F545950453D3D357C7C4C4F474943414C5F545950453D3D37292626285842444D5F434F4445443D3D317C7C5842444D5F434F4445443D3D327C7C5842444D5F434F4445443D3D3329";
         String res = decode(test);

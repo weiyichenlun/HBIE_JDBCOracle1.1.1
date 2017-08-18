@@ -9,7 +9,6 @@ import com.hisign.bie.iris.HSIris;
 import com.hisign.bie.thid.THIDFace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.misc.FpUtils;
 
 import java.net.MalformedURLException;
 import java.rmi.NotBoundException;
@@ -38,77 +37,6 @@ public class HbieUtil {
 
     private HbieUtil() {
         try {
-//            log.info("HBIEClient init begin...");
-//            ipAddr = ConfigUtil.getConfig("host");
-//            log.info("host is "+ipAddr);
-//            fpPort = Integer.parseInt(ConfigUtil.getConfig("tenfp_port"));
-//            ppPort = Integer.parseInt(ConfigUtil.getConfig("fourpalm_port"));
-//            lppPort = Integer.parseInt(ConfigUtil.getConfig("latfp_port"));
-//            plpPort = Integer.parseInt(ConfigUtil.getConfig("latpalm_port"));
-//            facePort = Integer.parseInt(ConfigUtil.getConfig("face_port"));
-//            irisPort = Integer.parseInt(ConfigUtil.getConfig("iris_port"));
-//            String[] ips = ipAddr.split(",");
-//            if (ips.length > 1) {
-//                StringBuilder sb = new StringBuilder();
-//                for (String ip : ips) {
-//                    sb.append(ip).append(":").append(fpPort).append(",");
-//                }
-//                sb.setLength(sb.length() - 1);
-//                String[] fp_ips = sb.toString().split(",");
-//                for (int i = 0; i < fp_ips.length; i++) {
-//                    log.info(fp_ips[i]);
-//                }
-//                hbie_FP = new HBIEClient<HSFPTenFp.Record>(fp_ips);
-//                sb = new StringBuilder();
-//                for (String ip : ips) {
-//                    sb.append(ip).append(":").append(ppPort).append(",");
-//                }
-//                sb.setLength(sb.length() - 1);
-//                hbie_PP = new HBIEClient<HSFPFourPalm.Record>(sb.toString());
-//                sb.setLength(0);
-
-//                for (String ip : ips) {
-//                    sb.append(ip).append(":").append(lppPort).append(",");
-//                }
-//                sb.setLength(sb.length() - 1);
-//                String[] latfp_ips = sb.toString().split(",");
-//                for (int i = 0; i < latfp_ips.length; i++) {
-//                    log.info(latfp_ips[i]);
-//                }
-//                hbie_LPP = new HBIEClient<HSFPLatFp.Record>(latfp_ips);
-//                sb.setLength(0);
-//
-//                for (String ip : ips) {
-//                    sb.append(ip).append(":").append(plpPort).append(",");
-//                }
-//                sb.setLength(sb.length() - 1);
-//                hbie_PLP = new HBIEClient<HSFPLatPalm.Record>(sb.toString());
-//                sb.setLength(0);
-//
-//                for (String ip : ips) {
-//                    sb.append(ip).append(":").append(facePort).append(",");
-//                }
-//                sb.setLength(sb.length() - 1);
-////                hbie_FACE = new HBIEClient<THIDFace.Record>(sb.toString());
-//                sb.setLength(0);
-//
-//                for (String ip : ips) {
-//                    sb.append(ip).append(":").append(irisPort).append(",");
-//                }
-//                sb.setLength(sb.length() - 1);
-////                hbie_IRIS = new HBIEClient<HSIris.Record>(sb.toString());
-//                sb.setLength(0);
-//
-//            } else if (ips.length == 1) {
-//                hbie_FP = new HBIEClient<HSFPTenFp.Record>(ipAddr, fpPort);
-//                hbie_PP = new HBIEClient<HSFPFourPalm.Record>(ipAddr, ppPort);
-//                hbie_LPP = new HBIEClient<HSFPLatFp.Record>(ipAddr, lppPort);
-//                hbie_PLP = new HBIEClient<HSFPLatPalm.Record>(ipAddr, plpPort);
-//                hbie_FACE = new HBIEClient<THIDFace.Record>(ipAddr, facePort);
-//                hbie_IRIS = new HBIEClient<HSIris.Record>(ipAddr, irisPort);
-//
-//            }
-
             if (ipAddrs.length > 0) {
                 int len = ipAddrs.length;
                 String[] cpIpAddrs = new String[len];

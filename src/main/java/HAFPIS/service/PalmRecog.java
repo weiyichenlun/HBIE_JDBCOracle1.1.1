@@ -201,20 +201,23 @@ public class PalmRecog implements Runnable{
             log.info(srchTaskBean.getSRCHDBSMASK());
 
 
-            if (null == demoFilter || demoFilter.trim().isEmpty()) {
-            } else {
-                sb.append(demoFilter).append("&&");
-            }
-            if (null == dbFilter || dbFilter.trim().isEmpty()) {
-            } else {
-                sb.append(dbFilter).append("&&");
-            }
-            if (sb.length() >= 2) {
-                sb.setLength(sb.length() - 2);
-            }
-            System.out.println(sb.toString());
-
-            probe.filter = sb.toString();
+//            if (!ConfigUtil.getConfig("demo_filter_enable").equals("0")) {
+//                if (null == demoFilter || demoFilter.trim().isEmpty()) {
+//                } else {
+//                    sb.append(demoFilter).append("&&");
+//                }
+//            }
+//            if (null == dbFilter || dbFilter.trim().isEmpty()) {
+//            } else {
+//                sb.append(dbFilter).append("&&");
+//            }
+//            if (sb.length() >= 2) {
+//                sb.setLength(sb.length() - 2);
+//            }
+//            System.out.println(sb.toString());
+//
+//            probe.filter = sb.toString();
+            probe.filter = CommonUtil.mergeFilter(demoFilter, dbFilter);
             probe.scoreThreshold = PPLT_threshold;
 
 //            probe.recordAllScores = true;
@@ -366,20 +369,23 @@ public class PalmRecog implements Runnable{
             log.info(srchTaskBean.getSRCHDBSMASK());
 
             //文字信息过滤
-            if (null == demoFilter || demoFilter.trim().isEmpty()) {
-            } else {
-                sb.append(demoFilter).append("&&");
-            }
-            if (null == dbFilter || dbFilter.trim().isEmpty()) {
-            } else {
-                sb.append(dbFilter).append("&&");
-            }
-            if (sb.length() >= 2) {
-                sb.setLength(sb.length() - 2);
-            }
-            System.out.println(sb.toString());
-
-            probe.filter = sb.toString();
+//            if (!ConfigUtil.getConfig("demo_filter_enable").equals("0")) {
+//                if (null == demoFilter || demoFilter.trim().isEmpty()) {
+//                } else {
+//                    sb.append(demoFilter).append("&&");
+//                }
+//            }
+//            if (null == dbFilter || dbFilter.trim().isEmpty()) {
+//            } else {
+//                sb.append(dbFilter).append("&&");
+//            }
+//            if (sb.length() >= 2) {
+//                sb.setLength(sb.length() - 2);
+//            }
+//            System.out.println(sb.toString());
+//
+//            probe.filter = sb.toString();
+            probe.filter = CommonUtil.mergeFilter(demoFilter, dbFilter);
             probe.scoreThreshold = PPTT_threshold;
 
             SearchResults<HSFPFourPalm.FourPalmSearchParam.Result> results = HbieUtil.getInstance().hbie_PP.search(probe);

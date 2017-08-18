@@ -226,18 +226,21 @@ public class FpRecog implements Runnable {
                     if (posMask_Roll[i] == 1) {
                         probe.fp_score_weight[i] = posMask_Roll[i];
                         //文字信息过滤
-                        sb.append("(flag=={0})&&");
-                        if (null == demoFilter || demoFilter.trim().isEmpty()) {
-                        } else {
-                            sb.append(demoFilter).append("&&");
-                        }
-                        if (null == dbFilter || dbFilter.trim().isEmpty()) {
-                        } else {
-                            sb.append(dbFilter).append("&&");
-                        }
-                        sb.setLength(sb.length() - 2);
-
-                        probe.filter = sb.toString();
+//                        sb.append("(flag=={0})&&");
+//                        if (!ConfigUtil.getConfig("demo_filter_enable").equals("0")) {
+//                            if (null == demoFilter || demoFilter.trim().isEmpty()) {
+//                            } else {
+//                                sb.append(demoFilter).append("&&");
+//                            }
+//                        }
+//                        if (null == dbFilter || dbFilter.trim().isEmpty()) {
+//                        } else {
+//                            sb.append(dbFilter).append("&&");
+//                        }
+//                        sb.setLength(sb.length() - 2);
+//
+//                        probe.filter = sb.toString();
+                        probe.filter = CommonUtil.mergeFilter("flag=={0}", demoFilter, dbFilter);
                         log.info("The total filter is :\n"+sb.toString());
                         results = HbieUtil.getInstance().hbie_FP.search(probe);
                         for (int j = 0; j < results.candidates.size(); j++) {
@@ -265,18 +268,21 @@ public class FpRecog implements Runnable {
                     if (posMask_Flat[i] == 1) {
                         probe.fp_score_weight[i] = posMask_Flat[i];
                         sb = new StringBuilder();
-                        sb.append("(flag=={1})&&");
-                        if (null == demoFilter || demoFilter.trim().isEmpty()) {
-                        } else {
-                            sb.append(demoFilter).append("&&");
-                        }
-                        if (null == dbFilter || dbFilter.trim().isEmpty()) {
-                        } else {
-                            sb.append(dbFilter).append("&&");
-                        }
-                        sb.setLength(sb.length() - 2);
-
-                        probe.filter = sb.toString();
+//                        sb.append("(flag=={1})&&");
+//                        if (!ConfigUtil.getConfig("demo_filter_enable").equals("0")) {
+//                            if (null == demoFilter || demoFilter.trim().isEmpty()) {
+//                            } else {
+//                                sb.append(demoFilter).append("&&");
+//                            }
+//                        }
+//                        if (null == dbFilter || dbFilter.trim().isEmpty()) {
+//                        } else {
+//                            sb.append(dbFilter).append("&&");
+//                        }
+//                        sb.setLength(sb.length() - 2);
+//
+//                        probe.filter = sb.toString();
+                        probe.filter = CommonUtil.mergeFilter("flag=={1}", demoFilter, dbFilter);
                         log.info("The total filter is :\n"+sb.toString());
 
                         results = HbieUtil.getInstance().hbie_FP.search(probe);
@@ -310,18 +316,21 @@ public class FpRecog implements Runnable {
             } else {
                 System.arraycopy(posMask_Roll, 0, probe.fp_score_weight, 0, posMask_Roll.length);
                 sb = new StringBuilder();
-                sb.append("(flag=={0})&&");
-                if (null == demoFilter || demoFilter.trim().isEmpty()) {
-                } else {
-                    sb.append(demoFilter).append("&&");
-                }
-                if (null == dbFilter || dbFilter.trim().isEmpty()) {
-                } else {
-                    sb.append(dbFilter).append("&&");
-                }
-                sb.setLength(sb.length() - 2);
-
-                probe.filter = sb.toString();
+//                sb.append("(flag=={0})&&");
+//                if (!ConfigUtil.getConfig("demo_filter_enable").equals("0")) {
+//                    if (null == demoFilter || demoFilter.trim().isEmpty()) {
+//                    } else {
+//                        sb.append(demoFilter).append("&&");
+//                    }
+//                }
+//                if (null == dbFilter || dbFilter.trim().isEmpty()) {
+//                } else {
+//                    sb.append(dbFilter).append("&&");
+//                }
+//                sb.setLength(sb.length() - 2);
+//
+//                probe.filter = sb.toString();
+                probe.filter = CommonUtil.mergeFilter("flag=={0}", demoFilter, dbFilter);
                 log.info("The total filter is :\n"+sb.toString());
                 results = HbieUtil.getInstance().hbie_FP.search(probe);
                 for (HSFPTenFp.LatFpSearchParam.Result cand : results.candidates) {
@@ -338,18 +347,21 @@ public class FpRecog implements Runnable {
 
                 System.arraycopy(posMask_Flat, 0, probe.fp_score_weight, 0, posMask_Flat.length);
                 sb = new StringBuilder();
-                sb.append("(flag=={1})&&");
-                if (null == demoFilter || demoFilter.trim().isEmpty()) {
-                } else {
-                    sb.append(demoFilter).append("&&");
-                }
-                if (null == dbFilter || dbFilter.trim().isEmpty()) {
-                } else {
-                    sb.append(dbFilter).append("&&");
-                }
-                sb.setLength(sb.length() - 2);
-
-                probe.filter = sb.toString();
+//                sb.append("(flag=={1})&&");
+//                if (!ConfigUtil.getConfig("demo_filter_enable").equals("0")) {
+//                    if (null == demoFilter || demoFilter.trim().isEmpty()) {
+//                    } else {
+//                        sb.append(demoFilter).append("&&");
+//                    }
+//                }
+//                if (null == dbFilter || dbFilter.trim().isEmpty()) {
+//                } else {
+//                    sb.append(dbFilter).append("&&");
+//                }
+//                sb.setLength(sb.length() - 2);
+//
+//                probe.filter = sb.toString();
+                probe.filter = CommonUtil.mergeFilter("flag=={1}", demoFilter, dbFilter);
                 log.info("The total filter is :\n"+sb.toString());
                 results = HbieUtil.getInstance().hbie_FP.search(probe);
                 for (HSFPTenFp.LatFpSearchParam.Result cand : results.candidates) {
@@ -455,9 +467,11 @@ public class FpRecog implements Runnable {
 
             //文字信息过滤
             sb.append("(flag=={0})&&");
-            if (null == demoFilter || demoFilter.trim().isEmpty()) {
-            } else {
-                sb.append(demoFilter).append("&&");
+            if (!ConfigUtil.getConfig("demo_filter_enable").equals("0")) {
+                if (null == demoFilter || demoFilter.trim().isEmpty()) {
+                } else {
+                    sb.append(demoFilter).append("&&");
+                }
             }
             if (null == dbFilter || dbFilter.trim().isEmpty()) {
             } else {
@@ -485,9 +499,11 @@ public class FpRecog implements Runnable {
             probe.features = srchDataRec.fpmnt;
             sb = new StringBuilder();
             sb.append("(flag=={1})&&");
-            if (null == demoFilter || demoFilter.trim().isEmpty()) {
-            } else {
-                sb.append(demoFilter).append("&&");
+            if (!ConfigUtil.getConfig("demo_filter_enable").equals("0")) {
+                if (null == demoFilter || demoFilter.trim().isEmpty()) {
+                } else {
+                    sb.append(demoFilter).append("&&");
+                }
             }
             if (null == dbFilter || dbFilter.trim().isEmpty()) {
             } else {

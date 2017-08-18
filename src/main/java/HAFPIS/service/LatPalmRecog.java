@@ -152,21 +152,23 @@ public class LatPalmRecog implements Runnable {
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
             log.info(srchTaskBean.getSRCHDBSMASK());
 
-            if (null == demoFilter || demoFilter.trim().isEmpty()) {
-            } else {
-                sb.append(demoFilter).append("&&");
-            }
-            if (null == dbFilter || dbFilter.trim().isEmpty()) {
-            } else {
-                sb.append(dbFilter).append("&&");
-            }
-            if (sb.length() >= 2) {
-                sb.setLength(sb.length() - 2);
-            }
-            System.out.println(sb.toString());
-
-            probe.filter = sb.toString();
-
+//            if (!ConfigUtil.getConfig("demo_filter_enable").equals("0")) {
+//                if (null == demoFilter || demoFilter.trim().isEmpty()) {
+//                } else {
+//                    sb.append(demoFilter).append("&&");
+//                }
+//            }
+//            if (null == dbFilter || dbFilter.trim().isEmpty()) {
+//            } else {
+//                sb.append(dbFilter).append("&&");
+//            }
+//            if (sb.length() >= 2) {
+//                sb.setLength(sb.length() - 2);
+//            }
+//            System.out.println(sb.toString());
+//
+//            probe.filter = sb.toString();
+            probe.filter = CommonUtil.mergeFilter(demoFilter, dbFilter);
             SearchResults<HSFPLatPalm.LatPalmSearchParam.Result> results = null;
             results = HbieUtil.getInstance().hbie_PLP.search(probe);
             List<PPLLRec> list = new ArrayList<>();
@@ -302,20 +304,23 @@ public class LatPalmRecog implements Runnable {
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
             log.info(srchTaskBean.getSRCHDBSMASK());
 
-            if (null == demoFilter || demoFilter.trim().isEmpty()) {
-            } else {
-                sb.append(demoFilter).append("&&");
-            }
-            if (null == dbFilter || dbFilter.trim().isEmpty()) {
-            } else {
-                sb.append(dbFilter).append("&&");
-            }
-            if (sb.length() >= 2) {
-                sb.setLength(sb.length() - 2);
-            }
-            System.out.println(sb.toString());
-
-            probe.filter = sb.toString();
+//            if (!ConfigUtil.getConfig("demo_filter_enable").equals("0")) {
+//                if (null == demoFilter || demoFilter.trim().isEmpty()) {
+//                } else {
+//                    sb.append(demoFilter).append("&&");
+//                }
+//            }
+//            if (null == dbFilter || dbFilter.trim().isEmpty()) {
+//            } else {
+//                sb.append(dbFilter).append("&&");
+//            }
+//            if (sb.length() >= 2) {
+//                sb.setLength(sb.length() - 2);
+//            }
+//            System.out.println(sb.toString());
+//
+//            probe.filter = sb.toString();
+            probe.filter = CommonUtil.mergeFilter(demoFilter, dbFilter);
             probe.scoreThreshold = PPTL_threshold;
             probe.id = srchTaskBean.getPROBEID();
             if (avgCand == 1) {
