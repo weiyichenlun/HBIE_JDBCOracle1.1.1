@@ -25,7 +25,6 @@ import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -47,15 +46,9 @@ public class FpRecog implements Runnable {
     private int[] datatypes = new int[2];
     private SrchTaskDAO srchTaskDAO;
     private ExecutorService executorService = Executors.newFixedThreadPool(CONSTANTS.NCORES);
-    private ArrayBlockingQueue<SrchTaskBean> srchTaskBeans = new ArrayBlockingQueue<>(20);
-    private ExecutorService executorService1 = new ThreadPoolExecutor(CONSTANTS.NCORES, CONSTANTS.NCORES, 0L, TimeUnit.MILLISECONDS,
-            new ArrayBlockingQueue<Runnable>(CONSTANTS.NCORES), (r, executor) -> {
-                try {
-                    executor.getQueue().put(r);
-                } catch (InterruptedException e) {
-                    log.error("put runnable task back into queue error");
-                }
-            });
+    private CommonUtil.BoundedExecutor boundedExecutor = new CommonUtil.BoundedExecutor(executorService, 10);
+    private ArrayBlockingQueue<SrchTaskBean> srchTaskBeanArrayBlockingQueue = new ArrayBlockingQueue<>(20);
+
     @Override
     public void run() {
         if (type == CONSTANTS.FPTT) {
@@ -82,6 +75,55 @@ public class FpRecog implements Runnable {
             System.out.println("Fp executorservice is shutting down");
         }));
         while (true) {
+//            new Thread(()->{
+//                List<SrchTaskBean> list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
+//                CommonUtil.checkList(list, interval);
+//                log.debug("get {} records.", list.size());
+//                list.stream().forEach(srchTaskBean -> {
+//                    while (true) {
+//                        try {
+//                            srchTaskBeanArrayBlockingQueue.put(srchTaskBean);
+//                            break;
+//                        } catch (InterruptedException e) {
+//                            log.warn("Error during put into srchTaskBean queue. taskidd is {}\n And will try again", srchTaskBean.getTASKIDD(), e);
+//                        }
+//                    }
+//                });
+//            }, "FP_SrchTaskBean_Thread").start();
+//
+//            try{
+//                SrchTaskBean srchTaskBean = srchTaskBeanArrayBlockingQueue.take();
+//                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+//                Blob srchdata = srchTaskBean.getSRCHDATA();
+//                int dataType = srchTaskBean.getDATATYPE();
+//                if (srchdata != null) {
+//                    List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
+//                    if (srchDataRecList == null || srchDataRecList.size() <= 0) {
+//                        log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+//                    } else {
+//                        int tasktype = srchTaskBean.getTASKTYPE();
+//                        switch (tasktype) {
+//                            case 1:
+//                                long start = System.currentTimeMillis();
+//                                boundedExecutor.submitTask(() -> FPTT(srchDataRecList, srchTaskBean));
+//                                log.info("FPTT task {} total cost : {} ms", srchTaskBean.getTASKIDD(), (System.currentTimeMillis() - start));
+//                                break;
+//                            case 3:
+//                                long start2 = System.currentTimeMillis();
+//                                boundedExecutor.submitTask(() -> FPLT(srchDataRecList, srchTaskBean));
+//                                log.info("FPLT task {} total cost : {} ms", srchTaskBean.getTASKIDD(), (System.currentTimeMillis() - start2));
+//                                break;
+//                        }
+//                    }
+//                } else {
+//                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
+//                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
+//                }
+//            } catch (InterruptedException e) {
+//                log.error("Interrupted during take srchTaskBean from queue");
+//            }
+
+
             List<SrchTaskBean> list;
             list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
             CommonUtil.checkList(list, interval);
@@ -114,14 +156,6 @@ public class FpRecog implements Runnable {
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
                 }
             }
-//            for (Future<String> f : listF) {
-//                try {
-//                    f.get();
-//                } catch (InterruptedException | ExecutionException e) {
-//                    log.error("FpRecog get result error. ", e);
-//                }
-//            }
-//            log.debug("total cost : {} ms", (System.currentTimeMillis()-start1));
         }
     }
 

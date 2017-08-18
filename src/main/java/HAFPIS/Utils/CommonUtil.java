@@ -6,13 +6,20 @@ import HAFPIS.domain.SrchTaskBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.Semaphore;
 
 /**
  * 通用工具类
@@ -378,5 +385,31 @@ public class CommonUtil {
         String test = "284C4F474943414C5F545950453D3D317C7C4C4F474943414C5F545950453D3D327C7C4C4F474943414C5F545950453D3D337C7C4C4F474943414C5F545950453D3D347C7C4C4F474943414C5F545950453D3D357C7C4C4F474943414C5F545950453D3D37292626285842444D5F434F4445443D3D317C7C5842444D5F434F4445443D3D327C7C5842444D5F434F4445443D3D3329";
         String res = decode(test);
         System.out.println(res);
+    }
+
+    public static class BoundedExecutor {
+        private final Executor exec;
+        private final Semaphore semaphore;
+
+        public BoundedExecutor(Executor exec, int bound) {
+            this.exec = exec;
+            this.semaphore = new Semaphore(bound);
+        }
+
+        public void submitTask(final Runnable command) throws InterruptedException, RejectedExecutionException {
+            semaphore.acquire();
+            try {
+                exec.execute(()->{
+                    try{
+                        command.run();
+                    } finally {
+                        semaphore.release();
+                    }
+                });
+            } catch (RejectedExecutionException e) {
+                semaphore.release();
+                throw e;
+            }
+        }
     }
 }
