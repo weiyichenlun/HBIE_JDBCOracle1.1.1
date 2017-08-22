@@ -3,30 +3,27 @@ package HAFPIS.service;
 import HAFPIS.DAO.DbopTaskDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.HbieUtil;
-import HAFPIS.Utils.QueryRunnerUtil;
 import HAFPIS.domain.DbopTaskBean;
 import com.hisign.bie.MatcherException;
-import org.apache.commons.dbutils.QueryRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
  * DBOP-TPP
  * Created by ZP on 2017/5/19.
  */
-public class DBOP_PLP implements Runnable {
+public class DBOP_PLP extends Recog implements Runnable {
     private final Logger log = LoggerFactory.getLogger(DBOP_PLP.class);
-    private QueryRunner qr = QueryRunnerUtil.getInstance();
-    private int type;
-    private String interval;
-    private String queryNum;
-    private String status;
-    private String tablename;
+
     int datatype = 0;
     private DbopTaskDAO dbopTaskDAO;
 

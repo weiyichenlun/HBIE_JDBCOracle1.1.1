@@ -38,9 +38,9 @@ public class SrchTaskDAO {
         }
         sb.append(" where status=").append(statusN);
         sb.append(" and datatype in (");
-        for (int i=0; i<datatypes.length; i++) {
-            if (datatypes[i] > 0) {
-                sb.append(datatypes[i]).append(",");
+        for (int datatype : datatypes) {
+            if (datatype > 0) {
+                sb.append(datatype).append(",");
             }
         }
         sb.deleteCharAt(sb.length() - 1).append(")");
@@ -54,7 +54,7 @@ public class SrchTaskDAO {
         sb.append(" and rownum<=").append(Integer.parseInt(queryNum));
         sb.append(" order by priority desc, endtime asc");
         try {
-            list = qr.query(sb.toString(), new BeanListHandler<SrchTaskBean>(SrchTaskBean.class));
+            list = qr.query(sb.toString(), new BeanListHandler<>(SrchTaskBean.class));
             log.debug("query_sql is {}", sb.toString());
         } catch (SQLException e) {
             log.error("SQLException: {}, query_sql:{}", e, sb.toString());
@@ -105,7 +105,6 @@ public class SrchTaskDAO {
         }
         sb.deleteCharAt(sb.length() - 1).append(")");
         try{
-            System.out.println(sb.toString());
             qr.update(sb.toString());
         } catch (SQLException e) {
             log.error("update status error before program shutdown. ");

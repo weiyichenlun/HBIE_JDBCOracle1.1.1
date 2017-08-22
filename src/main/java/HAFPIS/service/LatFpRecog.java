@@ -20,30 +20,19 @@ import java.rmi.RemoteException;
 import java.sql.Blob;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.RejectedExecutionException;
 
 /**
  * 指纹识别 TL和LL
  * Created by ZP on 2017/5/17.
  */
-public class LatFpRecog implements Runnable{
+public class LatFpRecog extends Recog implements Runnable{
     private static final Logger log = LoggerFactory.getLogger(FpRecog.class);
-    private int type;
-    private String interval;
-    private String queryNum;
-    private String status;
-    private String tablename;
+
     private float  FPTL_threshold;
     private String FPTL_tablename;
     private float  FPLL_threshold;
     private String FPLL_tablename;
-    private int[] tasktypes = new int[2];
-    private int[] datatypes = new int[2];
-    private SrchTaskDAO srchTaskDAO;
-    private static final int NUM_OF_CORES = Runtime.getRuntime().availableProcessors();
-    private ExecutorService executorService = Executors.newFixedThreadPool(NUM_OF_CORES);
 
 
     @Override
@@ -63,41 +52,68 @@ public class LatFpRecog implements Runnable{
         srchTaskDAO = new SrchTaskDAO(tablename);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("----------------");
-            try {
-                executorService.awaitTermination(5, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-            }
-            executorService.shutdown();
+//            try {
+//                executorService.awaitTermination(5, TimeUnit.SECONDS);
+//            } catch (InterruptedException e) {
+//            }
+//            executorService.shutdown();
+            boundedExecutor.close();
             srchTaskDAO.updateStatus(datatypes, tasktypes);
             System.out.println("LatFp executorservice is shutting down");
         }));
+
+        new Thread(()->{
+            while (true) {
+                List<SrchTaskBean> list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
+                CommonUtil.checkList(list, interval);
+                list.forEach(srchTaskBean -> {
+                    try {
+                        srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+                        srchTaskBeanArrayBlockingQueue.put(srchTaskBean);
+                    } catch (InterruptedException e) {
+                        log.warn("Error during put into srchTaskBean queue. taskidd is {}\n And will try again", srchTaskBean.getTASKIDD(), e);
+                    }
+                });
+            }
+        }, "LatFp_SrchTaskBean_Thread").start();
+
+
         while (true) {
-            List<SrchTaskBean> list;
-            list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
-            CommonUtil.checkList(list, interval);
-//            SrchTaskBean srchTaskBean = null;
-            for (final SrchTaskBean srchTaskBean : list) {
-                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+            try{
+                SrchTaskBean srchTaskBean = srchTaskBeanArrayBlockingQueue.take();
                 Blob srchdata = srchTaskBean.getSRCHDATA();
                 int dataType = srchTaskBean.getDATATYPE();
                 if (srchdata != null) {
                     List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
-                    if (null == srchDataRecList || srchDataRecList.size() <= 0) {
+                    log.info("after commontutil.srchdata2rec method......");
+                    if (srchDataRecList == null || srchDataRecList.size() <= 0) {
                         log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
                     } else {
                         int tasktype = srchTaskBean.getTASKTYPE();
+                        log.info("tasktype is {} for id {}", tasktype, srchTaskBean.getTASKIDD());
                         switch (tasktype) {
                             case 2:
                                 long start = System.currentTimeMillis();
-//                                FPTL(srchDataRecList, srchTaskBean);
-                                executorService.submit(() -> FPTL(srchDataRecList, srchTaskBean));
-                                log.debug("FPTL total cost : {} ms", (System.currentTimeMillis() - start));
+                                log.info("before submit to boundedExecutor....");
+
+                                try {
+                                    boundedExecutor.submitTask(() -> FPTL(srchDataRecList, srchTaskBean));
+                                } catch (InterruptedException e) {
+                                    log.error("interruptedexception... ", e);
+                                } catch (RejectedExecutionException e) {
+                                    log.error("rejectedexecutionException... ",e);
+                                }
+
+                                log.debug("FPTL task {} total cost : {} ms", srchTaskBean.getTASKIDD(), (System.currentTimeMillis() - start));
                                 break;
                             case 4:
-                                long start1 = System.currentTimeMillis();
-//                                FPLL(srchDataRecList, srchTaskBean);
-                                executorService.submit(() -> FPLL(srchDataRecList, srchTaskBean));
-                                log.debug("FPLL total cost : {} ms", (System.currentTimeMillis() - start1));
+                                long start2 = System.currentTimeMillis();
+                                try {
+                                    boundedExecutor.submitTask(() -> FPLL(srchDataRecList, srchTaskBean));
+                                }  catch (RejectedExecutionException e) {
+                                    log.error("rejected .....", e);
+                                }
+                                log.debug("FPLL task {} total cost : {} ms", srchTaskBean.getTASKIDD(), (System.currentTimeMillis() - start2));
                                 break;
                         }
                     }
@@ -105,7 +121,43 @@ public class LatFpRecog implements Runnable{
                     log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
                 }
+            } catch (InterruptedException e) {
+                log.error("Interrupted during take srchTaskBean from queue");
             }
+//            List<SrchTaskBean> list;
+//            list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
+//            CommonUtil.checkList(list, interval);
+////            SrchTaskBean srchTaskBean = null;
+//            for (final SrchTaskBean srchTaskBean : list) {
+//                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+//                Blob srchdata = srchTaskBean.getSRCHDATA();
+//                int dataType = srchTaskBean.getDATATYPE();
+//                if (srchdata != null) {
+//                    List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
+//                    if (null == srchDataRecList || srchDataRecList.size() <= 0) {
+//                        log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+//                    } else {
+//                        int tasktype = srchTaskBean.getTASKTYPE();
+//                        switch (tasktype) {
+//                            case 2:
+//                                long start = System.currentTimeMillis();
+////                                FPTL(srchDataRecList, srchTaskBean);
+//                                executorService.submit(() -> FPTL(srchDataRecList, srchTaskBean));
+//                                log.debug("FPTL total cost : {} ms", (System.currentTimeMillis() - start));
+//                                break;
+//                            case 4:
+//                                long start1 = System.currentTimeMillis();
+////                                FPLL(srchDataRecList, srchTaskBean);
+//                                executorService.submit(() -> FPLL(srchDataRecList, srchTaskBean));
+//                                log.debug("FPLL total cost : {} ms", (System.currentTimeMillis() - start1));
+//                                break;
+//                        }
+//                    }
+//                } else {
+//                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
+//                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
+//                }
+//            }
         }
     }
 

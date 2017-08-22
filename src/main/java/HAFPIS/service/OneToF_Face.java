@@ -20,19 +20,15 @@ import java.util.Map;
 import java.util.concurrent.*;
 
 /**
- * Created by ZP on 2017/5/19.
+ * 描述：
+ * 作者：ZP
+ * 创建时间:2017/5/19
+ * 最后修改时间:2017/5/19
  */
-public class OneToF_Face implements Runnable {
+public class OneToF_Face extends Recog implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(OneToF_Face.class);
-    private int type;
-    private String interval;
-    private String queryNum;
-    private String status;
-    private String tablename;
+
     private String Face_tablename;
-    private int[] tasktypes = new int[2];
-    private int[] datatypes = new int[2];
-    private SrchTaskDAO srchTaskDAO;
     private ExecutorService executorService = Executors.newFixedThreadPool(5);
 
 

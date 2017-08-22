@@ -23,17 +23,11 @@ import java.util.concurrent.*;
  *
  * Created by ZP on 2017/5/19.
  */
-public class OneToF_PPTT implements Runnable{
+public class OneToF_PPTT extends Recog implements Runnable{
     private static final Logger log = LoggerFactory.getLogger(OneToF_PPTT.class);
-    private int type;
-    private String interval;
-    private String queryNum;
-    private String status;
-    private String tablename;
+
     private String PPTT_tablename;
-    private int[] tasktypes = new int[2];
-    private int[] datatypes = new int[2];
-    private SrchTaskDAO srchTaskDAO;
+    
     ExecutorService executorService = Executors.newFixedThreadPool(5);
 
     @Override

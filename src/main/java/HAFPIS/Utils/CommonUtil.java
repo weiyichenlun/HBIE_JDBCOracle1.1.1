@@ -1,8 +1,10 @@
 package HAFPIS.Utils;
 
+import HAFPIS.DAO.SrchTaskDAO;
 import HAFPIS.domain.Rec;
 import HAFPIS.domain.SrchDataRec;
 import HAFPIS.domain.SrchTaskBean;
+import HAFPIS.service.Recog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,8 +20,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 通用工具类
@@ -411,5 +415,39 @@ public class CommonUtil {
                 throw e;
             }
         }
+
+        public void close() {
+            try{
+                ((ExecutorService)exec).awaitTermination(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                log.error("Interrupted during awaitTermination.", e);
+            }
+            ((ExecutorService) exec).shutdown();
+        }
+    }
+
+    public static void getList(Recog recog) {
+        List<SrchTaskBean> list = recog.srchTaskDAO.getList(recog.status, recog.datatypes, recog.tasktypes, recog.queryNum);
+        checkList(list, recog.interval);
+        list.forEach(srchTaskBean -> {
+            try{
+                recog.srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+                recog.srchTaskBeanArrayBlockingQueue.put(srchTaskBean);
+            } catch (InterruptedException e) {
+                log.warn("Error during put into srchTaskBean queue. taskidd is {}\n And will try again", srchTaskBean.getTASKIDD(), e);
+            }
+        });
+    }
+
+    public static <P> void getList(CallBack cb, Recog recog) {
+        try {
+            recog.boundedExecutor.submitTask(() -> cb.run(recog.srchTaskDAO));
+        } catch (InterruptedException e) {
+            log.error("Interrupted during CommonUtil.getList. ", e);
+        }
+    }
+
+    public interface CallBack{
+        void run(SrchTaskDAO srchTaskDAO);
     }
 }

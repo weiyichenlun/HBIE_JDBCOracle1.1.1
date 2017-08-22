@@ -21,17 +21,11 @@ import java.util.concurrent.*;
  * 现场掌纹1比F实现
  * Created by ZP on 2017/6/5.
  */
-public class OneToF_PPLL implements Runnable {
+public class OneToF_PPLL extends Recog implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(OneToF_PPLL.class);
-    private int type;
-    private String interval;
-    private String queryNum;
-    private String status;
-    private String tablename;
+
     private String PPLL_tablename;
-    private int[] tasktypes = new int[2];
-    private int[] datatypes = new int[2];
-    private SrchTaskDAO srchTaskDAO;
+
     ExecutorService executorService = Executors.newFixedThreadPool(5);
 
 

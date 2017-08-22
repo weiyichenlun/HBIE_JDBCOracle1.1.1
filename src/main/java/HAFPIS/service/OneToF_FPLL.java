@@ -23,17 +23,11 @@ import java.util.concurrent.*;
  * 现场指纹1ToF
  * Created by ZP on 2017/5/18.
  */
-public class OneToF_FPLL implements Runnable {
+public class OneToF_FPLL extends Recog implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(OneToF_FPLL.class);
-    private int type;
-    private String interval;
-    private String queryNum;
-    private String status;
-    private String tablename;
+
     private String FPLL_tablename;
-    private int[] tasktypes = new int[2];
-    private int[] datatypes = new int[2];
-    private SrchTaskDAO srchTaskDAO;
+
     private ExecutorService executorService = Executors.newFixedThreadPool(5);
 
     @Override

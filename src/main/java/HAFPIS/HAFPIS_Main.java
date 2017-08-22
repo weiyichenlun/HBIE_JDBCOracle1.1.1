@@ -158,7 +158,7 @@ public class HAFPIS_Main {
 
                     temp = 0;
                     try {
-                        temp = Float.parseFloat(FPTT_threshold);
+                        temp = Float.parseFloat(FPLT_threshold);
                     } catch (NumberFormatException e) {
                         log.warn("FPLT_threshold number formate error. Use default threshold 0F");
                     }
@@ -278,7 +278,7 @@ public class HAFPIS_Main {
                     faceRecog.setFaceTT_tablename(FaceTT_tablename);
                     temp = 0;
                     try {
-                        temp = Float.parseFloat(FaceTT_tablename);
+                        temp = Float.parseFloat(FaceTT_threshold);
                     } catch (NumberFormatException e) {
                         log.warn("FaceTT_threshold number formate error. Use default threshold 0F");
                     }
