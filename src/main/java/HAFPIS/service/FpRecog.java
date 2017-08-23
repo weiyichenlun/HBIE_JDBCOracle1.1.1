@@ -54,11 +54,6 @@ public class FpRecog extends Recog implements Runnable {
         srchTaskDAO = new SrchTaskDAO(tablename);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("----------------");
-//            try {
-//                executorService.awaitTermination(5, TimeUnit.SECONDS);
-//            } catch (InterruptedException e) {
-//            }
-//            executorService.shutdown();
             boundedExecutor.close();
             srchTaskDAO.updateStatus(datatypes, tasktypes);
             System.out.println("Fp executorservice is shutting down");
@@ -66,23 +61,9 @@ public class FpRecog extends Recog implements Runnable {
 
         new Thread(()->{
             while (true) {
-                List<SrchTaskBean> list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
-                CommonUtil.checkList(list, interval);
-                list.forEach(srchTaskBean -> {
-                    try {
-                        srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
-                        srchTaskBeanArrayBlockingQueue.put(srchTaskBean);
-                    } catch (InterruptedException e) {
-                        log.warn("Error during put into srchTaskBean queue. taskidd is {}\n And will try again", srchTaskBean.getTASKIDD(), e);
-                    }
-                });
+                CommonUtil.getList(this);
             }
         }, "FP_SrchTaskBean_Thread").start();
-//        new Thread(()->{
-//            while (true) {
-//                CommonUtil.getList(this);
-//            }
-//        }, "FP_SrchTaskBean_Thread").start();
 
         while (true) {
             try{
@@ -123,40 +104,6 @@ public class FpRecog extends Recog implements Runnable {
             } catch (InterruptedException e) {
                 log.error("Interrupted during take srchTaskBean from queue");
             }
-
-
-//            List<SrchTaskBean> list;
-//            list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
-//            CommonUtil.checkList(list, interval);
-//            for (final SrchTaskBean srchTaskBean : list) {
-//                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
-//                Blob srchdata = srchTaskBean.getSRCHDATA();
-//                int dataType = srchTaskBean.getDATATYPE();
-//                if (srchdata != null) {
-//                    List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
-//                    if (srchDataRecList == null || srchDataRecList.size() <= 0) {
-//                        log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
-//                    } else {
-//                        int tasktype = srchTaskBean.getTASKTYPE();
-//                        switch (tasktype) {
-//                            case 1:
-//                                long start = System.currentTimeMillis();
-//                                executorService.submit(() -> FPTT(srchDataRecList, srchTaskBean));
-//                                log.debug("FPTT total cost : {} ms", (System.currentTimeMillis() - start));
-//                                break;
-//                            case 3:
-//                                long start2 = System.currentTimeMillis();
-//                                executorService.submit(() -> FPLT(srchDataRecList, srchTaskBean));
-//                                log.debug("FPLT total cost : {} ms", (System.currentTimeMillis() - start2));
-//                                break;
-//                        }
-////                        listF.add(future);
-//                    }
-//                } else {
-//                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
-//                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
-//                }
-//            }
         }
     }
 
@@ -444,6 +391,19 @@ public class FpRecog extends Recog implements Runnable {
             SearchResults<HSFPTenFp.TenFpSearchParam.Result> results = null;
             long start1 = System.currentTimeMillis();
             results = HbieUtil.getInstance().hbie_FP.search(probe);
+            long start2 = System.currentTimeMillis();
+//            list = results.candidates.stream().map(result -> {
+//                FPTTRec fpttRec = new FPTTRec();
+//                fpttRec.taskid = srchTaskBean.getTASKIDD();
+//                fpttRec.transno = srchTaskBean.getTRANSNO();
+//                fpttRec.probeid = srchTaskBean.getPROBEID();
+//                fpttRec.candid = result.record.id;
+//                fpttRec.dbid = (int) result.record.info.get("dbId");
+//                fpttRec.rpscores = normalScore(result.fpscores);
+//                fpttRec.score = result.score;
+//                return fpttRec;
+//            }).collect(Collectors.toList());
+
             for (HSFPTenFp.TenFpSearchParam.Result cand : results.candidates) {
                 FPTTRec fpttRec = new FPTTRec();
                 fpttRec.taskid = srchTaskBean.getTASKIDD();
@@ -455,13 +415,14 @@ public class FpRecog extends Recog implements Runnable {
                 fpttRec.score = cand.score;
                 list.add(fpttRec);
             }
+            log.info("list convertion cost {}", System.currentTimeMillis()-start2);
             probe.features = srchDataRec.fpmnt;
             probe.filter = CommonUtil.mergeFilter("flag=={1}", demoFilter, dbFilter);
             log.info("The total filter is :\n{}", probe.filter);
 
             long start11 = System.currentTimeMillis();
             results = HbieUtil.getInstance().hbie_FP.search(probe);
-            long start2 = System.currentTimeMillis();
+            long start0 = System.currentTimeMillis();
             log.info("*******In FPTT the saerch time cost is {} ms for id {}", (start2 - start11), srchTaskBean.getTASKIDD());
             for (HSFPTenFp.TenFpSearchParam.Result cand : results.candidates) {
                 FPTTRec fpttRec = new FPTTRec();
@@ -475,7 +436,7 @@ public class FpRecog extends Recog implements Runnable {
                 list.add(fpttRec);
             }
             list = CommonUtil.mergeResult(list);
-            log.info("convert result and merge list cost {} ms", (System.currentTimeMillis() - start2));
+            log.info("convert result and merge list cost {} ms", (System.currentTimeMillis() - start0));
             if (list == null || list.size() == 0) {
                 if (!exptMsg.toString().isEmpty()) {
                     srchTaskBean.setSTATUS(-1);
