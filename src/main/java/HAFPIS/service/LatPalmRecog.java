@@ -63,16 +63,17 @@ public class LatPalmRecog extends Recog implements Runnable {
 
         new Thread(()->{
             while (true) {
-                List<SrchTaskBean> list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
-                CommonUtil.checkList(list, interval);
-                list.forEach(srchTaskBean -> {
-                    try {
-                        srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
-                        srchTaskBeanArrayBlockingQueue.put(srchTaskBean);
-                    } catch (InterruptedException e) {
-                        log.warn("Error during put into srchTaskBean queue. taskidd is {}\n And will try again", srchTaskBean.getTASKIDD(), e);
-                    }
-                });
+//                List<SrchTaskBean> list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
+//                CommonUtil.checkList(list, interval);
+//                list.forEach(srchTaskBean -> {
+//                    try {
+//                        srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+//                        srchTaskBeanArrayBlockingQueue.put(srchTaskBean);
+//                    } catch (InterruptedException e) {
+//                        log.warn("Error during put into srchTaskBean queue. taskidd is {}\n And will try again", srchTaskBean.getTASKIDD(), e);
+//                    }
+//                });
+                CommonUtil.getList(this);
             }
         }, "LatPalm_SrchTaskBean_Thread").start();
 
@@ -167,6 +168,7 @@ public class LatPalmRecog extends Recog implements Runnable {
             exptMsg.append("L2L feature is null");
             log.warn("L2L: feature is null. ProbeId={}", srchTaskBean.getPROBEID());
         }
+        long start = 0L;
         try{
             // 比对
             probe.feature = feature;
@@ -179,12 +181,17 @@ public class LatPalmRecog extends Recog implements Runnable {
             }
 
             String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
+            String solveOrDup = CommonUtil.getSolveOrDupFilter(CONSTANTS.DBOP_PLP, srchTaskBean.getSOLVEORDUP());
+            log.debug("solveordup filter is {}", solveOrDup);
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
             log.info(srchTaskBean.getSRCHDBSMASK());
-            probe.filter = CommonUtil.mergeFilter(demoFilter, dbFilter);
+            probe.filter = CommonUtil.mergeFilter(dbFilter, solveOrDup, demoFilter);
             log.info("The total filter is :\n{}", probe.filter);
             SearchResults<HSFPLatPalm.LatPalmSearchParam.Result> results = null;
+            start = System.currentTimeMillis();
             results = HbieUtil.getInstance().hbie_PLP.search(probe);
+            start = System.currentTimeMillis() - start;
+            log.debug("PPLL search cost {} ms", start);
             List<PPLLRec> list = new ArrayList<>();
             for (HSFPLatPalm.LatPalmSearchParam.Result cand : results.candidates) {
                 PPLLRec ppllRec = new PPLLRec();
@@ -255,34 +262,34 @@ public class LatPalmRecog extends Recog implements Runnable {
         PPTLDAO pptldao = new PPTLDAO(PPTL_tablename);
         String tempMsg = srchTaskBean.getEXPTMSG();
         StringBuilder exptMsg;
-        StringBuilder sb = new StringBuilder();
         String srchPosMask;
         String srchPosMask_Palm;
         int numOfOne = 0;
         int avgCand=0;
-        float threshold = 0F;
         if (tempMsg == null) {
             exptMsg = new StringBuilder();
         } else {
             exptMsg = new StringBuilder(tempMsg);
         }
         srchPosMask = srchTaskBean.getSRCHPOSMASK();
-        if (srchPosMask == null || srchPosMask.length() == 0) {
-            srchPosMask_Palm = "1000110001";
-        } else if (srchPosMask.length() > 0 && srchPosMask.length() <= 10) {
-            char[] tempMask = "0000000000".toCharArray();
-            for (int i = 0; i < 4; i++) {
-                if (srchPosMask.charAt(CONSTANTS.srchOrder[i]) == '1') {
-                    tempMask[CONSTANTS.srchOrder[i]] = '1';
-                }
-            }
-            srchPosMask_Palm = String.valueOf(tempMask);
-        } else {
-            srchPosMask_Palm = srchPosMask.substring(0, 10);
-            if (srchPosMask_Palm.equals("0000000000")) {
-                srchPosMask_Palm = "1000110001";
-            }
-        }
+//        if (srchPosMask == null || srchPosMask.length() == 0) {
+//            srchPosMask_Palm = "1000110001";
+//        } else if (srchPosMask.length() > 0 && srchPosMask.length() <= 10) {
+//            char[] tempMask = "0000000000".toCharArray();
+//            for (int i = 0; i < 4; i++) {
+//                if (srchPosMask.charAt(CONSTANTS.srchOrder[i]) == '1') {
+//                    tempMask[CONSTANTS.srchOrder[i]] = '1';
+//                }
+//            }
+//            srchPosMask_Palm = String.valueOf(tempMask);
+//        } else {
+//            srchPosMask_Palm = srchPosMask.substring(0, 10);
+//            if (srchPosMask_Palm.equals("0000000000")) {
+//                srchPosMask_Palm = "1000110001";
+//            }
+//        }
+        srchPosMask_Palm = CommonUtil.checkSrchPosMask(CONSTANTS.PPTL, srchPosMask);
+        assert srchPosMask_Palm != null;
         SrchDataRec srchDataRec = srchDataRecList.get(0);
         byte[][] features = srchDataRec.palmmnt;
         int[] mask = new int[4];
@@ -296,7 +303,7 @@ public class LatPalmRecog extends Recog implements Runnable {
             exptMsg.append(" PalmMnt features are null ");
             log.warn("P2L: PalmMnt features are null. ProbeId={}",srchTaskBean.getPROBEID());
         }
-
+        long start = 0L;
         try{
             SearchResults<HSFPLatPalm.FourPalmSearchParam.Result> results = null;
             List<PPTLRec> list = new ArrayList<>();
@@ -315,9 +322,11 @@ public class LatPalmRecog extends Recog implements Runnable {
                 tempCands = tempCands + 1;
             }
             String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
+            String solveOrDup = CommonUtil.getSolveOrDupFilter(CONSTANTS.DBOP_PLP, srchTaskBean.getSOLVEORDUP());
+            log.debug("solveordup filter is {}", solveOrDup);
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
             log.info(srchTaskBean.getSRCHDBSMASK());
-            probe.filter = CommonUtil.mergeFilter(demoFilter, dbFilter);
+            probe.filter = CommonUtil.mergeFilter(dbFilter, solveOrDup, demoFilter);
             log.info("The total filter is :\n{}", probe.filter);
             probe.scoreThreshold = PPTL_threshold;
             probe.id = srchTaskBean.getPROBEID();
@@ -325,7 +334,10 @@ public class LatPalmRecog extends Recog implements Runnable {
                 for (int i = 0; i < mask.length; i++) {
                     if (mask[i] == 1) {
                         probe.feature[i] = features[i];
+                        start = System.currentTimeMillis();
                         results = HbieUtil.getInstance().hbie_PLP.search(probe);
+                        start = System.currentTimeMillis() - start;
+                        log.debug("PPTL search cost {} ms", start);
                         for (int j = 0; j < results.candidates.size(); j++) {
                             HSFPLatPalm.FourPalmSearchParam.Result cand = results.candidates.get(j);
                             PPTLRec pptlRec = new PPTLRec();
@@ -354,7 +366,10 @@ public class LatPalmRecog extends Recog implements Runnable {
                 }
             } else {
                 probe.feature = features;
+                start = System.currentTimeMillis();
                 results = HbieUtil.getInstance().hbie_PLP.search(probe);
+                start = System.currentTimeMillis() - start;
+                log.debug("PPTL search cost {} ms", start);
                 for (HSFPLatPalm.FourPalmSearchParam.Result cand : results.candidates) {
                     PPTLRec pptlRec = new PPTLRec();
                     pptlRec.taskid = srchTaskBean.getTASKIDD();

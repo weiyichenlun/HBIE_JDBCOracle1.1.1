@@ -27,7 +27,7 @@ import java.util.concurrent.RejectedExecutionException;
  * Created by ZP on 2017/5/17.
  */
 public class LatFpRecog extends Recog implements Runnable{
-    private static final Logger log = LoggerFactory.getLogger(FpRecog.class);
+    private static final Logger log = LoggerFactory.getLogger(LatFpRecog.class);
 
     private float  FPTL_threshold;
     private String FPTL_tablename;
@@ -64,16 +64,7 @@ public class LatFpRecog extends Recog implements Runnable{
 
         new Thread(()->{
             while (true) {
-                List<SrchTaskBean> list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
-                CommonUtil.checkList(list, interval);
-                list.forEach(srchTaskBean -> {
-                    try {
-                        srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
-                        srchTaskBeanArrayBlockingQueue.put(srchTaskBean);
-                    } catch (InterruptedException e) {
-                        log.warn("Error during put into srchTaskBean queue. taskidd is {}\n And will try again", srchTaskBean.getTASKIDD(), e);
-                    }
-                });
+                CommonUtil.getList(this);
             }
         }, "LatFp_SrchTaskBean_Thread").start();
 
@@ -85,7 +76,6 @@ public class LatFpRecog extends Recog implements Runnable{
                 int dataType = srchTaskBean.getDATATYPE();
                 if (srchdata != null) {
                     List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
-                    log.info("after commontutil.srchdata2rec method......");
                     if (srchDataRecList == null || srchDataRecList.size() <= 0) {
                         log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
                     } else {
@@ -94,8 +84,6 @@ public class LatFpRecog extends Recog implements Runnable{
                         switch (tasktype) {
                             case 2:
                                 long start = System.currentTimeMillis();
-                                log.info("before submit to boundedExecutor....");
-
                                 try {
                                     boundedExecutor.submitTask(() -> FPTL(srchDataRecList, srchTaskBean));
                                 } catch (InterruptedException e) {
@@ -103,7 +91,6 @@ public class LatFpRecog extends Recog implements Runnable{
                                 } catch (RejectedExecutionException e) {
                                     log.error("rejectedexecutionException... ",e);
                                 }
-
                                 log.debug("FPTL task {} total cost : {} ms", srchTaskBean.getTASKIDD(), (System.currentTimeMillis() - start));
                                 break;
                             case 4:
@@ -179,28 +166,29 @@ public class LatFpRecog extends Recog implements Runnable{
             exptMsg = new StringBuilder(tempMsg);
         }
         srchPosMask = srchTaskBean.getSRCHPOSMASK();
-        if (srchPosMask == null || srchPosMask.length() == 0) {
-            srchPosMask="11111111111111111111";
-        } else if (srchPosMask.length() > 0 && srchPosMask.length() < 20) {
-            char[] tempMask = "00000000000000000000".toCharArray();
-            for (int i = 0; i < srchPosMask.length(); i++) {
-                if (srchPosMask.charAt(i) == '1') {
-                    tempMask[i] = '1';
-                }
-            }
-            srchPosMask = String.valueOf(tempMask);
-        } else {
-            String temp = srchPosMask.substring(0, 20);
-            if (temp.equals("00000000000000000000")) {
-                srchPosMask = "11111111111111111111";
-            }
-        }
+//        if (srchPosMask == null || srchPosMask.length() == 0) {
+//            srchPosMask="11111111111111111111";
+//        } else if (srchPosMask.length() > 0 && srchPosMask.length() < 20) {
+//            char[] tempMask = "00000000000000000000".toCharArray();
+//            for (int i = 0; i < srchPosMask.length(); i++) {
+//                if (srchPosMask.charAt(i) == '1') {
+//                    tempMask[i] = '1';
+//                }
+//            }
+//            srchPosMask = String.valueOf(tempMask);
+//        } else {
+//            String temp = srchPosMask.substring(0, 20);
+//            if (temp.equals("00000000000000000000")) {
+//                srchPosMask = "11111111111111111111";
+//            }
+//        }
+        srchPosMask = CommonUtil.checkSrchPosMask(CONSTANTS.FPTL, srchPosMask);
         SrchDataRec srchDataRec = srchDataRecList.get(0);
         byte[][] features_roll = srchDataRec.rpmnt;
         byte[][] features_flat = srchDataRec.fpmnt;
         avgCand = srchTaskBean.getAVERAGECAND();
 
-        for(int i=0; i<10;i++) {
+        for (int i = 0; i < 10; i++) {
             if (srchPosMask.charAt(i) == '1' && srchDataRec.RpMntLen[i] != 0) {
                 posMask_Roll[i] = 1.0F;
             }
@@ -241,18 +229,23 @@ public class LatFpRecog extends Recog implements Runnable{
                 tempCands = tempCands + 1;
             }
             String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
+            String solveOrDup = CommonUtil.getSolveOrDupFilter(CONSTANTS.DBOP_LPP, srchTaskBean.getSOLVEORDUP());
+            log.debug("solveordup filter is {}", solveOrDup);
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
             log.info(srchTaskBean.getSRCHDBSMASK());
-            probe.filter = CommonUtil.mergeFilter(demoFilter, dbFilter);
+            probe.filter = CommonUtil.mergeFilter(dbFilter, solveOrDup, demoFilter);
             log.info("The total filter is :\n{}", probe.filter);
             probe.scoreThreshold = FPTL_threshold;
+            long start = 0L;
             //按指位平均输出
             if (avgCand == 1) {
                 for (int i = 0; i < posMask_Roll.length; i++) {
                     if (posMask_Roll[i] == 1) {
                         probe.image = features_roll[i];
+                        start = System.currentTimeMillis();
                         results = HbieUtil.getInstance().hbie_LPP.search(probe);
-
+                        start = System.currentTimeMillis() - start;
+                        log.debug("FPTL search cost(feature_roll) {} ms", start);
                         for (int j = 0; j < results.candidates.size(); j++) {
                             HSFPLatFp.TenFpSearchParam.Result cand = results.candidates.get(j);
                             FPTLRec fptlRec = new FPTLRec();
@@ -274,7 +267,10 @@ public class LatFpRecog extends Recog implements Runnable{
                 for (int i = 0; i < posMask_Flat.length; i++) {
                     if (posMask_Flat[i] == 1) {
                         probe.image = features_flat[i];
+                        start = System.currentTimeMillis();
                         results = HbieUtil.getInstance().hbie_LPP.search(probe);
+                        start = System.currentTimeMillis() - start;
+                        log.debug("FPTL search cost(feature_flat) {} ms", start);
                         for (int j = 0; j < results.candidates.size(); j++) {
                             HSFPLatFp.TenFpSearchParam.Result cand = results.candidates.get(j);
                             FPTLRec fptlRec = new FPTLRec();
@@ -306,7 +302,10 @@ public class LatFpRecog extends Recog implements Runnable{
                 for (int i = 0; i < posMask_Roll.length; i++) {
                     if (posMask_Roll[i] == 1) {
                         probe.image = features_roll[i];
+                        start = System.currentTimeMillis();
                         results = HbieUtil.getInstance().hbie_LPP.search(probe);
+                        start = System.currentTimeMillis() - start;
+                        log.debug("FPTL search cost(feature_roll) {} ms", start);
                         for (HSFPLatFp.TenFpSearchParam.Result cand : results.candidates) {
                             FPTLRec fptlRec = new FPTLRec();
                             fptlRec.taskid = srchTaskBean.getTASKIDD();
@@ -324,7 +323,10 @@ public class LatFpRecog extends Recog implements Runnable{
                 for (int i = 0; i < posMask_Flat.length; i++) {
                     if (posMask_Flat[i] == 1) {
                         probe.image = features_flat[i];
+                        start = System.currentTimeMillis();
                         results = HbieUtil.getInstance().hbie_LPP.search(probe);
+                        start = System.currentTimeMillis() - start;
+                        log.debug("FPTL search cost(feature_flat) {} ms", start);
                         for (HSFPLatFp.TenFpSearchParam.Result cand : results.candidates) {
                             FPTLRec fptlRec = new FPTLRec();
                             fptlRec.taskid = srchTaskBean.getTASKIDD();
@@ -409,6 +411,7 @@ public class LatFpRecog extends Recog implements Runnable{
             exptMsg.append("FPLL feature is null. ");
             log.warn("FPLL: feature is null. ProbeId={}", srchTaskBean.getPROBEID());
         }
+        long start = 0L;
         try{
             probe.feature_manual = feature;
             if (feature_auto != null) {
@@ -422,14 +425,19 @@ public class LatFpRecog extends Recog implements Runnable{
                 probe.maxCands = numOfCand = CONSTANTS.MAXCANDS;
             }
             String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
+            String solveOrDup = CommonUtil.getSolveOrDupFilter(CONSTANTS.DBOP_LPP, srchTaskBean.getSOLVEORDUP());
+            log.debug("solveordup filter is {}", solveOrDup);
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
             log.info(srchTaskBean.getSRCHDBSMASK());
 
-            probe.filter = CommonUtil.mergeFilter(demoFilter, dbFilter);
+            probe.filter = CommonUtil.mergeFilter(dbFilter, solveOrDup, demoFilter);
             log.info("The total filter is :\n{}", probe.filter);
             probe.scoreThreshold = FPLL_threshold;
             SearchResults<HSFPLatFp.LatFpSearchParam.Result> results = null;
+            start = System.currentTimeMillis();
             results = HbieUtil.getInstance().hbie_LPP.search(probe);
+            start = System.currentTimeMillis() - start;
+            log.debug("FPLL search cost {} ms", start);
             List<FPLLRec> list = new ArrayList<>();
             for (HSFPLatFp.LatFpSearchParam.Result cand : results.candidates) {
                 FPLLRec fpllRec = new FPLLRec();

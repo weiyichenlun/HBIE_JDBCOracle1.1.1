@@ -32,6 +32,7 @@ public class FaceRecog extends Recog implements Runnable {
 
     @Override
     public void run() {
+        datatypes = new int[]{6};
         if (type == CONSTANTS.FACE) {
             tasktypes[0] = 1;
         }
@@ -50,16 +51,17 @@ public class FaceRecog extends Recog implements Runnable {
 
         new Thread(()->{
             while (true) {
-                List<SrchTaskBean> list = srchTaskDAO.getList(status, new int[]{6}, tasktypes, queryNum);
-                CommonUtil.checkList(list, interval);
-                list.forEach(srchTaskBean -> {
-                    try {
-                        srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
-                        srchTaskBeanArrayBlockingQueue.put(srchTaskBean);
-                    } catch (InterruptedException e) {
-                        log.warn("Error during put into srchTaskBean queue. taskidd is {}\n And will try again", srchTaskBean.getTASKIDD(), e);
-                    }
-                });
+//                List<SrchTaskBean> list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
+//                CommonUtil.checkList(list, interval);
+//                list.forEach(srchTaskBean -> {
+//                    try {
+//                        srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+//                        srchTaskBeanArrayBlockingQueue.put(srchTaskBean);
+//                    } catch (InterruptedException e) {
+//                        log.warn("Error during put into srchTaskBean queue. taskidd is {}\n And will try again", srchTaskBean.getTASKIDD(), e);
+//                    }
+//                });
+                CommonUtil.getList(this);
             }
         }, "Face_SrchTaskBean_Thread").start();
 
@@ -146,7 +148,7 @@ public class FaceRecog extends Recog implements Runnable {
             String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
             log.info(srchTaskBean.getSRCHDBSMASK());
-            probe.filter = CommonUtil.mergeFilter(demoFilter, dbFilter);
+            probe.filter = CommonUtil.mergeFilter(dbFilter, demoFilter);
             log.info("The total filter is :\n{}", probe.filter);
 
             probe.scoreThreshold = FaceTT_threshold;

@@ -299,6 +299,31 @@ public class CommonUtil {
         return null;
     }
 
+    /**
+     * 根据solveordup项获取相关的过滤项，用来控制重卡是否参与比对
+     * @param type
+     * @param solveordup
+     * @return
+     */
+    public static String getSolveOrDupFilter(int type, Integer solveordup) {
+        int num = solveordup == null ? 0 : solveordup;
+        String res = null;
+        if (type == CONSTANTS.DBOP_TPP) {
+            if (num == 0) {
+                res = "TPCARDDUP=={" + num + "}";
+            } else if (num == 1) {
+                res = "TPCARDDUP=={0}&&TPCARDDUP=={" + num + "}";
+            }
+        } else if (type == CONSTANTS.DBOP_LPP || type == CONSTANTS.DBOP_PLP) {
+            if (num == 0) {
+                res = "SOLVEATTR=={" + num + "}";
+            } else if (num == 1) {
+                res = "SOLVEATTR=={0}&&SOLVEATTR=={" + num + "}";
+            }
+        }
+        return res;
+    }
+
     public static String getDBsFilter(String srchDbMask) {
         StringBuilder filter = new StringBuilder();
         if (null == srchDbMask || srchDbMask.trim().isEmpty()) {
@@ -317,13 +342,18 @@ public class CommonUtil {
         if (filterStr.trim().isEmpty()) {
             return null;
         }
-        return "(" + filterStr + ")";
+        return filterStr;
+//        return "(" + filterStr + ")";
     }
 
+    /**
+     * 解析字符串
+     * @param s 16进制字符串
+     * @return
+     */
     public static String decode(String s) {
         byte[] res = new byte[s.length() / 2];
         for (int i = 0; i < res.length; i++) {
-
             try {
                 res[i] = (byte) (0xff & Integer.parseInt(s.substring(i * 2, i * 2 + 2), 16));
             } catch (NumberFormatException e) {
@@ -339,6 +369,11 @@ public class CommonUtil {
         return s;
     }
 
+    /**
+     * 参数不定的合并过滤器，最后一项必须为DEMOFILTER过滤项
+     * @param strings
+     * @return 合并后的过滤条件
+     */
     public static String mergeFilter(String... strings) {
         StringBuilder sb = new StringBuilder();
         boolean demoFilterEnable = ConfigUtil.getConfig("demo_filter_enable").equals("0");
@@ -362,31 +397,6 @@ public class CommonUtil {
         return sb.toString();
     }
 
-//    @Deprecated
-//    public static String mergeFilter(String demofilter, String dbfilter) {
-//        return mergeFilter(null, demofilter, dbfilter);
-//    }
-//
-//    @Deprecated
-//    public static String mergeFilter(String flag, String demofilter, String dbfilter) {
-//        StringBuilder sb = new StringBuilder();
-//        boolean demoFilterEnable = ConfigUtil.getConfig("demo_filter_enable").equals("0");
-//        if (flag != null && flag.trim().length() > 0) {
-//            sb.append("(").append(flag).append(")").append("&&");
-//        }
-//        if (!demoFilterEnable && demofilter != null && demofilter.trim().length() > 0) {
-//            sb.append(demofilter).append("&&");
-//        }
-//        if (dbfilter != null && dbfilter.trim().length() > 0) {
-//            sb.append(dbfilter).append("&&");
-//        }
-//        if (sb.length() == 0) {
-//            return null;
-//        } else {
-//            sb.setLength(sb.length() - 2);
-//        }
-//        return sb.toString();
-//    }
 
     /**
      * check whether list is empty. If true, wait for interval seconds
@@ -410,7 +420,56 @@ public class CommonUtil {
         }
     }
 
+    /**
+     * 检查SrchTask中给定的SRCHPOSMASK的有效性
+     * @param type 指纹或者掌纹比对类型
+     * @param srchPosMask
+     * @return 返回有效的SRCHPOSMASK
+     */
+    public static String checkSrchPosMask(int type, String srchPosMask) {
+        if (type == CONSTANTS.FPTL || type == CONSTANTS.FPLT) {
+            if (srchPosMask == null || srchPosMask.length() == 0) {
+                srchPosMask = "11111111111111111111";
+            } else if (srchPosMask.length() > 0 && srchPosMask.length() < 20) {
+                char[] tempMask = "00000000000000000000".toCharArray();
+                for (int i = 0; i < srchPosMask.length(); i++) {
+                    if (srchPosMask.charAt(i) == '1') {
+                        tempMask[i] = '1';
+                    }
+                }
+                srchPosMask = String.valueOf(tempMask);
+            } else {
+                String temp = srchPosMask.substring(0, 20);
+                if (temp.equals("00000000000000000000")) {
+                    srchPosMask = "11111111111111111111";
+                }
+            }
+            return srchPosMask;
+        } else if (type == CONSTANTS.PPLT || type == CONSTANTS.PPTL) {
+            if (srchPosMask == null || srchPosMask.length() == 0) {
+                srchPosMask = "1000110001";
+            } else if (srchPosMask.length() > 0 && srchPosMask.length() <= 10) {
+                char[] tempMask = "0000000000".toCharArray();
+                for (int i = 0; i < 4; i++) {
+                    if (srchPosMask.charAt(CONSTANTS.srchOrder[i]) == '1') {
+                        tempMask[CONSTANTS.srchOrder[i]] = '1';
+                    }
+                }
+                srchPosMask = String.valueOf(tempMask);
+            } else {
+                srchPosMask = srchPosMask.substring(0, 10);
+                if (srchPosMask.equals("0000000000")) {
+                    srchPosMask = "1000110001";
+                }
+            }
+            return srchPosMask;
+        }
+        return null;
+    }
 
+    /**
+     * 有界缓存池，采用Semaphore来控制提交的任务数量，同时保证多线程
+     */
     public static class BoundedExecutor {
         private final Executor exec;
         private final Semaphore semaphore;
@@ -446,6 +505,10 @@ public class CommonUtil {
         }
     }
 
+    /**
+     * 根据条件获取SrchTask
+     * @param recog
+     */
     public static void getList(Recog recog) {
         List<SrchTaskBean> list = recog.srchTaskDAO.getList(recog.status, recog.datatypes, recog.tasktypes, recog.queryNum);
         checkList(list, recog.interval);
@@ -473,8 +536,5 @@ public class CommonUtil {
 
 
     public static void main(String[] args) {
-        String res = mergeFilter("1111", null, "test", "test1", "test2", null);
-
-        System.out.println(res);
     }
 }

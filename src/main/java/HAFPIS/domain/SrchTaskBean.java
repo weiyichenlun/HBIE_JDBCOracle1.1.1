@@ -5,7 +5,10 @@ import java.sql.Blob;
 import java.sql.Clob;
 
 /**
- * Created by ZP on 2017/5/15.
+ * 描述：数据库HAFPIS_SRCH_TASK表对应的Bean
+ * 作者：ZP
+ * 创建时间:2017/5/15
+ * 最后修改时间:2017/8/23
  */
 public class SrchTaskBean implements Serializable{
     private static final long serialVersionUID = 6332467233836389462L;
@@ -52,6 +55,7 @@ public class SrchTaskBean implements Serializable{
     private String BEGTIME;
     private String ENDTIME;
     private String EXPTMSG;
+    private Integer SOLVEORDUP;
 
     public String getTASKIDD() {
         return TASKIDD;
@@ -395,5 +399,13 @@ public class SrchTaskBean implements Serializable{
 
     public void setEXPTMSG(String EXPTMSG) {
         this.EXPTMSG = EXPTMSG;
+    }
+
+    public Integer getSOLVEORDUP() {
+        return SOLVEORDUP;
+    }
+
+    public void setSOLVEORDUP(Integer SOLVEORDUP) {
+        this.SOLVEORDUP = SOLVEORDUP;
     }
 }
