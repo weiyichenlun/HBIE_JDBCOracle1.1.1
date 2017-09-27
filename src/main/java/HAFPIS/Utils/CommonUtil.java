@@ -312,13 +312,15 @@ public class CommonUtil {
             if (num == 0) {
                 res = "TPCARDDUP=={" + num + "}";
             } else if (num == 1) {
-                res = "TPCARDDUP=={0}&&TPCARDDUP=={" + num + "}";
+//                res = "TPCARDDUP=={0}||TPCARDDUP=={" + num + "}";
+                res = null;
             }
         } else if (type == CONSTANTS.DBOP_LPP || type == CONSTANTS.DBOP_PLP) {
             if (num == 0) {
                 res = "SOLVEATTR=={" + num + "}";
             } else if (num == 1) {
-                res = "SOLVEATTR=={0}&&SOLVEATTR=={" + num + "}";
+//                res = "SOLVEATTR=={0}||SOLVEATTR=={" + num + "}";
+                res = null;
             }
         }
         return res;
@@ -510,7 +512,19 @@ public class CommonUtil {
      * @param recog
      */
     public static void getList(Recog recog) {
-        List<SrchTaskBean> list = recog.srchTaskDAO.getList(recog.status, recog.datatypes, recog.tasktypes, recog.queryNum);
+//        List<SrchTaskBean> list = recog.srchTaskDAO.getList(recog.status, recog.datatypes, recog.tasktypes, recog.queryNum);
+        int datatype=0, tasktype=0;
+        List<SrchTaskBean> list = new ArrayList<>();
+        for (int i = 0; i < recog.datatypes.length; i++) {
+            datatype = recog.datatypes[i];
+            tasktype = recog.tasktypes[i];
+            if (datatype != 0 && tasktype != 0) {
+                List<SrchTaskBean> temp = recog.srchTaskDAO.getList(recog.status, datatype, tasktype, recog.queryNum);
+                if (temp.size() > 0) {
+                    list.addAll(temp);
+                }
+            }
+        }
         checkList(list, recog.interval);
         list.forEach(srchTaskBean -> {
             try{

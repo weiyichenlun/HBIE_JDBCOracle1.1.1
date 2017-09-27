@@ -434,7 +434,7 @@ public class FpRecog extends Recog implements Runnable {
             }
             log.info("list convertion cost {}", System.currentTimeMillis()-start2);
             probe.features = srchDataRec.fpmnt;
-            probe.filter = CommonUtil.mergeFilter("flag=={1}", dbFilter, demoFilter);
+            probe.filter = CommonUtil.mergeFilter("flag=={1}", dbFilter, solveOrDup, demoFilter);
             log.info("The total filter is :\n{}", probe.filter);
 
             long start11 = System.currentTimeMillis();

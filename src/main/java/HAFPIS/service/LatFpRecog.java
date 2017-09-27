@@ -80,7 +80,7 @@ public class LatFpRecog extends Recog implements Runnable{
                         log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
                     } else {
                         int tasktype = srchTaskBean.getTASKTYPE();
-                        log.info("tasktype is {} for id {}", tasktype, srchTaskBean.getTASKIDD());
+                        log.debug("tasktype is {} for id {}", tasktype, srchTaskBean.getTASKIDD());
                         switch (tasktype) {
                             case 2:
                                 long start = System.currentTimeMillis();

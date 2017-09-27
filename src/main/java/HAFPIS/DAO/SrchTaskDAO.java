@@ -62,6 +62,32 @@ public class SrchTaskDAO {
         return list;
     }
 
+    public synchronized List<SrchTaskBean> getList(String status, int datatype, int tasktype, String queryNum) {
+        List<SrchTaskBean> list = new ArrayList<>();
+        StringBuilder sb = new StringBuilder();
+        sb.append("select * from ( ");
+        sb.append("select * from ").append(tablename);
+        int statusN = 0;
+        try {
+            statusN = Integer.parseInt(status);
+        } catch (NumberFormatException e) {
+            log.error("parse status error. status must be a number. status-{}, exception-{}", status, e);
+        }
+        sb.append(" where status=").append(statusN);
+        sb.append(" and datatype=").append(datatype);
+        sb.append(" and tasktype=").append(tasktype);
+        sb.append(" order by priority desc, begtime asc ");
+        sb.append(") where rownum <= ").append(Integer.parseInt(queryNum));
+
+        try{
+            list = qr.query(sb.toString(), new BeanListHandler<>(SrchTaskBean.class));
+            log.debug("query sql is {}", sb.toString());
+        } catch (SQLException e) {
+            log.error("query_sql:{}, SQLException: ", sb.toString(), e);
+        }
+        return list;
+    }
+
 
     public synchronized void update(String taskidd, int status, String exptmsg) {
         StringBuilder sb = new StringBuilder();
