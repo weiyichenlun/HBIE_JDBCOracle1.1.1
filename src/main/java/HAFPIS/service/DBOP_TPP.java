@@ -81,7 +81,7 @@ public class DBOP_TPP extends Recog implements Runnable {
                                 case 6:
                                     if (HbieUtil.getInstance().hbie_FP != null) {
                                         HbieUtil.getInstance().hbie_FP.updateMatcher(id, -1);
-                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id + "_", -1);
+                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id + "$", -1);
                                     }
                                     if (HbieUtil.getInstance().hbie_PP != null) {
                                         HbieUtil.getInstance().hbie_PP.updateMatcher(id, -1);
@@ -112,7 +112,7 @@ public class DBOP_TPP extends Recog implements Runnable {
                                         String ffp = imgmask.substring(10, 20);
                                         if (!"0000000000".equals(ffp)) {
                                             if (HbieUtil.getInstance().hbie_FP != null) {
-                                                HbieUtil.getInstance().hbie_FP.updateMatcher(id + "_", 1);
+                                                HbieUtil.getInstance().hbie_FP.updateMatcher(id + "$", 1);
                                             }
                                         }
                                     }
@@ -145,8 +145,8 @@ public class DBOP_TPP extends Recog implements Runnable {
                                     if (HbieUtil.getInstance().hbie_FP != null) {
                                         HbieUtil.getInstance().hbie_FP.updateMatcher(id, -1);
                                         HbieUtil.getInstance().hbie_FP.updateMatcher(id, 1);
-                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id + "_", -1);
-                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id + "_", 1);
+                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id + "$", -1);
+                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id + "$", 1);
                                     }
                                     if (HbieUtil.getInstance().hbie_PP != null) {
                                         HbieUtil.getInstance().hbie_PP.updateMatcher(id, -1);

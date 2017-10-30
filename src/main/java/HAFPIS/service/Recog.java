@@ -1,7 +1,6 @@
 package HAFPIS.service;
 
 import HAFPIS.DAO.SrchTaskDAO;
-import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
 import HAFPIS.domain.SrchTaskBean;
 
@@ -24,8 +23,8 @@ public abstract class Recog {
     public int[] tasktypes = new int[2];
     public int[] datatypes = new int[2];
     public SrchTaskDAO srchTaskDAO;
-    public ExecutorService executorService = Executors.newFixedThreadPool(CONSTANTS.NCORES);
-    public CommonUtil.BoundedExecutor boundedExecutor = new CommonUtil.BoundedExecutor(executorService, CONSTANTS.NCORES*2);
+    public ExecutorService executorService = Executors.newFixedThreadPool(3);
+    public CommonUtil.BoundedExecutor boundedExecutor = new CommonUtil.BoundedExecutor(executorService, 6);
     public ArrayBlockingQueue<SrchTaskBean> srchTaskBeanArrayBlockingQueue = new ArrayBlockingQueue<>(20);
 
 }
