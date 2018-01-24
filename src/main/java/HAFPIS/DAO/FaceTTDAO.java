@@ -43,9 +43,16 @@ public class FaceTTDAO {
             paramUsed[i][idx++] = faceRec.dbid;
             paramUsed[i][idx++] = faceRec.candid;
             paramUsed[i][idx++] = faceRec.candrank;
-            paramUsed[i][idx++] = (int) (faceRec.score * 10000);
-            for (int j = 0; j < 3; j++) {
-                paramUsed[i][idx++] = (int) (faceRec.ffscores[j] * 10000);
+            if (faceRec.score <= 1 && faceRec.score > 0) {
+                paramUsed[i][idx++] = (int) (faceRec.score * 10000);
+                for (int j = 0; j < 3; j++) {
+                    paramUsed[i][idx++] = (int) (faceRec.ffscores[j] * 10000);
+                }
+            } else if (faceRec.score > 1) {
+                paramUsed[i][idx++] = (int) (faceRec.score);
+                for (int j = 0; j < 3; j++) {
+                    paramUsed[i][idx++] = (int) (faceRec.ffscores[j]);
+                }
             }
         }
         try {

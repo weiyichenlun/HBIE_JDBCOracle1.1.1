@@ -5,6 +5,7 @@ import HAFPIS.DAO.FPTLDAO;
 import HAFPIS.DAO.SrchTaskDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
+import HAFPIS.Utils.ConfigUtil;
 import HAFPIS.Utils.HbieUtil;
 import HAFPIS.domain.FPLLRec;
 import HAFPIS.domain.FPTLRec;
@@ -20,7 +21,7 @@ import java.rmi.RemoteException;
 import java.sql.Blob;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ArrayBlockingQueue;
 
 /**
  * 指纹识别 TL和LL
@@ -28,7 +29,8 @@ import java.util.concurrent.RejectedExecutionException;
  */
 public class LatFpRecog extends Recog implements Runnable{
     private static final Logger log = LoggerFactory.getLogger(LatFpRecog.class);
-
+    private static ArrayBlockingQueue<SrchTaskBean> fptlArrayQueue;
+    private static ArrayBlockingQueue<SrchTaskBean> fpllArrayQueue;
     private float  FPTL_threshold;
     private String FPTL_tablename;
     private float  FPLL_threshold;
@@ -49,102 +51,123 @@ public class LatFpRecog extends Recog implements Runnable{
             datatypes[0] = 1;
             datatypes[1] = 4;
         }
+        log.info("Starting...Update status first...");
         srchTaskDAO = new SrchTaskDAO(tablename);
+        srchTaskDAO.updateStatus(datatypes, tasktypes);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("----------------");
-//            try {
-//                executorService.awaitTermination(5, TimeUnit.SECONDS);
-//            } catch (InterruptedException e) {
-//            }
-//            executorService.shutdown();
             boundedExecutor.close();
             srchTaskDAO.updateStatus(datatypes, tasktypes);
             System.out.println("LatFp executorservice is shutting down");
         }));
 
-        new Thread(()->{
-            while (true) {
-                CommonUtil.getList(this);
-            }
-        }, "LatFp_SrchTaskBean_Thread").start();
+        String latfpMatcherShardsStr = ConfigUtil.getConfig("latfp_matcher_shards");
+        Integer latfpMatcherShards = 1;
+        try {
+            latfpMatcherShards = Integer.parseInt(latfpMatcherShardsStr);
+        } catch (NumberFormatException e) {
+            log.error("latfp_matcher_shards {} is not a number. ", latfpMatcherShardsStr, e);
+        }
 
+        fptlArrayQueue = new ArrayBlockingQueue<>(100);
+        fpllArrayQueue = new ArrayBlockingQueue<>(100);
 
-        while (true) {
-            try{
-                SrchTaskBean srchTaskBean = srchTaskBeanArrayBlockingQueue.take();
-                Blob srchdata = srchTaskBean.getSRCHDATA();
-                int dataType = srchTaskBean.getDATATYPE();
-                if (srchdata != null) {
-                    List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
-                    if (srchDataRecList == null || srchDataRecList.size() <= 0) {
-                        log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+        if (tasktypes[0] == 2) {
+            Integer finalLatfpMatcherShards = latfpMatcherShards;
+            new Thread(() -> {
+                while (true) {
+                    List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 1, 2, finalLatfpMatcherShards);
+                    if (list == null || list.size() == 0) {
+                        CommonUtil.sleep(interval);
                     } else {
-                        int tasktype = srchTaskBean.getTASKTYPE();
-                        log.debug("tasktype is {} for id {}", tasktype, srchTaskBean.getTASKIDD());
-                        switch (tasktype) {
-                            case 2:
-                                long start = System.currentTimeMillis();
-                                try {
-                                    boundedExecutor.submitTask(() -> FPTL(srchDataRecList, srchTaskBean));
-                                } catch (InterruptedException e) {
-                                    log.error("interruptedexception... ", e);
-                                } catch (RejectedExecutionException e) {
-                                    log.error("rejectedexecutionException... ",e);
-                                }
-                                log.debug("FPTL task {} total cost : {} ms", srchTaskBean.getTASKIDD(), (System.currentTimeMillis() - start));
-                                break;
-                            case 4:
-                                long start2 = System.currentTimeMillis();
-                                try {
-                                    boundedExecutor.submitTask(() -> FPLL(srchDataRecList, srchTaskBean));
-                                }  catch (RejectedExecutionException e) {
-                                    log.error("rejected .....", e);
-                                }
-                                log.debug("FPLL task {} total cost : {} ms", srchTaskBean.getTASKIDD(), (System.currentTimeMillis() - start2));
-                                break;
+                        for (SrchTaskBean srchTaskBean : list) {
+                            try {
+                                fptlArrayQueue.put(srchTaskBean);
+                                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+                            } catch (InterruptedException e) {
+                                log.error("Putting into fptl queue error. ", e);
+                            }
                         }
                     }
-                } else {
-                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
                 }
-            } catch (InterruptedException e) {
-                log.error("Interrupted during take srchTaskBean from queue");
+            }, "fptl_srchtaskbean_thread").start();
+            for (int i = 0; i < latfpMatcherShards; i++) {
+                new Thread(this::FPTL, "FPTL_Thread_" + (i + 1)).start();
             }
-//            List<SrchTaskBean> list;
-//            list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
-//            CommonUtil.checkList(list, interval);
-////            SrchTaskBean srchTaskBean = null;
-//            for (final SrchTaskBean srchTaskBean : list) {
-//                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
-//                Blob srchdata = srchTaskBean.getSRCHDATA();
-//                int dataType = srchTaskBean.getDATATYPE();
-//                if (srchdata != null) {
-//                    List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
-//                    if (null == srchDataRecList || srchDataRecList.size() <= 0) {
-//                        log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
-//                    } else {
-//                        int tasktype = srchTaskBean.getTASKTYPE();
-//                        switch (tasktype) {
-//                            case 2:
-//                                long start = System.currentTimeMillis();
-////                                FPTL(srchDataRecList, srchTaskBean);
-//                                executorService.submit(() -> FPTL(srchDataRecList, srchTaskBean));
-//                                log.debug("FPTL total cost : {} ms", (System.currentTimeMillis() - start));
-//                                break;
-//                            case 4:
-//                                long start1 = System.currentTimeMillis();
-////                                FPLL(srchDataRecList, srchTaskBean);
-//                                executorService.submit(() -> FPLL(srchDataRecList, srchTaskBean));
-//                                log.debug("FPLL total cost : {} ms", (System.currentTimeMillis() - start1));
-//                                break;
-//                        }
-//                    }
-//                } else {
-//                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
-//                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
-//                }
-//            }
+        }
+
+        if (tasktypes[1] == 4) {
+            Integer finalLatfpMatcherShards1 = latfpMatcherShards;
+            new Thread(() -> {
+                while (true) {
+                    List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 4, 4, finalLatfpMatcherShards1);
+                    if (list == null || list.size() == 0) {
+                        CommonUtil.sleep(interval);
+                    } else {
+                        for (SrchTaskBean srchTaskBean : list) {
+                            try {
+                                fpllArrayQueue.put(srchTaskBean);
+                                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+                            } catch (InterruptedException e) {
+                                log.error("Putting into fpll queue error. ", e);
+                            }
+                        }
+                    }
+                }
+            }, "fpll_srchtaskbean_thread").start();
+            for (int i = 0; i < latfpMatcherShards; i++) {
+                new Thread(this::FPLL, "FPLL_Thread_" + (i + 1)).start();
+            }
+        }
+    }
+
+    private void FPTL() {
+        while (true) {
+            SrchTaskBean srchTaskBean = null;
+            try {
+                srchTaskBean = fptlArrayQueue.take();
+            } catch (InterruptedException e) {
+                log.error("take srchtaskbean from fptl Array queue error.", e);
+                continue;
+            }
+            Blob srchdata = srchTaskBean.getSRCHDATA();
+            int dataType = srchTaskBean.getDATATYPE();
+            if (srchdata != null) {
+                List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
+                if (srchDataRecList == null || srchDataRecList.size() <= 0) {
+                    log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+                } else {
+                    FPTL(srchDataRecList, srchTaskBean);
+                }
+            } else {
+                log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
+            }
+        }
+    }
+
+    private void FPLL() {
+        while (true) {
+            SrchTaskBean srchTaskBean = null;
+            try {
+                srchTaskBean = fpllArrayQueue.take();
+            } catch (InterruptedException e) {
+                log.error("take srchtaskbean from fpll Array queue error.", e);
+                continue;
+            }
+            Blob srchdata = srchTaskBean.getSRCHDATA();
+            int dataType = srchTaskBean.getDATATYPE();
+            if (srchdata != null) {
+                List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
+                if (srchDataRecList == null || srchDataRecList.size() <= 0) {
+                    log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+                } else {
+                    FPLL(srchDataRecList, srchTaskBean);
+                }
+            } else {
+                log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
+            }
         }
     }
 
@@ -166,22 +189,6 @@ public class LatFpRecog extends Recog implements Runnable{
             exptMsg = new StringBuilder(tempMsg);
         }
         srchPosMask = srchTaskBean.getSRCHPOSMASK();
-//        if (srchPosMask == null || srchPosMask.length() == 0) {
-//            srchPosMask="11111111111111111111";
-//        } else if (srchPosMask.length() > 0 && srchPosMask.length() < 20) {
-//            char[] tempMask = "00000000000000000000".toCharArray();
-//            for (int i = 0; i < srchPosMask.length(); i++) {
-//                if (srchPosMask.charAt(i) == '1') {
-//                    tempMask[i] = '1';
-//                }
-//            }
-//            srchPosMask = String.valueOf(tempMask);
-//        } else {
-//            String temp = srchPosMask.substring(0, 20);
-//            if (temp.equals("00000000000000000000")) {
-//                srchPosMask = "11111111111111111111";
-//            }
-//        }
         srchPosMask = CommonUtil.checkSrchPosMask(CONSTANTS.FPTL, srchPosMask);
         SrchDataRec srchDataRec = srchDataRecList.get(0);
         byte[][] features_roll = srchDataRec.rpmnt;

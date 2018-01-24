@@ -43,7 +43,7 @@ public class FPLLDAO {
             paramUsed[i][idx++] = fpllRec.candid;
             paramUsed[i][idx++] = fpllRec.candrank;
             paramUsed[i][idx++] = fpllRec.position;
-            paramUsed[i][idx]   = (int) (fpllRec.score * 10000);
+            paramUsed[i][idx]   = (int) (fpllRec.score);
         }
         try {
             sum = qr.batch(ins_sql, paramUsed).length;

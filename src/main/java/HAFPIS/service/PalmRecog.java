@@ -5,6 +5,7 @@ import HAFPIS.DAO.PPTTDAO;
 import HAFPIS.DAO.SrchTaskDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
+import HAFPIS.Utils.ConfigUtil;
 import HAFPIS.Utils.HbieUtil;
 import HAFPIS.domain.PPLTRec;
 import HAFPIS.domain.PPTTRec;
@@ -20,6 +21,7 @@ import java.rmi.RemoteException;
 import java.sql.Blob;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
 
 /**
  * 掌纹比对 P2P和L2P
@@ -27,7 +29,8 @@ import java.util.List;
  */
 public class PalmRecog extends Recog implements Runnable{
     private static final Logger log = LoggerFactory.getLogger(PalmRecog.class);
-
+    private static ArrayBlockingQueue<SrchTaskBean> ppttArrayQueue;
+    private static ArrayBlockingQueue<SrchTaskBean> ppltArrayQueue;
     private float  PPTT_threshold;
     private String PPTT_tablename;
     private float  PPLT_threshold;
@@ -48,102 +51,122 @@ public class PalmRecog extends Recog implements Runnable{
             datatypes[0] = 2;
             datatypes[1] = 5;
         }
+        log.info("Starting...Update status first...");
         srchTaskDAO = new SrchTaskDAO(tablename);
+        srchTaskDAO.updateStatus(datatypes, tasktypes);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("----------------");
-//            try {
-//                executorService.awaitTermination(5, TimeUnit.SECONDS);
-//            } catch (InterruptedException e) {
-//            }
-//            executorService.shutdown();
             boundedExecutor.close();
             srchTaskDAO.updateStatus(datatypes, tasktypes);
             System.out.println("FourPalm executorservice is shutting down");
         }));
 
-        new Thread(()->{
-            while (true) {
-//                List<SrchTaskBean> list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
-//                CommonUtil.checkList(list, interval);
-//                list.forEach(srchTaskBean -> {
-//                    try {
-//                        srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
-//                        srchTaskBeanArrayBlockingQueue.put(srchTaskBean);
-//                    } catch (InterruptedException e) {
-//                        log.warn("Error during put into srchTaskBean queue. taskidd is {}\n And will try again", srchTaskBean.getTASKIDD(), e);
-//                    }
-//                });
-                CommonUtil.getList(this);
-            }
-        }, "Palm_SrchTaskBean_Thread").start();
+        String fourpalmMatcherShardsStr = ConfigUtil.getConfig("fourpalm_matcher_shards");
+        Integer fourpalmMatcherShards = 1;
+        try {
+            fourpalmMatcherShards = Integer.parseInt(fourpalmMatcherShardsStr);
+        } catch (NumberFormatException e) {
+            log.error("fourpalm_matcher_shards {} is not a number. ", fourpalmMatcherShardsStr, e);
+        }
 
+        ppttArrayQueue = new ArrayBlockingQueue<>(fourpalmMatcherShards * 2);
+        ppltArrayQueue = new ArrayBlockingQueue<>(fourpalmMatcherShards * 2);
 
-        while (true) {
-            try{
-                SrchTaskBean srchTaskBean = srchTaskBeanArrayBlockingQueue.take();
-                Blob srchdata = srchTaskBean.getSRCHDATA();
-                int dataType = srchTaskBean.getDATATYPE();
-                if (srchdata != null) {
-                    List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
-                    if (srchDataRecList == null || srchDataRecList.size() <= 0) {
-                        log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
-                        srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata format error");
+        if (tasktypes[0] == 1) {
+            Integer finalFourpalmMatcherShards = fourpalmMatcherShards;
+            new Thread(() -> {
+                while (true) {
+                    List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 2, 1, finalFourpalmMatcherShards);
+                    if (list == null || list.size() == 0) {
+                        CommonUtil.sleep(interval);
                     } else {
-                        int tasktype = srchTaskBean.getTASKTYPE();
-                        switch (tasktype) {
-                            case 1:
-                                long start = System.currentTimeMillis();
-                                boundedExecutor.submitTask(() -> PPTT(srchDataRecList, srchTaskBean));
-                                log.debug("PPTT total cost : {} ms", (System.currentTimeMillis() - start));
-                                break;
-                            case 3:
-                                long start1 = System.currentTimeMillis();
-                                boundedExecutor.submitTask(() -> PPLT(srchDataRecList, srchTaskBean));
-                                log.debug("PPLT total cost : {} ms", (System.currentTimeMillis() - start1));
-                                break;
+                        for (SrchTaskBean srchTaskBean : list) {
+                            try {
+                                ppttArrayQueue.put(srchTaskBean);
+                                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+                            } catch (InterruptedException e) {
+                                log.error("Putting into pptt queue error. ", e);
+                            }
                         }
                     }
-                } else {
-                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
                 }
-            } catch (InterruptedException e) {
-                log.error("Interrupted during take srchTaskBean from queue");
+            }, "pptt_srchtaskbean_thread").start();
+            for (int i = 0; i < fourpalmMatcherShards; i++) {
+                new Thread(this::PPTT, "PPTT_Thread_" + (i + 1)).start();
             }
+        }
+        if (tasktypes[1] == 3) {
+            Integer finalFourpalmMatcherShards = fourpalmMatcherShards;
+            new Thread(() -> {
+                while (true) {
+                    List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 5, 3, finalFourpalmMatcherShards);
+                    if (list == null || list.size() == 0) {
+                        CommonUtil.sleep(interval);
+                    } else {
+                        for (SrchTaskBean srchTaskBean: list) {
+                            try {
+                                ppltArrayQueue.put(srchTaskBean);
+                                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+                            } catch (InterruptedException e) {
+                                log.error("Putting into pplt queue error. ",e);
+                            }
+                        }
+                    }
+                }
+            }, "pplt_srchtaskbean_thread").start();
+            for (int i = 0; i < fourpalmMatcherShards; i++) {
+                new Thread(this::PPLT, "PPLT_Thread_" + (i + 1)).start();
+            }
+        }
+    }
 
+    private void PPTT() {
+        while (true) {
+            SrchTaskBean srchTaskBean = null;
+            try {
+                srchTaskBean = ppttArrayQueue.take();
+            } catch (InterruptedException e) {
+                log.error("take srchtaskbean from pptt Array queue error.", e);
+                continue;
+            }
+            Blob srchdata = srchTaskBean.getSRCHDATA();
+            int dataType = srchTaskBean.getDATATYPE();
+            if (srchdata != null) {
+                List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
+                if (srchDataRecList == null || srchDataRecList.size() <= 0) {
+                    log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+                } else {
+                    PPTT(srchDataRecList, srchTaskBean);
+                }
+            } else {
+                log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
+            }
+        }
+    }
 
-//            List<SrchTaskBean> list;
-//            list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
-//            CommonUtil.checkList(list, interval);
-//            for (final SrchTaskBean srchTaskBean : list) {
-//                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
-//                Blob srchdata = srchTaskBean.getSRCHDATA();
-//                int dataType = srchTaskBean.getDATATYPE();
-//                if (srchdata != null) {
-//                    List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
-//                    if (srchDataRecList == null || srchDataRecList.size() <= 0) {
-//                        log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
-//                        srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata format error");
-//                    } else {
-//                        int tasktype = srchTaskBean.getTASKTYPE();
-//                        switch (tasktype) {
-//                            case 1:
-//                                long start = System.currentTimeMillis();
-//                                executorService.submit(() -> PPTT(srchDataRecList, srchTaskBean));
-//                                log.debug("PPTT total cost : {} ms", (System.currentTimeMillis() - start));
-//                                break;
-//                            case 3:
-//                                long start1 = System.currentTimeMillis();
-//                                executorService.submit(() -> PPLT(srchDataRecList, srchTaskBean));
-//                                log.debug("PPLT total cost : {} ms", (System.currentTimeMillis() - start1));
-//                                break;
-//                        }
-//                    }
-//                } else {
-//                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
-//                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
-//                }
-//            }
+    private void PPLT() {
+        while (true) {
+            SrchTaskBean srchTaskBean = null;
+            try {
+                srchTaskBean = ppltArrayQueue.take();
+            } catch (InterruptedException e) {
+                log.error("take srchtaskbean from pplt Array queue error.", e);
+                continue;
+            }
+            Blob srchdata = srchTaskBean.getSRCHDATA();
+            int dataType = srchTaskBean.getDATATYPE();
+            if (srchdata != null) {
+                List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
+                if (srchDataRecList == null || srchDataRecList.size() <= 0) {
+                    log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+                } else {
+                    PPLT(srchDataRecList, srchTaskBean);
+                }
+            } else {
+                log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
+            }
         }
     }
 
@@ -163,22 +186,6 @@ public class PalmRecog extends Recog implements Runnable{
         }
         SrchDataRec srchDataRec = srchDataRecList.get(0);
         String srchPosMask = srchTaskBean.getSRCHPOSMASK();
-//        if (srchPosMask == null || srchPosMask.length() == 0) {
-//            srchPosMask_Palm = "1000110001";
-//        } else if (srchPosMask.length() > 0 && srchPosMask.length() <= 10) {
-//            char[] tempMask = "0000000000".toCharArray();
-//            for (int i = 0; i < 4; i++) {
-//                if (srchPosMask.charAt(CONSTANTS.srchOrder[i]) == '1') {
-//                    tempMask[CONSTANTS.srchOrder[i]] = '1';
-//                }
-//            }
-//            srchPosMask_Palm = String.valueOf(tempMask);
-//        } else {
-//            srchPosMask_Palm = srchPosMask.substring(0, 10);
-//            if (srchPosMask_Palm.equals("0000000000")) {
-//                srchPosMask_Palm = "1000110001";
-//            }
-//        }
         srchPosMask_Palm = CommonUtil.checkSrchPosMask(CONSTANTS.PPLT, srchPosMask);
         assert srchPosMask_Palm != null;
         boolean[] mask = new boolean[4];

@@ -43,7 +43,7 @@ public class PPLLDAO {
             paramUsed[i][idx++] = ppllRec.candid;
             paramUsed[i][idx++] = ppllRec.candrank;
             paramUsed[i][idx++] = ppllRec.position;
-            paramUsed[i][idx]   = (int) (ppllRec.score * 10000);
+            paramUsed[i][idx]   = (int) (ppllRec.score);
         }
         try {
             sum = qr.batch(ins_sql, paramUsed).length;

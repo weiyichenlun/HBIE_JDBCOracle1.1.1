@@ -361,7 +361,6 @@ public class CommonUtil {
             } catch (NumberFormatException e) {
                 log.error(e.toString());
             }
-
         }
         try {
             s = new String(res, "UTF-8");
@@ -399,6 +398,20 @@ public class CommonUtil {
         return sb.toString();
     }
 
+    public static void sleep(String interval) {
+        int timeSleep = 1;
+        try {
+            timeSleep = Integer.parseInt(interval);
+        } catch (NumberFormatException e) {
+            log.error("interval {} format error. Use default interval(1)", interval);
+        }
+        try {
+            Thread.sleep(timeSleep * 1000);
+            log.debug("sleeping");
+        } catch (InterruptedException e) {
+            log.warn("Waiting Thread was interrupted: {}", e);
+        }
+    }
 
     /**
      * check whether list is empty. If true, wait for interval seconds

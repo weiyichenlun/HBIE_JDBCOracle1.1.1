@@ -18,6 +18,6 @@ public abstract class Rec<T extends Rec> implements Comparable<T>, Serializable 
     public int position;
 
     public int compareTo(T o) {
-        return this.score > o.score ? -1 : (this.score < o.score ? 1 : 0);
+        return Float.compare(o.score, this.score);
     }
 }

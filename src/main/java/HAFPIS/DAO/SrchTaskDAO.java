@@ -1,5 +1,6 @@
 package HAFPIS.DAO;
 
+import HAFPIS.Utils.ConfigUtil;
 import HAFPIS.Utils.DateUtil;
 import HAFPIS.Utils.QueryRunnerUtil;
 import HAFPIS.domain.SrchTaskBean;
@@ -25,34 +26,85 @@ public class SrchTaskDAO {
         this.tablename = tablename;
     }
 
+    public List<SrchTaskBean> getSrchTaskBean(int status, int datatype, int tasktype, int queryNum) {
+        List<SrchTaskBean> srchTaskBeans = null;
+        StringBuilder sb = new StringBuilder();
+        if (ConfigUtil.getConfig("database").toLowerCase().equals("sqlserver")) {
+            sb.append("select * from (select top ").append(queryNum).append(" * from ");
+            sb.append(tablename);
+            sb.append(" where status=").append(status).append(" and datatype=").append(datatype).append(" and tasktype=").append(tasktype);
+            sb.append(" order by priority desc, endtime asc) res");
+        } else {
+            sb.append("select * from (select * from ");
+            sb.append(tablename);
+            sb.append(" where status=").append(status).append(" and datatype=").append(datatype).append(" and tasktype=").append(tasktype);
+            sb.append(" order by priority desc, endtime asc)");
+            sb.append(" where rownum<=").append(queryNum);
+        }
+
+        try {
+            srchTaskBeans = qr.query(sb.toString(), new BeanListHandler<>(SrchTaskBean.class));
+            log.debug("query_sql is {}", sb.toString());
+        } catch (SQLException e) {
+            log.error("SQLException: {}, query_sql:{}", e, sb.toString());
+        }
+        return srchTaskBeans;
+    }
 
     public synchronized List<SrchTaskBean> getList(String status, int[] datatypes, int[] tasktypes, String queryNum) {
         List<SrchTaskBean> list = new ArrayList<>();
         StringBuilder sb = new StringBuilder();
-        sb.append("select * from ").append(tablename);
-        int statusN = 0;
-        try {
-            statusN = Integer.parseInt(status);
-        } catch (NumberFormatException e) {
-            log.error("parse status error. status must be a number. status-{}, exception-{}", status, e);
-        }
-        sb.append(" where status=").append(statusN);
-        sb.append(" and datatype in (");
-        for (int datatype : datatypes) {
-            if (datatype > 0) {
-                sb.append(datatype).append(",");
+        if (ConfigUtil.getConfig("database").toLowerCase().equals("sqlserver")) {
+            sb.append("select * from (select top ").append(queryNum).append(" * from ");
+            int statusN = 0;
+            try {
+                statusN = Integer.parseInt(status);
+            } catch (NumberFormatException e) {
+                log.error("parse status error. status must be a number. status-{}, exception-{}", status, e);
             }
-        }
-        sb.deleteCharAt(sb.length() - 1).append(")");
-        sb.append(" and tasktype in (");
-        for (int tasktype : tasktypes) {
-            if (tasktype != 0) {
-                sb.append(tasktype).append(",");
+            sb.append(" where status=").append(statusN);
+            sb.append(" and datatype in (");
+            for (int datatype : datatypes) {
+                if (datatype > 0) {
+                    sb.append(datatype).append(",");
+                }
             }
+            sb.deleteCharAt(sb.length() - 1).append(")");
+            sb.append(" and tasktype in (");
+            for (int tasktype : tasktypes) {
+                if (tasktype != 0) {
+                    sb.append(tasktype).append(",");
+                }
+            }
+            sb.deleteCharAt(sb.length() - 1).append(") res");
+            sb.append(" order by priority desc, endtime asc");
+        } else {
+            sb.append("select * from ").append(tablename);
+            int statusN = 0;
+            try {
+                statusN = Integer.parseInt(status);
+            } catch (NumberFormatException e) {
+                log.error("parse status error. status must be a number. status-{}, exception-{}", status, e);
+            }
+            sb.append(" where status=").append(statusN);
+            sb.append(" and datatype in (");
+            for (int datatype : datatypes) {
+                if (datatype > 0) {
+                    sb.append(datatype).append(",");
+                }
+            }
+            sb.deleteCharAt(sb.length() - 1).append(")");
+            sb.append(" and tasktype in (");
+            for (int tasktype : tasktypes) {
+                if (tasktype != 0) {
+                    sb.append(tasktype).append(",");
+                }
+            }
+            sb.deleteCharAt(sb.length() - 1).append(")");
+            sb.append(" and rownum<=").append(Integer.parseInt(queryNum));
+            sb.append(" order by priority desc, endtime asc");
         }
-        sb.deleteCharAt(sb.length() - 1).append(")");
-        sb.append(" and rownum<=").append(Integer.parseInt(queryNum));
-        sb.append(" order by priority desc, endtime asc");
+
         try {
             list = qr.query(sb.toString(), new BeanListHandler<>(SrchTaskBean.class));
             log.debug("query_sql is {}", sb.toString());
@@ -65,19 +117,33 @@ public class SrchTaskDAO {
     public synchronized List<SrchTaskBean> getList(String status, int datatype, int tasktype, String queryNum) {
         List<SrchTaskBean> list = new ArrayList<>();
         StringBuilder sb = new StringBuilder();
-        sb.append("select * from ( ");
-        sb.append("select * from ").append(tablename);
-        int statusN = 0;
-        try {
-            statusN = Integer.parseInt(status);
-        } catch (NumberFormatException e) {
-            log.error("parse status error. status must be a number. status-{}, exception-{}", status, e);
+        if (ConfigUtil.getConfig("database").toLowerCase().equals("sqlserver")) {
+            sb.append("select * from (select top ").append(queryNum).append(" * from ").append(tablename);
+            int statusN = 0;
+            try {
+                statusN = Integer.parseInt(status);
+            } catch (NumberFormatException e) {
+                log.error("parse status error. status must be a number. status-{}, exception-{}", status, e);
+            }
+            sb.append(" where status=").append(statusN);
+            sb.append(" and datatype=").append(datatype);
+            sb.append(" and tasktype=").append(tasktype);
+            sb.append(" order by priority desc, begtime asc) res");
+        } else {
+            sb.append("select * from ( ");
+            sb.append("select * from ").append(tablename);
+            int statusN = 0;
+            try {
+                statusN = Integer.parseInt(status);
+            } catch (NumberFormatException e) {
+                log.error("parse status error. status must be a number. status-{}, exception-{}", status, e);
+            }
+            sb.append(" where status=").append(statusN);
+            sb.append(" and datatype=").append(datatype);
+            sb.append(" and tasktype=").append(tasktype);
+            sb.append(" order by priority desc, begtime asc ");
+            sb.append(") where rownum <= ").append(Integer.parseInt(queryNum));
         }
-        sb.append(" where status=").append(statusN);
-        sb.append(" and datatype=").append(datatype);
-        sb.append(" and tasktype=").append(tasktype);
-        sb.append(" order by priority desc, begtime asc ");
-        sb.append(") where rownum <= ").append(Integer.parseInt(queryNum));
 
         try{
             list = qr.query(sb.toString(), new BeanListHandler<>(SrchTaskBean.class));

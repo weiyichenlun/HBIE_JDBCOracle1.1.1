@@ -10,7 +10,7 @@ import java.sql.Clob;
  * 创建时间:2017/5/15
  * 最后修改时间:2017/8/23
  */
-public class SrchTaskBean implements Serializable{
+public class SrchTaskBean implements Serializable, Comparable<SrchTaskBean>{
     private static final long serialVersionUID = 6332467233836389462L;
     private String TASKIDD;
     private String TRANSNO;
@@ -52,6 +52,7 @@ public class SrchTaskBean implements Serializable{
     private int PMRECTH010;
     private Clob DEMOFILTER;
     private Blob SRCHDATA;
+
     private String BEGTIME;
     private String ENDTIME;
     private String EXPTMSG;
@@ -407,5 +408,16 @@ public class SrchTaskBean implements Serializable{
 
     public void setSOLVEORDUP(Integer SOLVEORDUP) {
         this.SOLVEORDUP = SOLVEORDUP;
+    }
+
+    @Override
+    public int compareTo(SrchTaskBean o) {
+        if (this.getPRIORITY() < o.getPRIORITY()) {
+            return 1;
+        } else if (this.getPRIORITY() > o.getPRIORITY()) {
+            return -1;
+        } else {
+            return 0;
+        }
     }
 }

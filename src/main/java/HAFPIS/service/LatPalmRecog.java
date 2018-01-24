@@ -5,6 +5,7 @@ import HAFPIS.DAO.PPTLDAO;
 import HAFPIS.DAO.SrchTaskDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
+import HAFPIS.Utils.ConfigUtil;
 import HAFPIS.Utils.HbieUtil;
 import HAFPIS.domain.PPLLRec;
 import HAFPIS.domain.PPTLRec;
@@ -20,6 +21,7 @@ import java.rmi.RemoteException;
 import java.sql.Blob;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
 
 /**
  * 现场掌纹比对 P2L和L2L
@@ -27,7 +29,8 @@ import java.util.List;
  */
 public class LatPalmRecog extends Recog implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(LatPalmRecog.class);
-
+    private static ArrayBlockingQueue<SrchTaskBean> pptlArrayQueue;
+    private static ArrayBlockingQueue<SrchTaskBean> ppllArrayQueue;
     private float  PPTL_threshold;
     private String PPTL_tablename;
     private float  PPLL_threshold;
@@ -48,106 +51,122 @@ public class LatPalmRecog extends Recog implements Runnable {
             datatypes[0] = 2;
             datatypes[1] = 5;
         }
+        log.info("Starting...Update status first...");
         srchTaskDAO = new SrchTaskDAO(tablename);
+        srchTaskDAO.updateStatus(datatypes, tasktypes);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("----------------");
-//            try {
-//                executorService.awaitTermination(5, TimeUnit.SECONDS);
-//            } catch (InterruptedException e) {
-//            }
-//            executorService.shutdown();
             boundedExecutor.close();
             srchTaskDAO.updateStatus(datatypes, tasktypes);
             System.out.println("LatPalm executorservice is shutting down");
         }));
 
-        new Thread(()->{
-            while (true) {
-//                List<SrchTaskBean> list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
-//                CommonUtil.checkList(list, interval);
-//                list.forEach(srchTaskBean -> {
-//                    try {
-//                        srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
-//                        srchTaskBeanArrayBlockingQueue.put(srchTaskBean);
-//                    } catch (InterruptedException e) {
-//                        log.warn("Error during put into srchTaskBean queue. taskidd is {}\n And will try again", srchTaskBean.getTASKIDD(), e);
-//                    }
-//                });
-                CommonUtil.getList(this);
-            }
-        }, "LatPalm_SrchTaskBean_Thread").start();
+        String latpalmMatcherShardsStr = ConfigUtil.getConfig("latpalm_matcher_shards");
+        Integer latpalmMatcherShards = 1;
+        try {
+            latpalmMatcherShards = Integer.parseInt(latpalmMatcherShardsStr);
+        } catch (NumberFormatException e) {
+            log.error("latpalm_matcher_shards {} is not a number. ", latpalmMatcherShardsStr, e);
+        }
 
+        pptlArrayQueue = new ArrayBlockingQueue<>(latpalmMatcherShards * 2);
+        ppllArrayQueue = new ArrayBlockingQueue<>(latpalmMatcherShards * 2);
 
-        while (true) {
-            try{
-                SrchTaskBean srchTaskBean = srchTaskBeanArrayBlockingQueue.take();
-                Blob srchdata = srchTaskBean.getSRCHDATA();
-                int dataType = srchTaskBean.getDATATYPE();
-                if (srchdata != null) {
-                    List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
-                    if (srchDataRecList == null || srchDataRecList.size() <= 0) {
-                        log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+        if (tasktypes[0] == 2) {
+            Integer finalLatpalmMatcherShards = latpalmMatcherShards;
+            new Thread(() -> {
+                while (true) {
+                    List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 2, 2, finalLatpalmMatcherShards);
+                    if (list == null || list.size() == 0) {
+                        CommonUtil.sleep(interval);
                     } else {
-                        int tasktype = srchTaskBean.getTASKTYPE();
-                        switch (tasktype) {
-                            case 2:
-                                long start = System.currentTimeMillis();
-//                                PPTL(srchDataRecList, srchTaskBean);
-                                boundedExecutor.submitTask(() -> PPTL(srchDataRecList, srchTaskBean));
-                                log.debug("P2L total cost : {} ms", (System.currentTimeMillis() - start));
-                                break;
-                            case 4:
-                                long start1 = System.currentTimeMillis();
-//                                PPLL(srchDataRecList, srchTaskBean);
-                                boundedExecutor.submitTask(() -> PPLL(srchDataRecList, srchTaskBean));
-                                log.debug("L2L total cost : {} ms", (System.currentTimeMillis() - start1));
-                                break;
+                        for (SrchTaskBean srchTaskBean : list) {
+                            try {
+                                pptlArrayQueue.put(srchTaskBean);
+                                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+                            } catch (InterruptedException e) {
+                                log.error("Putting into pptl queue error.", e);
+                            }
                         }
                     }
-                } else {
-                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
                 }
-
-            } catch (InterruptedException e) {
-                log.error("Interrupted during take srchTaskBean from queue");
+            }, "pptl_srchtaskbean_thread").start();
+            for (int i = 0; i < latpalmMatcherShards; i++) {
+                new Thread(this::PPTL, "PPTL_Thread_" + (i + 1)).start();
             }
+        }
+        if (tasktypes[1] == 4) {
+            Integer finalLatfpMatcherShards = latpalmMatcherShards;
+            new Thread(() -> {
+                while (true) {
+                    List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 5, 4, finalLatfpMatcherShards);
+                    if (list == null || list.size() == 0) {
+                        CommonUtil.sleep(interval);
+                    } else {
+                        for (SrchTaskBean srchTaskBean: list) {
+                            try {
+                                ppllArrayQueue.put(srchTaskBean);
+                                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+                            } catch (InterruptedException e) {
+                                log.error("Putting into ppll queue error. ", e);
+                            }
+                        }
+                    }
+                }
+            }, "ppll_srchtaskbean_thread").start();
+            for (int i = 0; i < latpalmMatcherShards; i++) {
+                new Thread(this::PPLL, "PPLL_Thread_" + (i + 1)).start();
+            }
+        }
+    }
 
+    private void PPTL() {
+        while (true) {
+            SrchTaskBean srchTaskBean = null;
+            try {
+                srchTaskBean = pptlArrayQueue.take();
+            } catch (InterruptedException e) {
+                log.error("take srchtaskbean from pptl Array queue error.", e);
+                continue;
+            }
+            Blob srchdata = srchTaskBean.getSRCHDATA();
+            int dataType = srchTaskBean.getDATATYPE();
+            if (srchdata != null) {
+                List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
+                if (srchDataRecList == null || srchDataRecList.size() <= 0) {
+                    log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+                } else {
+                    PPTL(srchDataRecList, srchTaskBean);
+                }
+            } else {
+                log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
+            }
+        }
+    }
 
-//            List<SrchTaskBean> list;
-//            list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
-//            CommonUtil.checkList(list, interval);
-////            SrchTaskBean srchTaskBean = null;
-//            for (final SrchTaskBean srchTaskBean : list) {
-//                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
-//                Blob srchdata = srchTaskBean.getSRCHDATA();
-//                int dataType = srchTaskBean.getDATATYPE();
-//                if (srchdata != null) {
-//                    List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
-//                    if (srchDataRecList == null || srchDataRecList.size() <= 0) {
-//                        log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
-//                    } else {
-//                        int tasktype = srchTaskBean.getTASKTYPE();
-//                        switch (tasktype) {
-//                            case 2:
-//                                long start = System.currentTimeMillis();
-////                                PPTL(srchDataRecList, srchTaskBean);
-//                                executorService.submit(() -> PPTL(srchDataRecList, srchTaskBean));
-//                                log.debug("P2L total cost : {} ms", (System.currentTimeMillis() - start));
-//                                break;
-//                            case 4:
-//                                long start1 = System.currentTimeMillis();
-////                                PPLL(srchDataRecList, srchTaskBean);
-//                                executorService.submit(() -> PPLL(srchDataRecList, srchTaskBean));
-//                                log.debug("L2L total cost : {} ms", (System.currentTimeMillis() - start1));
-//                                break;
-//                        }
-//                    }
-//                } else {
-//                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
-//                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
-//                }
-//            }
+    private void PPLL() {
+        while (true) {
+            SrchTaskBean srchTaskBean = null;
+            try {
+                srchTaskBean = ppllArrayQueue.take();
+            } catch (InterruptedException e) {
+                log.error("take srchtaskbean from ppll Array queue error.", e);
+                continue;
+            }
+            Blob srchdata = srchTaskBean.getSRCHDATA();
+            int dataType = srchTaskBean.getDATATYPE();
+            if (srchdata != null) {
+                List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
+                if (srchDataRecList == null || srchDataRecList.size() <= 0) {
+                    log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+                } else {
+                    PPLL(srchDataRecList, srchTaskBean);
+                }
+            } else {
+                log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
+            }
         }
     }
 

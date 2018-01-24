@@ -4,6 +4,7 @@ import HAFPIS.DAO.IrisTTDAO;
 import HAFPIS.DAO.SrchTaskDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
+import HAFPIS.Utils.ConfigUtil;
 import HAFPIS.Utils.HbieUtil;
 import HAFPIS.domain.IrisRec;
 import HAFPIS.domain.SrchDataRec;
@@ -18,6 +19,7 @@ import java.rmi.RemoteException;
 import java.sql.Blob;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
 
 /**
  * 虹膜比对
@@ -25,7 +27,7 @@ import java.util.List;
  */
 public class IrisRecog extends Recog implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(IrisRecog.class);
-
+    private static ArrayBlockingQueue<SrchTaskBean> irisArrayQueue;
     private float  IrisTT_threshold;
     private String IrisTT_tablename;
 
@@ -35,92 +37,72 @@ public class IrisRecog extends Recog implements Runnable {
         if (type == CONSTANTS.IRIS) {
             tasktypes[0] = 1;
         }
+        log.info("Starting...Update status first...");
         srchTaskDAO = new SrchTaskDAO(tablename);
+        srchTaskDAO.updateStatus(datatypes, tasktypes);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("----------------");
-//            try {
-//                executorService.awaitTermination(5, TimeUnit.SECONDS);
-//            } catch (InterruptedException e) {
-//            }
-//            executorService.shutdown();
             boundedExecutor.close();
             srchTaskDAO.updateStatus(new int[]{7}, tasktypes);
             System.out.println("Iris executorservice is shutting down");
         }));
 
-        new Thread(()->{
-            while (true) {
-//                List<SrchTaskBean> list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
-//                CommonUtil.checkList(list, interval);
-//                list.forEach(srchTaskBean -> {
-//                    try {
-//                        srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
-//                        srchTaskBeanArrayBlockingQueue.put(srchTaskBean);
-//                    } catch (InterruptedException e) {
-//                        log.warn("Error during put into srchTaskBean queue. taskidd is {}\n And will try again", srchTaskBean.getTASKIDD(), e);
-//                    }
-//                });
-                CommonUtil.getList(this);
-            }
-        }, "Iris_SrchTaskBean_Thread").start();
+        String irisMatcherShardsStr = ConfigUtil.getConfig("iris_matcher_shards");
+        Integer irisMatcherShards = 1;
+        try {
+            irisMatcherShards = Integer.parseInt(irisMatcherShardsStr);
+        } catch (NumberFormatException e) {
+            log.error("iris_matcher_shards {} is not a number. ", irisMatcherShardsStr, e);
+        }
 
-        while (true) {
-            try{
-                SrchTaskBean srchTaskBean = srchTaskBeanArrayBlockingQueue.take();
-                Blob srchdata = srchTaskBean.getSRCHDATA();
-                int dataType = srchTaskBean.getDATATYPE();
-                if (srchdata != null) {
-                    List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
-                    if (null == srchDataRecList || srchDataRecList.size() <= 0) {
-                        log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+        irisArrayQueue = new ArrayBlockingQueue<>(irisMatcherShards * 2);
+        if (tasktypes[0] == 1) {
+            Integer finalIrisMatcherShards = irisMatcherShards;
+            new Thread(() -> {
+                while (true) {
+                    List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 7, 1, finalIrisMatcherShards);
+                    if (list == null || list.size() == 0) {
+                        CommonUtil.sleep(interval);
                     } else {
-                        int tasktype = srchTaskBean.getTASKTYPE();
-                        switch (tasktype) {
-                            case 1:
-                                long start = System.currentTimeMillis();
-//                                IrisTT(srchDataRecList, srchTaskBean);
-                                boundedExecutor.submitTask(() -> IrisTT(srchDataRecList, srchTaskBean));
-                                log.debug("IrisTT total cost : {} ms", (System.currentTimeMillis() - start));
-                                break;
+                        for (SrchTaskBean srchTaskBean : list) {
+                            try {
+                                irisArrayQueue.put(srchTaskBean);
+                                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+                            } catch (InterruptedException e) {
+                                log.error("Putting into iris queue error. ", e);
+                            }
                         }
                     }
-                } else {
-                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
                 }
-            } catch (InterruptedException e) {
-                log.error("Interrupted during take srchTaskBean from queue");
+            }, "facett_srchtaskbean_thread").start();
+            for (int i = 0; i < irisMatcherShards; i++) {
+                new Thread(this::IrisTT, "IrisTT_Thread_" + (i + 1)).start();
             }
+        }
+    }
 
-
-//            List<SrchTaskBean> list;
-//            list = srchTaskDAO.getList(status, new int[]{7}, tasktypes, queryNum);
-//            CommonUtil.checkList(list, interval);
-////            SrchTaskBean srchTaskBean = null;
-//            for (final SrchTaskBean srchTaskBean : list) {
-//                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
-//                Blob srchdata = srchTaskBean.getSRCHDATA();
-//                int dataType = srchTaskBean.getDATATYPE();
-//                if (srchdata != null) {
-//                    List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
-//                    if (null == srchDataRecList || srchDataRecList.size() <= 0) {
-//                        log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
-//                    } else {
-//                        int tasktype = srchTaskBean.getTASKTYPE();
-//                        switch (tasktype) {
-//                            case 1:
-//                                long start = System.currentTimeMillis();
-////                                IrisTT(srchDataRecList, srchTaskBean);
-//                                executorService.submit(() -> IrisTT(srchDataRecList, srchTaskBean));
-//                                log.debug("IrisTT total cost : {} ms", (System.currentTimeMillis() - start));
-//                                break;
-//                        }
-//                    }
-//                } else {
-//                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
-//                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
-//                }
-//            }
+    private void IrisTT() {
+        while (true) {
+            SrchTaskBean srchTaskBean = null;
+            try {
+                srchTaskBean = irisArrayQueue.take();
+            } catch (InterruptedException e) {
+                log.error("take srchtaskbean from iris Array queue error.", e);
+                continue;
+            }
+            Blob srchdata = srchTaskBean.getSRCHDATA();
+            int dataType = srchTaskBean.getDATATYPE();
+            if (srchdata != null) {
+                List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
+                if (srchDataRecList == null || srchDataRecList.size() <= 0) {
+                    log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+                } else {
+                    IrisTT(srchDataRecList, srchTaskBean);
+                }
+            } else {
+                log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
+            }
         }
     }
 

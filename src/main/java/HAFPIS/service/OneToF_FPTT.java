@@ -151,9 +151,9 @@ public class OneToF_FPTT extends Recog implements Runnable {
                             tempScore = temp;
                         }
                         if (j >= 0 && j < 10) {
-                            fpttRec.rpscores[j] = temp;
+                            fpttRec.rpscores[j] = (int) temp;
                         } else {
-                            fpttRec.fpscores[j - 10] = temp;
+                            fpttRec.fpscores[j - 10] = (int) temp;
                         }
                     }
                     fpttRec.score = tempScore;

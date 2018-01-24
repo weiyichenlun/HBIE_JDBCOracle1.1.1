@@ -1,5 +1,6 @@
 package HAFPIS.DAO;
 
+import HAFPIS.Utils.ConfigUtil;
 import HAFPIS.Utils.DateUtil;
 import HAFPIS.Utils.QueryRunnerUtil;
 import HAFPIS.domain.DbopTaskBean;
@@ -28,10 +29,16 @@ public class DbopTaskDAO {
 
     public synchronized List<DbopTaskBean> get(String status, int datatype, String queryNum) {
         StringBuilder sb = new StringBuilder();
-        sb.append("select * from ").append(tablename);
-        sb.append(" where status=").append(status);
-        sb.append(" and datatype=").append(datatype);
-        sb.append(" and rownum<=").append(queryNum);
+        if (ConfigUtil.getConfig("database").toLowerCase().equals("sqlserver")) {
+            sb.append("select top ").append(queryNum).append(" * from ").append(tablename);
+            sb.append(" where status=").append(status);
+            sb.append(" and datatype=").append(datatype);
+        } else {
+            sb.append("select * from ").append(tablename);
+            sb.append(" where status=").append(status);
+            sb.append(" and datatype=").append(datatype);
+            sb.append(" and rownum<=").append(queryNum);
+        }
         sb.append(" order by priority desc, begtime asc");
         List<DbopTaskBean> list = new ArrayList<>();
         try {
@@ -73,7 +80,7 @@ public class DbopTaskDAO {
         try{
             qr.update(sql.toString(), datatype);
         } catch (SQLException e) {
-            log.error("update status error before shutting down");
+            log.error("update status error");
         }
     }
 }
