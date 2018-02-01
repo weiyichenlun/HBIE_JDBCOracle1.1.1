@@ -43,9 +43,9 @@ public class PPTTDAO {
             paramUsed[i][idx++] = ppttRec.dbid;
             paramUsed[i][idx++] = ppttRec.candid;
             paramUsed[i][idx++] = ppttRec.candrank;
-            paramUsed[i][idx++] = (int) (ppttRec.score * 10000);
+            paramUsed[i][idx++] = (int) (ppttRec.score );
             for (int j = 0; j < 4; j++) {
-                paramUsed[i][idx++] = (int) (ppttRec.ppscores[j] * 10000);
+                paramUsed[i][idx++] = (int) (ppttRec.ppscores[j] );
             }
         }
         try {
