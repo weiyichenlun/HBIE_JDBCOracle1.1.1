@@ -79,30 +79,30 @@ public class SrchTaskDAO {
             sb.deleteCharAt(sb.length() - 1).append(") res");
             sb.append(" order by priority desc, endtime asc");
         } else {
-            sb.append("select * from ").append(tablename);
-            int statusN = 0;
-            try {
-                statusN = Integer.parseInt(status);
-            } catch (NumberFormatException e) {
-                log.error("parse status error. status must be a number. status-{}, exception-{}", status, e);
+        sb.append("select * from ").append(tablename);
+        int statusN = 0;
+        try {
+            statusN = Integer.parseInt(status);
+        } catch (NumberFormatException e) {
+            log.error("parse status error. status must be a number. status-{}, exception-{}", status, e);
+        }
+        sb.append(" where status=").append(statusN);
+        sb.append(" and datatype in (");
+        for (int datatype : datatypes) {
+            if (datatype > 0) {
+                sb.append(datatype).append(",");
             }
-            sb.append(" where status=").append(statusN);
-            sb.append(" and datatype in (");
-            for (int datatype : datatypes) {
-                if (datatype > 0) {
-                    sb.append(datatype).append(",");
-                }
+        }
+        sb.deleteCharAt(sb.length() - 1).append(")");
+        sb.append(" and tasktype in (");
+        for (int tasktype : tasktypes) {
+            if (tasktype != 0) {
+                sb.append(tasktype).append(",");
             }
-            sb.deleteCharAt(sb.length() - 1).append(")");
-            sb.append(" and tasktype in (");
-            for (int tasktype : tasktypes) {
-                if (tasktype != 0) {
-                    sb.append(tasktype).append(",");
-                }
-            }
-            sb.deleteCharAt(sb.length() - 1).append(")");
-            sb.append(" and rownum<=").append(Integer.parseInt(queryNum));
-            sb.append(" order by priority desc, endtime asc");
+        }
+        sb.deleteCharAt(sb.length() - 1).append(")");
+        sb.append(" and rownum<=").append(Integer.parseInt(queryNum));
+        sb.append(" order by priority desc, endtime asc");
         }
 
         try {
@@ -130,19 +130,19 @@ public class SrchTaskDAO {
             sb.append(" and tasktype=").append(tasktype);
             sb.append(" order by priority desc, begtime asc) res");
         } else {
-            sb.append("select * from ( ");
-            sb.append("select * from ").append(tablename);
-            int statusN = 0;
-            try {
-                statusN = Integer.parseInt(status);
-            } catch (NumberFormatException e) {
-                log.error("parse status error. status must be a number. status-{}, exception-{}", status, e);
-            }
-            sb.append(" where status=").append(statusN);
-            sb.append(" and datatype=").append(datatype);
-            sb.append(" and tasktype=").append(tasktype);
-            sb.append(" order by priority desc, begtime asc ");
-            sb.append(") where rownum <= ").append(Integer.parseInt(queryNum));
+        sb.append("select * from ( ");
+        sb.append("select * from ").append(tablename);
+        int statusN = 0;
+        try {
+            statusN = Integer.parseInt(status);
+        } catch (NumberFormatException e) {
+            log.error("parse status error. status must be a number. status-{}, exception-{}", status, e);
+        }
+        sb.append(" where status=").append(statusN);
+        sb.append(" and datatype=").append(datatype);
+        sb.append(" and tasktype=").append(tasktype);
+        sb.append(" order by priority desc, begtime asc ");
+        sb.append(") where rownum <= ").append(Integer.parseInt(queryNum));
         }
 
         try{

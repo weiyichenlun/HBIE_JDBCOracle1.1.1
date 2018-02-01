@@ -74,7 +74,7 @@ public class LatPalmRecog extends Recog implements Runnable {
         if (tasktypes[0] == 2) {
             Integer finalLatpalmMatcherShards = latpalmMatcherShards;
             new Thread(() -> {
-                while (true) {
+            while (true) {
                     List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 2, 2, finalLatpalmMatcherShards);
                     if (list == null || list.size() == 0) {
                         CommonUtil.sleep(interval);
@@ -85,7 +85,7 @@ public class LatPalmRecog extends Recog implements Runnable {
                                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
                             } catch (InterruptedException e) {
                                 log.error("Putting into pptl queue error.", e);
-                            }
+            }
                         }
                     }
                 }
@@ -97,7 +97,7 @@ public class LatPalmRecog extends Recog implements Runnable {
         if (tasktypes[1] == 4) {
             Integer finalLatfpMatcherShards = latpalmMatcherShards;
             new Thread(() -> {
-                while (true) {
+        while (true) {
                     List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 5, 4, finalLatfpMatcherShards);
                     if (list == null || list.size() == 0) {
                         CommonUtil.sleep(interval);
@@ -138,10 +138,10 @@ public class LatPalmRecog extends Recog implements Runnable {
                 } else {
                     PPTL(srchDataRecList, srchTaskBean);
                 }
-            } else {
-                log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
-                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
-            }
+                } else {
+                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
+                }
         }
     }
 

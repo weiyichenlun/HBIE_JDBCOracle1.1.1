@@ -147,7 +147,7 @@ public class FpRecog extends Recog implements Runnable {
     }
 
     private void FPTT() {
-        while (true) {
+            while (true) {
             SrchTaskBean srchTaskBean = null;
             try {
                 srchTaskBean = fpttArrayQueue.take();
@@ -471,10 +471,20 @@ public class FpRecog extends Recog implements Runnable {
 
             SearchResults<HSFPTenFp.TenFpSearchParam.Result> results = null;
             long start1 = System.currentTimeMillis();
-            log.info("Send {} to search(flag=0).", probe.id);
             results = HbieUtil.getInstance().hbie_FP.search(probe);
-            log.info("Receive {} search results(flag=0).", probe.id);
             long start2 = System.currentTimeMillis();
+//            list = results.candidates.stream().map(result -> {
+//                FPTTRec fpttRec = new FPTTRec();
+//                fpttRec.taskid = srchTaskBean.getTASKIDD();
+//                fpttRec.transno = srchTaskBean.getTRANSNO();
+//                fpttRec.probeid = srchTaskBean.getPROBEID();
+//                fpttRec.candid = result.record.id;
+//                fpttRec.dbid = (int) result.record.info.get("dbId");
+//                fpttRec.rpscores = normalScore(result.fpscores);
+//                fpttRec.score = result.score;
+//                return fpttRec;
+//            }).collect(Collectors.toList());
+
             for (HSFPTenFp.TenFpSearchParam.Result cand : results.candidates) {
                 FPTTRec fpttRec = new FPTTRec();
                 fpttRec.taskid = srchTaskBean.getTASKIDD();
@@ -482,21 +492,19 @@ public class FpRecog extends Recog implements Runnable {
                 fpttRec.probeid = srchTaskBean.getPROBEID();
                 fpttRec.candid = cand.record.id;
                 fpttRec.dbid = (int) cand.record.info.get("dbId");
-                fpttRec.rpscores = cand.fpscores;
-//                fpttRec.rpscores = normalScore(cand.fpscores);
+                fpttRec.rpscores = normalScore(cand.fpscores);
                 fpttRec.score = cand.score;
                 list.add(fpttRec);
             }
-            log.debug("list convertion cost {}", System.currentTimeMillis()-start2);
+            log.info("list convertion cost {}", System.currentTimeMillis()-start2);
             probe.features = srchDataRec.fpmnt;
             probe.filter = CommonUtil.mergeFilter("flag=={1}", dbFilter, solveOrDup, demoFilter);
             log.info("The total filter is :\n{}", probe.filter);
 
             long start11 = System.currentTimeMillis();
-            log.info("Send {} to search(flag=1).", probe.id);
             results = HbieUtil.getInstance().hbie_FP.search(probe);
-            log.info("Receive {} search results(flag=1).", probe.id);
             long start0 = System.currentTimeMillis();
+            log.info("*******In FPTT the saerch time cost is {} ms for id {}", (start0 - start11), srchTaskBean.getTASKIDD());
             for (HSFPTenFp.TenFpSearchParam.Result cand : results.candidates) {
                 FPTTRec fpttRec = new FPTTRec();
                 fpttRec.taskid = srchTaskBean.getTASKIDD();
@@ -504,8 +512,7 @@ public class FpRecog extends Recog implements Runnable {
                 fpttRec.probeid = srchTaskBean.getPROBEID();
                 fpttRec.candid = cand.record.id;
                 fpttRec.dbid = (int) cand.record.info.get("dbId");
-                fpttRec.fpscores = cand.fpscores;
-//                fpttRec.fpscores = normalScore(cand.fpscores);
+                fpttRec.fpscores = normalScore(cand.fpscores);
                 fpttRec.score = cand.score;
                 list.add(fpttRec);
             }
@@ -533,7 +540,7 @@ public class FpRecog extends Recog implements Runnable {
                 boolean isSuc = fpttdao.updateRes(list);
                 if (isSuc) {
                     srchTaskBean.setSTATUS(5);
-                    log.info("FPTT write {} results to tables finiashed", srchTaskBean.getPROBEID());
+                    log.info("FPTT search finished. ProbeId={}", srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), 5, null);
                 } else {
                     exptMsg.append(FPTT_tablename).append(" Insert error").append(srchTaskBean.getTASKIDD());

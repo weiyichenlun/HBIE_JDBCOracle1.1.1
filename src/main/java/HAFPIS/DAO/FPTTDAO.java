@@ -47,12 +47,12 @@ public class FPTTDAO {
             paramUsed[i][idx++] = fpttRec.dbid;
             paramUsed[i][idx++] = fpttRec.candid;
             paramUsed[i][idx++] = fpttRec.candrank;
-            paramUsed[i][idx++] = (int) (fpttRec.score);
+            paramUsed[i][idx++] = (int) (fpttRec.score * 10000);
             for (int j = 0; j < 10; j++) {
-                paramUsed[i][idx++] = (int) (fpttRec.rpscores[j]);
+                paramUsed[i][idx++] = (int) (fpttRec.rpscores[j] * 10000);
             }
             for (int j = 0; j < 10; j++) {
-                paramUsed[i][idx++] = (int) (fpttRec.fpscores[j]);
+                paramUsed[i][idx++] = (int) (fpttRec.fpscores[j] * 10000);
             }
         }
         try {

@@ -58,7 +58,7 @@ public class IrisRecog extends Recog implements Runnable {
         if (tasktypes[0] == 1) {
             Integer finalIrisMatcherShards = irisMatcherShards;
             new Thread(() -> {
-                while (true) {
+            while (true) {
                     List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 7, 1, finalIrisMatcherShards);
                     if (list == null || list.size() == 0) {
                         CommonUtil.sleep(interval);
@@ -69,8 +69,8 @@ public class IrisRecog extends Recog implements Runnable {
                                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
                             } catch (InterruptedException e) {
                                 log.error("Putting into iris queue error. ", e);
-                            }
                         }
+                    }
                     }
                 }
             }, "facett_srchtaskbean_thread").start();
@@ -99,10 +99,10 @@ public class IrisRecog extends Recog implements Runnable {
                 } else {
                     IrisTT(srchDataRecList, srchTaskBean);
                 }
-            } else {
-                log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
-                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
-            }
+                } else {
+                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
+                }
         }
     }
 

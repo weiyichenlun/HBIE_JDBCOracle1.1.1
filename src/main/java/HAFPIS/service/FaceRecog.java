@@ -59,7 +59,7 @@ public class FaceRecog extends Recog implements Runnable {
         if (tasktypes[0] == 1) {
             Integer finalFaceMatcherShards = faceMatcherShards;
             new Thread(() -> {
-                while (true) {
+            while (true) {
                     List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 6, 1, finalFaceMatcherShards);
                     if (list == null || list.size() == 0) {
                         CommonUtil.sleep(interval);
@@ -70,8 +70,8 @@ public class FaceRecog extends Recog implements Runnable {
                                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
                             } catch (InterruptedException e) {
                                 log.error("Putting into face queue error.", e);
-                            }
                         }
+                    }
                     }
                 }
             }, "facett_srchtaskbean_thread").start();
@@ -100,10 +100,10 @@ public class FaceRecog extends Recog implements Runnable {
                 } else {
                     FaceTT(srchDataRecList, srchTaskBean);
                 }
-            } else {
-                log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
-                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
-            }
+                } else {
+                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
+                }
         }
     }
 

@@ -30,9 +30,7 @@ public class DBOP_LPP extends Recog implements Runnable {
     @Override
     public void run() {
         StringBuilder exptmsg = new StringBuilder();
-        log.info("Starting...Update status first...");
         dbopTaskDAO = new DbopTaskDAO(tablename);
-        dbopTaskDAO.updateStatus(4);
         if (CONSTANTS.DBOP_LPP == type) {
             datatype = 4;
         } else {

@@ -44,7 +44,7 @@ public class PPTLDAO {
             paramUsed[i][idx++] = pptlRec.candid;
             paramUsed[i][idx++] = pptlRec.candrank;
             paramUsed[i][idx++] = CONSTANTS.ppPos2Ora(pptlRec.position);
-            paramUsed[i][idx]   = (int) (pptlRec.score);
+            paramUsed[i][idx]   = (int) (pptlRec.score * 10000);
         }
         try {
             sum = qr.batch(ins_sql, paramUsed).length;

@@ -74,7 +74,7 @@ public class PalmRecog extends Recog implements Runnable{
         if (tasktypes[0] == 1) {
             Integer finalFourpalmMatcherShards = fourpalmMatcherShards;
             new Thread(() -> {
-                while (true) {
+            while (true) {
                     List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 2, 1, finalFourpalmMatcherShards);
                     if (list == null || list.size() == 0) {
                         CommonUtil.sleep(interval);
@@ -85,7 +85,7 @@ public class PalmRecog extends Recog implements Runnable{
                                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
                             } catch (InterruptedException e) {
                                 log.error("Putting into pptt queue error. ", e);
-                            }
+            }
                         }
                     }
                 }
@@ -97,7 +97,7 @@ public class PalmRecog extends Recog implements Runnable{
         if (tasktypes[1] == 3) {
             Integer finalFourpalmMatcherShards = fourpalmMatcherShards;
             new Thread(() -> {
-                while (true) {
+        while (true) {
                     List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 5, 3, finalFourpalmMatcherShards);
                     if (list == null || list.size() == 0) {
                         CommonUtil.sleep(interval);
@@ -138,10 +138,10 @@ public class PalmRecog extends Recog implements Runnable{
                 } else {
                     PPTT(srchDataRecList, srchTaskBean);
                 }
-            } else {
-                log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
-                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
-            }
+                } else {
+                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
+                }
         }
     }
 
@@ -187,6 +187,22 @@ public class PalmRecog extends Recog implements Runnable{
         }
         SrchDataRec srchDataRec = srchDataRecList.get(0);
         String srchPosMask = srchTaskBean.getSRCHPOSMASK();
+//        if (srchPosMask == null || srchPosMask.length() == 0) {
+//            srchPosMask_Palm = "1000110001";
+//        } else if (srchPosMask.length() > 0 && srchPosMask.length() <= 10) {
+//            char[] tempMask = "0000000000".toCharArray();
+//            for (int i = 0; i < 4; i++) {
+//                if (srchPosMask.charAt(CONSTANTS.srchOrder[i]) == '1') {
+//                    tempMask[CONSTANTS.srchOrder[i]] = '1';
+//                }
+//            }
+//            srchPosMask_Palm = String.valueOf(tempMask);
+//        } else {
+//            srchPosMask_Palm = srchPosMask.substring(0, 10);
+//            if (srchPosMask_Palm.equals("0000000000")) {
+//                srchPosMask_Palm = "1000110001";
+//            }
+//        }
         srchPosMask_Palm = CommonUtil.checkSrchPosMask(CONSTANTS.PPLT, srchPosMask);
         assert srchPosMask_Palm != null;
         boolean[] mask = new boolean[4];

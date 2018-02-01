@@ -74,7 +74,7 @@ public class LatFpRecog extends Recog implements Runnable{
         if (tasktypes[0] == 2) {
             Integer finalLatfpMatcherShards = latfpMatcherShards;
             new Thread(() -> {
-                while (true) {
+            while (true) {
                     List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 1, 2, finalLatfpMatcherShards);
                     if (list == null || list.size() == 0) {
                         CommonUtil.sleep(interval);
@@ -85,7 +85,7 @@ public class LatFpRecog extends Recog implements Runnable{
                                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
                             } catch (InterruptedException e) {
                                 log.error("Putting into fptl queue error. ", e);
-                            }
+            }
                         }
                     }
                 }
@@ -98,21 +98,21 @@ public class LatFpRecog extends Recog implements Runnable{
         if (tasktypes[1] == 4) {
             Integer finalLatfpMatcherShards1 = latfpMatcherShards;
             new Thread(() -> {
-                while (true) {
+        while (true) {
                     List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 4, 4, finalLatfpMatcherShards1);
                     if (list == null || list.size() == 0) {
                         CommonUtil.sleep(interval);
                     } else {
                         for (SrchTaskBean srchTaskBean : list) {
-                            try {
+                                try {
                                 fpllArrayQueue.put(srchTaskBean);
                                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
-                            } catch (InterruptedException e) {
+                                } catch (InterruptedException e) {
                                 log.error("Putting into fpll queue error. ", e);
-                            }
+                                }
+                                }
                         }
                     }
-                }
             }, "fpll_srchtaskbean_thread").start();
             for (int i = 0; i < latfpMatcherShards; i++) {
                 new Thread(this::FPLL, "FPLL_Thread_" + (i + 1)).start();
@@ -139,10 +139,10 @@ public class LatFpRecog extends Recog implements Runnable{
                 } else {
                     FPTL(srchDataRecList, srchTaskBean);
                 }
-            } else {
-                log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
-                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
-            }
+                } else {
+                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
+                }
         }
     }
 
