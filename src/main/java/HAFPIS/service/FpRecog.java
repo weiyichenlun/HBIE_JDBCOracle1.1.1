@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
+import java.sql.Blob;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -126,8 +127,8 @@ public class FpRecog extends Recog implements Runnable {
             SrchTaskBean srchTaskBean = null;
             try {
                 srchTaskBean = fpltArrayQueue.take();
-//                Blob srchdata = srchTaskBean.getSRCHDATA();
-                byte[] srchdata = srchTaskBean.getSRCHDATA();
+                Blob srchdata = srchTaskBean.getSRCHDATA();
+//                byte[] srchdata = srchTaskBean.getSRCHDATA();
                 int dataType = srchTaskBean.getDATATYPE();
                 if (srchdata != null) {
                     List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
@@ -147,12 +148,12 @@ public class FpRecog extends Recog implements Runnable {
     }
 
     private void FPTT() {
-            while (true) {
+        while (true) {
             SrchTaskBean srchTaskBean = null;
             try {
                 srchTaskBean = fpttArrayQueue.take();
-//                Blob srchdata = srchTaskBean.getSRCHDATA();
-                byte[] srchdata = srchTaskBean.getSRCHDATA();
+                Blob srchdata = srchTaskBean.getSRCHDATA();
+//                byte[] srchdata = srchTaskBean.getSRCHDATA();
                 int dataType = srchTaskBean.getDATATYPE();
                 if (srchdata != null) {
                     List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);

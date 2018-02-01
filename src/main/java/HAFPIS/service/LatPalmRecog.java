@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
+import java.sql.Blob;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -128,8 +129,8 @@ public class LatPalmRecog extends Recog implements Runnable {
                 log.error("take srchtaskbean from pptl Array queue error.", e);
                 continue;
             }
-//            Blob srchdata = srchTaskBean.getSRCHDATA();
-            byte[] srchdata = srchTaskBean.getSRCHDATA();
+            Blob srchdata = srchTaskBean.getSRCHDATA();
+//            byte[] srchdata = srchTaskBean.getSRCHDATA();
             int dataType = srchTaskBean.getDATATYPE();
             if (srchdata != null) {
                 List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
@@ -154,8 +155,8 @@ public class LatPalmRecog extends Recog implements Runnable {
                 log.error("take srchtaskbean from ppll Array queue error.", e);
                 continue;
             }
-//            Blob srchdata = srchTaskBean.getSRCHDATA();
-            byte[] srchdata = srchTaskBean.getSRCHDATA();
+            Blob srchdata = srchTaskBean.getSRCHDATA();
+//            byte[] srchdata = srchTaskBean.getSRCHDATA();
             int dataType = srchTaskBean.getDATATYPE();
             if (srchdata != null) {
                 List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
