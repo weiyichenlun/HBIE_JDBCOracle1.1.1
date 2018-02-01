@@ -12,12 +12,15 @@ import com.hisign.bie.hsfp.HSFPFourPalm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Blob;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -57,7 +60,8 @@ public class OneToF_PPTT extends Recog implements Runnable{
             for (int i = 0; i < list.size(); i++) {
                 srchTaskBean = list.get(i);
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
-                Blob srchdata = srchTaskBean.getSRCHDATA();
+//                Blob srchdata = srchTaskBean.getSRCHDATA();
+                byte[] srchdata = srchTaskBean.getSRCHDATA();
                 int dataType = srchTaskBean.getDATATYPE();
                 if (srchdata != null) {
                     List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
