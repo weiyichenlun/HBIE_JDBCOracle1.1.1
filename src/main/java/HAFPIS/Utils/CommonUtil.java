@@ -135,7 +135,6 @@ public class CommonUtil {
                                 temp.latfpmnt_auto = null;
                             }
                         }
-
                         break;
                     case 2:
                         for (int i = 0; i < 4; i++) {
@@ -628,7 +627,7 @@ public class CommonUtil {
         if (type == CONSTANTS.FPTL || type == CONSTANTS.FPLT) {
             if (srchPosMask == null || srchPosMask.length() == 0) {
                 srchPosMask = "11111111111111111111";
-            } else if (srchPosMask.length() > 0 && srchPosMask.length() < 20) {
+            } else if (srchPosMask.length() < 20) {
                 char[] tempMask = "00000000000000000000".toCharArray();
                 for (int i = 0; i < srchPosMask.length(); i++) {
                     if (srchPosMask.charAt(i) == '1') {
@@ -646,7 +645,7 @@ public class CommonUtil {
         } else if (type == CONSTANTS.PPLT || type == CONSTANTS.PPTL) {
             if (srchPosMask == null || srchPosMask.length() == 0) {
                 srchPosMask = "1000110001";
-            } else if (srchPosMask.length() > 0 && srchPosMask.length() <= 10) {
+            } else if (srchPosMask.length() <= 10) {
                 char[] tempMask = "0000000000".toCharArray();
                 for (int i = 0; i < 4; i++) {
                     if (srchPosMask.charAt(CONSTANTS.srchOrder[i]) == '1') {

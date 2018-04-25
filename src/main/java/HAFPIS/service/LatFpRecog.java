@@ -2,6 +2,7 @@ package HAFPIS.service;
 
 import HAFPIS.DAO.FPLLDAO;
 import HAFPIS.DAO.FPTLDAO;
+import HAFPIS.DAO.HeartBeatDAO;
 import HAFPIS.DAO.SrchTaskDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
@@ -9,6 +10,7 @@ import HAFPIS.Utils.ConfigUtil;
 import HAFPIS.Utils.HbieUtil;
 import HAFPIS.domain.FPLLRec;
 import HAFPIS.domain.FPTLRec;
+import HAFPIS.domain.HeartBeatBean;
 import HAFPIS.domain.SrchDataRec;
 import HAFPIS.domain.SrchTaskBean;
 import com.hisign.bie.MatcherException;
@@ -18,7 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
-import java.sql.Blob;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -39,6 +40,35 @@ public class LatFpRecog extends Recog implements Runnable{
 
     @Override
     public void run() {
+        String heartBeatTable = ConfigUtil.getConfig("heart_beat_table");
+        String instanceName = ConfigUtil.getConfig("instance_name");
+        if (heartBeatTable == null || instanceName == null) {
+            log.warn("No heartbeat config found. ");
+        } else {
+            CommonUtil.sleep("" + CONSTANTS.SLEEP_TIME);
+            heartBeatDAO = new HeartBeatDAO(heartBeatTable);
+            while (true) {
+                HeartBeatBean bean = heartBeatDAO.queryLatest();
+                if (bean == null) {
+                    try {
+                        Thread.sleep(3 * 1000);
+                        continue;
+                    } catch (InterruptedException e) {
+                    }
+                }
+                if (bean.getINSTANCENAME().equals(instanceName) && bean.getUPDATETIME() > 0) {
+                    log.info("Current active instance is {}, this instance is {}", bean.getINSTANCENAME(), instanceName);
+                    break;
+                } else if (!bean.getINSTANCENAME().equals(instanceName)) {
+                    log.debug("Current active instance: {}, but this instance is {}", bean.getINSTANCENAME(), instanceName);
+                    try {
+                        Thread.sleep(3 * 1000);
+                    } catch (InterruptedException e) {
+                        log.error("Error. ", e);
+                    }
+                }
+            }
+        }
         if (type == CONSTANTS.FPTL) {
             tasktypes[0] = 2;
             datatypes[0] = 1;
@@ -130,8 +160,8 @@ public class LatFpRecog extends Recog implements Runnable{
                 log.error("take srchtaskbean from fptl Array queue error.", e);
                 continue;
             }
-            Blob srchdata = srchTaskBean.getSRCHDATA();
-//            byte[] srchdata = srchTaskBean.getSRCHDATA();
+//            Blob srchdata = srchTaskBean.getSRCHDATA();
+            byte[] srchdata = srchTaskBean.getSRCHDATA();
             int dataType = srchTaskBean.getDATATYPE();
             if (srchdata != null) {
                 List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
@@ -156,8 +186,8 @@ public class LatFpRecog extends Recog implements Runnable{
                 log.error("take srchtaskbean from fpll Array queue error.", e);
                 continue;
             }
-            Blob srchdata = srchTaskBean.getSRCHDATA();
-//            byte[] srchdata = srchTaskBean.getSRCHDATA();
+//            Blob srchdata = srchTaskBean.getSRCHDATA();
+            byte[] srchdata = srchTaskBean.getSRCHDATA();
             int dataType = srchTaskBean.getDATATYPE();
             if (srchdata != null) {
                 List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);

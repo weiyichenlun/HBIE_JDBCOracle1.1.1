@@ -28,7 +28,7 @@ public class QueryRunnerUtil {
 
     private QueryRunnerUtil() {
         this.ds = new BasicDataSource();
-        log.info("begin to initialize queryrunner...");
+        log.debug("begin to initialize queryrunner...");
         String driver = ConfigUtil.getConfig("driver");
         String url = ConfigUtil.getConfig("url");
         String usr = ConfigUtil.getConfig("usr");
@@ -38,7 +38,7 @@ public class QueryRunnerUtil {
         ds.setUsername(usr);
         ds.setPassword(pwd);
         ds.setTestOnBorrow(true);
-        log.info("queryrunner initialize finish...");
+        log.debug("queryrunner initialize finish...");
     }
 
     public static QueryRunner getInstance() {

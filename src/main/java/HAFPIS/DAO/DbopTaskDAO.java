@@ -1,5 +1,6 @@
 package HAFPIS.DAO;
 
+import HAFPIS.Utils.ConfigUtil;
 import HAFPIS.Utils.DateUtil;
 import HAFPIS.Utils.QueryRunnerUtil;
 import HAFPIS.domain.DbopTaskBean;
@@ -28,11 +29,25 @@ public class DbopTaskDAO {
 
     public synchronized List<DbopTaskBean> get(String status, int datatype, String queryNum) {
         StringBuilder sb = new StringBuilder();
-        sb.append("select * from ").append(tablename);
-        sb.append(" where status=").append(status);
-        sb.append(" and datatype=").append(datatype);
-        sb.append(" and rownum<=").append(queryNum);
-        sb.append(" order by priority desc, begtime asc");
+
+        if (ConfigUtil.getConfig("database").toLowerCase().equals("sqlserver")) {
+            sb.append("select * from (select top ").append(queryNum).append(" * from ");
+            sb.append(tablename);
+            sb.append(" where status=").append(status).append(" and datatype=").append(datatype);
+            sb.append(" order by priority desc, endtime asc) res");
+        } else {
+            sb.append("select * from (select * from ");
+            sb.append(tablename);
+            sb.append(" where status=").append(status).append(" and datatype=").append(datatype);
+            sb.append(" order by priority desc, endtime asc)");
+            sb.append(" where rownum<=").append(queryNum);
+        }
+
+//        sb.append("select * from ").append(tablename);
+//        sb.append(" where status=").append(status);
+//        sb.append(" and datatype=").append(datatype);
+//        sb.append(" and rownum<=").append(queryNum);
+//        sb.append(" order by priority desc, begtime asc");
         List<DbopTaskBean> list = new ArrayList<>();
         try {
             list = qr.query(sb.toString(), new BeanListHandler<DbopTaskBean>(DbopTaskBean.class));

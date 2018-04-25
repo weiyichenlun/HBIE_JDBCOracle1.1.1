@@ -53,8 +53,8 @@ public class HAFPIS_MainTest {
     }
 
     @Test
-    public void test_insert_tenfp_srch() throws MatcherException, IOException, SQLException {
-//        insertSrchTask_tenfp("D:\\Resource\\data\\gallery\\R4403035000002011020288_1");
+    public void test_insert_tenfp_srch() throws MatcherException, IOException, SQLException, ExecutionException, InterruptedException {
+        insertSrchTask_tenfp("D:\\Resource\\data\\gallery\\R4403035000002011020288_1", "1");
     }
 
     @Test

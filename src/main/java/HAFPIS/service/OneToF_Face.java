@@ -1,18 +1,20 @@
 package HAFPIS.service;
 
 import HAFPIS.DAO.FaceTTDAO;
+import HAFPIS.DAO.HeartBeatDAO;
 import HAFPIS.DAO.SrchTaskDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
+import HAFPIS.Utils.ConfigUtil;
 import HAFPIS.Utils.HbieUtil;
 import HAFPIS.domain.FaceRec;
+import HAFPIS.domain.HeartBeatBean;
 import HAFPIS.domain.SrchDataRec;
 import HAFPIS.domain.SrchTaskBean;
 import com.hisign.bie.thid.THIDFace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Blob;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -38,6 +40,35 @@ public class OneToF_Face extends Recog implements Runnable {
 
     @Override
     public void run() {
+        String heartBeatTable = ConfigUtil.getConfig("heart_beat_table");
+        String instanceName = ConfigUtil.getConfig("instance_name");
+        if (heartBeatTable == null || instanceName == null) {
+            log.warn("No heartbeat config found. ");
+        } else {
+            CommonUtil.sleep("" + CONSTANTS.SLEEP_TIME);
+            heartBeatDAO = new HeartBeatDAO(heartBeatTable);
+            while (true) {
+                HeartBeatBean bean = heartBeatDAO.queryLatest();
+                if (bean == null) {
+                    try {
+                        Thread.sleep(3 * 1000);
+                        continue;
+                    } catch (InterruptedException e) {
+                    }
+                }
+                if (bean.getINSTANCENAME().equals(instanceName) && bean.getUPDATETIME() > 0) {
+                    log.info("Current active instance is {}, this instance is {}", bean.getINSTANCENAME(), instanceName);
+                    break;
+                } else if (!bean.getINSTANCENAME().equals(instanceName)) {
+                    log.debug("Current active instance: {}, but this instance is {}", bean.getINSTANCENAME(), instanceName);
+                    try {
+                        Thread.sleep(3 * 1000);
+                    } catch (InterruptedException e) {
+                        log.error("Error. ", e);
+                    }
+                }
+            }
+        }
         srchTaskDAO = new SrchTaskDAO(tablename);
         if (type == CONSTANTS.FACE1TOF) {
             tasktypes[0] = 8;
@@ -63,8 +94,8 @@ public class OneToF_Face extends Recog implements Runnable {
             for (int i = 0; i < list.size(); i++) {
                 srchTaskBean = list.get(i);
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
-                Blob srchdata = srchTaskBean.getSRCHDATA();
-//                byte[] srchdata = srchTaskBean.getSRCHDATA();
+//                Blob srchdata = srchTaskBean.getSRCHDATA();
+                byte[] srchdata = srchTaskBean.getSRCHDATA();
                 int dataType = srchTaskBean.getDATATYPE();
                 if (srchdata != null) {
                     List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);

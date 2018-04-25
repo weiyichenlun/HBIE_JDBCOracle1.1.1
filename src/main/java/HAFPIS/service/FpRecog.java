@@ -2,6 +2,7 @@ package HAFPIS.service;
 
 import HAFPIS.DAO.FPLTDAO;
 import HAFPIS.DAO.FPTTDAO;
+import HAFPIS.DAO.HeartBeatDAO;
 import HAFPIS.DAO.SrchTaskDAO;
 import HAFPIS.Utils.CONSTANTS;
 import HAFPIS.Utils.CommonUtil;
@@ -9,6 +10,7 @@ import HAFPIS.Utils.ConfigUtil;
 import HAFPIS.Utils.HbieUtil;
 import HAFPIS.domain.FPLTRec;
 import HAFPIS.domain.FPTTRec;
+import HAFPIS.domain.HeartBeatBean;
 import HAFPIS.domain.SrchDataRec;
 import HAFPIS.domain.SrchTaskBean;
 import com.hisign.bie.MatcherException;
@@ -18,7 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
-import java.sql.Blob;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -40,6 +41,35 @@ public class FpRecog extends Recog implements Runnable {
 
     @Override
     public void run() {
+        String heartBeatTable = ConfigUtil.getConfig("heart_beat_table");
+        String instanceName = ConfigUtil.getConfig("instance_name");
+        if (heartBeatTable == null || instanceName == null) {
+            log.warn("No heartbeat config found. ");
+        } else {
+            CommonUtil.sleep("" + CONSTANTS.SLEEP_TIME);
+            heartBeatDAO = new HeartBeatDAO(heartBeatTable);
+            while (true) {
+                HeartBeatBean bean = heartBeatDAO.queryLatest();
+                if (bean == null) {
+                    try {
+                        Thread.sleep(3 * 1000);
+                        continue;
+                    } catch (InterruptedException e) {
+                    }
+                }
+                if (bean.getINSTANCENAME().equals(instanceName) && bean.getUPDATETIME() > 0) {
+                    log.info("Current active instance is {}, this instance is {}", bean.getINSTANCENAME(), instanceName);
+                    break;
+                } else if (!bean.getINSTANCENAME().equals(instanceName)) {
+                    log.debug("Current active instance: {}, but this instance is {}", bean.getINSTANCENAME(), instanceName);
+                    try {
+                        Thread.sleep(3 * 1000);
+                    } catch (InterruptedException e) {
+                        log.error("Error. ", e);
+                    }
+                }
+            }
+        }
         if (type == CONSTANTS.FPTT) {
             tasktypes[0] = 1;
             datatypes[0] = 1;
@@ -127,8 +157,8 @@ public class FpRecog extends Recog implements Runnable {
             SrchTaskBean srchTaskBean = null;
             try {
                 srchTaskBean = fpltArrayQueue.take();
-                Blob srchdata = srchTaskBean.getSRCHDATA();
-//                byte[] srchdata = srchTaskBean.getSRCHDATA();
+//                Blob srchdata = srchTaskBean.getSRCHDATA();
+                byte[] srchdata = srchTaskBean.getSRCHDATA();
                 int dataType = srchTaskBean.getDATATYPE();
                 if (srchdata != null) {
                     List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
@@ -152,8 +182,8 @@ public class FpRecog extends Recog implements Runnable {
             SrchTaskBean srchTaskBean = null;
             try {
                 srchTaskBean = fpttArrayQueue.take();
-                Blob srchdata = srchTaskBean.getSRCHDATA();
-//                byte[] srchdata = srchTaskBean.getSRCHDATA();
+//                Blob srchdata = srchTaskBean.getSRCHDATA();
+                byte[] srchdata = srchTaskBean.getSRCHDATA();
                 int dataType = srchTaskBean.getDATATYPE();
                 if (srchdata != null) {
                     List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
@@ -248,11 +278,10 @@ public class FpRecog extends Recog implements Runnable {
                 tempCands = tempCands + 1;
             }
 
+            log.info(srchTaskBean.getSRCHDBSMASK());
             String dbFilter = CommonUtil.getDBsFilter(srchTaskBean.getSRCHDBSMASK());
             String solveOrDup = CommonUtil.getSolveOrDupFilter(CONSTANTS.DBOP_TPP, srchTaskBean.getSOLVEORDUP());
             String demoFilter = CommonUtil.getFilter(srchTaskBean.getDEMOFILTER());
-            log.info(srchTaskBean.getSRCHDBSMASK());
-
 
             SearchResults<HSFPTenFp.LatFpSearchParam.Result> results = null;
             List<FPLTRec> list = new ArrayList<>();
@@ -285,7 +314,6 @@ public class FpRecog extends Recog implements Runnable {
                             fpltRec.dbid = (int) cand.record.info.get("dbId");
                             fpltRec.position = cand.fp + 1;
                             fpltRec.score = cand.score;
-
                             if (j < tempCands) {
                                 list.add(fpltRec);
                             } else {
@@ -493,7 +521,8 @@ public class FpRecog extends Recog implements Runnable {
                 fpttRec.probeid = srchTaskBean.getPROBEID();
                 fpttRec.candid = cand.record.id;
                 fpttRec.dbid = (int) cand.record.info.get("dbId");
-                fpttRec.rpscores = normalScore(cand.fpscores);
+//                fpttRec.rpscores = normalScore(cand.fpscores);
+                fpttRec.rpscores = cand.fpscores;
                 fpttRec.score = cand.score;
                 list.add(fpttRec);
             }
@@ -513,7 +542,8 @@ public class FpRecog extends Recog implements Runnable {
                 fpttRec.probeid = srchTaskBean.getPROBEID();
                 fpttRec.candid = cand.record.id;
                 fpttRec.dbid = (int) cand.record.info.get("dbId");
-                fpttRec.fpscores = normalScore(cand.fpscores);
+//                fpttRec.fpscores = normalScore(cand.fpscores);
+                fpttRec.fpscores = cand.fpscores;
                 fpttRec.score = cand.score;
                 list.add(fpttRec);
             }

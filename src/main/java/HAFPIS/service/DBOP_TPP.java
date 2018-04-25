@@ -1,10 +1,14 @@
 package HAFPIS.service;
 
 import HAFPIS.DAO.DbopTaskDAO;
+import HAFPIS.DAO.HeartBeatDAO;
 import HAFPIS.DAO.TPPDAO;
 import HAFPIS.Utils.CONSTANTS;
+import HAFPIS.Utils.CommonUtil;
+import HAFPIS.Utils.ConfigUtil;
 import HAFPIS.Utils.HbieUtil;
 import HAFPIS.domain.DbopTaskBean;
+import HAFPIS.domain.HeartBeatBean;
 import com.hisign.bie.MatcherException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +36,35 @@ public class DBOP_TPP extends Recog implements Runnable {
 
     @Override
     public void run() {
+        String heartBeatTable = ConfigUtil.getConfig("heart_beat_table");
+        String instanceName = ConfigUtil.getConfig("instance_name");
+        if (heartBeatTable == null || instanceName == null) {
+            log.warn("No heartbeat config found. ");
+        } else {
+            CommonUtil.sleep("" + CONSTANTS.SLEEP_TIME);
+            heartBeatDAO = new HeartBeatDAO(heartBeatTable);
+            while (true) {
+                HeartBeatBean bean = heartBeatDAO.queryLatest();
+                if (bean == null) {
+                    try {
+                        Thread.sleep(3 * 1000);
+                        continue;
+                    } catch (InterruptedException e) {
+                    }
+                }
+                if (bean.getINSTANCENAME().equals(instanceName) && bean.getUPDATETIME() > 0) {
+                    log.info("Current active instance is {}, this instance is {}", bean.getINSTANCENAME(), instanceName);
+                    break;
+                } else if (!bean.getINSTANCENAME().equals(instanceName)) {
+                    log.debug("Current active instance: {}, but this instance is {}", bean.getINSTANCENAME(), instanceName);
+                    try {
+                        Thread.sleep(3 * 1000);
+                    } catch (InterruptedException e) {
+                        log.error("Error. ", e);
+                    }
+                }
+            }
+        }
         if (CONSTANTS.DBOP_TPP == type) {
             datatype = 3;
         } else {
@@ -96,50 +129,70 @@ public class DBOP_TPP extends Recog implements Runnable {
                                 case 5:
                                     pinfodao = new TPPDAO(tablename_pinfo);
                                     String imgmask = pinfodao.getImgMask(id);
-                                    if (imgmask == null) {
-                                        log.error("can not get imgmask for probeid: {}", id);
-                                        imgmask = "11111111111111111111111111111111111";
+                                    boolean oldVersion = imgmask.length() == 43;
+                                    String rfp = imgmask.substring(0, 10);
+                                    if (!"0000000000".equals(rfp) && HbieUtil.getInstance().hbie_FP != null)
+                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id, 1);
+                                    String ffp = imgmask.substring(10, 20);
+                                    if (!"0000000000".equals(ffp) && HbieUtil.getInstance().hbie_FP != null) {
+                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id + "$", 1);
                                     }
-                                    if (imgmask.length() >= 10) {
-                                        String rfp = imgmask.substring(0, 10);
-                                        if (!"0000000000".equals(rfp)) {
-                                            if (HbieUtil.getInstance().hbie_FP != null) {
-                                                HbieUtil.getInstance().hbie_FP.updateMatcher(id, 1);
-                                            }
-                                        }
+                                    String pm = imgmask.substring(20, 30);
+                                    if (!"0000000000".equals(pm) && HbieUtil.getInstance().hbie_PP != null) {
+                                        HbieUtil.getInstance().hbie_PP.updateMatcher(id, 1);
                                     }
-                                    if (imgmask.length() >= 20) {
-                                        String ffp = imgmask.substring(10, 20);
-                                        if (!"0000000000".equals(ffp)) {
-                                            if (HbieUtil.getInstance().hbie_FP != null) {
-                                                HbieUtil.getInstance().hbie_FP.updateMatcher(id + "$", 1);
-                                            }
-                                        }
+                                    String face = oldVersion ? imgmask.substring(30, 33) : imgmask.substring(40, 50);
+                                    if (face.charAt(0) == '1' && HbieUtil.getInstance().hbie_FACE != null) {
+                                        HbieUtil.getInstance().hbie_FACE.updateMatcher(id, 1);
                                     }
-                                    if (imgmask.length() >= 30) {
-                                        String pm = imgmask.substring(20, 30);
-                                        if (!"0000000000".equals(pm)) {
-                                            if (HbieUtil.getInstance().hbie_PP != null) {
-                                                HbieUtil.getInstance().hbie_PP.updateMatcher(id, 1);
-                                            }
-                                        }
+                                    String iris = oldVersion ? imgmask.substring(33, 35) : imgmask.substring(50, 55);
+                                    if (!"00".equals(iris.substring(0, 2)) && HbieUtil.getInstance().hbie_IRIS != null) {
+                                        HbieUtil.getInstance().hbie_IRIS.updateMatcher(id, 1);
                                     }
-                                    if (imgmask.length() >= 31) {
-                                        String face = imgmask.substring(30, 31);
-                                        if (face.charAt(0) == '1') {
-                                            if(HbieUtil.getInstance().hbie_FACE != null) {
-                                                HbieUtil.getInstance().hbie_FACE.updateMatcher(id, 1);
-                                            }
-                                        }
-                                    }
-                                    if (imgmask.length() >= 35) {
-                                        String iris = imgmask.substring(33, 35);
-                                        if (!"00".equals(iris)) {
-                                            if (HbieUtil.getInstance().hbie_IRIS != null) {
-                                                HbieUtil.getInstance().hbie_IRIS.updateMatcher(id, 1);
-                                            }
-                                        }
-                                    }
+//                                    if (imgmask == null) {
+//                                        log.error("can not get imgmask for probeid: {}", id);
+//                                        imgmask = "11111111111111111111111111111111111";
+//                                    }
+//                                    if (imgmask.length() >= 10) {
+//                                        String rfp = imgmask.substring(0, 10);
+//                                        if (!"0000000000".equals(rfp)) {
+//                                            if (HbieUtil.getInstance().hbie_FP != null) {
+//                                                HbieUtil.getInstance().hbie_FP.updateMatcher(id, 1);
+//                                            }
+//                                        }
+//                                    }
+//                                    if (imgmask.length() >= 20) {
+//                                        String ffp = imgmask.substring(10, 20);
+//                                        if (!"0000000000".equals(ffp)) {
+//                                            if (HbieUtil.getInstance().hbie_FP != null) {
+//                                                HbieUtil.getInstance().hbie_FP.updateMatcher(id + "$", 1);
+//                                            }
+//                                        }
+//                                    }
+//                                    if (imgmask.length() >= 30) {
+//                                        String pm = imgmask.substring(20, 30);
+//                                        if (!"0000000000".equals(pm)) {
+//                                            if (HbieUtil.getInstance().hbie_PP != null) {
+//                                                HbieUtil.getInstance().hbie_PP.updateMatcher(id, 1);
+//                                            }
+//                                        }
+//                                    }
+//                                    if (imgmask.length() >= 31) {
+//                                        String face = imgmask.substring(30, 31);
+//                                        if (face.charAt(0) == '1') {
+//                                            if(HbieUtil.getInstance().hbie_FACE != null) {
+//                                                HbieUtil.getInstance().hbie_FACE.updateMatcher(id, 1);
+//                                            }
+//                                        }
+//                                    }
+//                                    if (imgmask.length() >= 35) {
+//                                        String iris = imgmask.substring(33, 35);
+//                                        if (!"00".equals(iris)) {
+//                                            if (HbieUtil.getInstance().hbie_IRIS != null) {
+//                                                HbieUtil.getInstance().hbie_IRIS.updateMatcher(id, 1);
+//                                            }
+//                                        }
+//                                    }
                                     break;
                                 case 7:
                                     if (HbieUtil.getInstance().hbie_FP != null) {

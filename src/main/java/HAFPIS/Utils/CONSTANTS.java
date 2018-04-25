@@ -42,6 +42,8 @@ public class CONSTANTS {
     public static final int IrisFeatureSize = 2400;
     public static final int MAXCANDS = 100;
 
+    public static final int SLEEP_TIME = 10;
+
     public static int ppPos2Ora(int position) {
         int a = 0;
         switch (position) {

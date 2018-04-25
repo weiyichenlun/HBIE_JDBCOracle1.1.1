@@ -7,6 +7,7 @@ import HAFPIS.service.DBOP_PLP;
 import HAFPIS.service.DBOP_TPP;
 import HAFPIS.service.FaceRecog;
 import HAFPIS.service.FpRecog;
+import HAFPIS.service.HeartbeatService;
 import HAFPIS.service.IrisRecog;
 import HAFPIS.service.LatFpRecog;
 import HAFPIS.service.LatPalmRecog;
@@ -36,7 +37,6 @@ public class HAFPIS_Main {
         String type = null;
         String tablename = null;
         Properties prop = new Properties();
-
         if (args == null) {
             log.info("请输入一个配置文件名称(例如HSFP.properties):  ");
             System.exit(-1);
@@ -50,8 +50,15 @@ public class HAFPIS_Main {
             status = (String) prop.get("status");
             tablename = (String) prop.get("tablename");
             if (type == null) {
-                log.error("没有指定type类型，无法启动程序");
+                log.error("没有指定type类型，无法启动程序(No specified type config)");
                 System.exit(-1);
+            } else if (type.toLowerCase().equals("heartbeat")) {
+                HeartbeatService heartbeatService = new HeartbeatService();
+                heartbeatService.setHeartbeat_instance_name((String) prop.get("instance_name"));
+                heartbeatService.setHeartbeat_table((String) prop.get("heart_beat_table"));
+                heartbeatService.setHeartbeat_interval(Integer.parseInt((String) prop.get("heart_beat_interval")));
+                heartbeatService.setHeartbeat_retry(Integer.parseInt((String)prop.get("heart_beat_retry")));
+                new Thread(heartbeatService).start();
             } else {
                 String[] types = type.split("[,;\\s]+");
                 if (types.length == 2) {

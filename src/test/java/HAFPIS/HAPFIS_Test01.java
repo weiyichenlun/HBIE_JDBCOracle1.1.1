@@ -52,6 +52,10 @@ public class HAPFIS_Test01 {
     }
 
     @Test
+    public void test1() {
+    }
+
+    @Test
     public void test() throws UnsupportedEncodingException {
         String path = "D:\\Resource\\data\\palm\\图片";
         int tasktype = 3;
@@ -146,7 +150,7 @@ public class HAPFIS_Test01 {
                 case 6:
                     byte[] feature_face = getFeature_face(path);
                     if (feature_face != null) {
-                        srchDataRec.facemnt = feature_face;
+                        srchDataRec.facemnt[0] = feature_face;
                         srchDataRec.FaceMntLen[0] = feature_face.length;
                     }
                     break;
