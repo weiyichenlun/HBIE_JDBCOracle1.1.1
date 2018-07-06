@@ -20,6 +20,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
+import java.sql.Blob;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -106,17 +108,25 @@ public class PalmRecog extends Recog implements Runnable{
             Integer finalFourpalmMatcherShards = fourpalmMatcherShards;
             new Thread(() -> {
             while (true) {
-                    List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 2, 1, finalFourpalmMatcherShards);
-                    if (list == null || list.size() == 0) {
+                List<SrchTaskBean> list = null;
+                try {
+                    list = srchTaskDAO.getSrchTaskBean(3, 2, 1, finalFourpalmMatcherShards);
+                } catch (SQLException e) {
+                    log.error("pptt database error. ", e);
+                    CommonUtil.sleep("10");
+                    continue;
+                }
+                if (list == null || list.size() == 0) {
                         CommonUtil.sleep(interval);
                     } else {
                         for (SrchTaskBean srchTaskBean : list) {
                             try {
                                 ppttArrayQueue.put(srchTaskBean);
-                                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+                                //srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
                             } catch (InterruptedException e) {
                                 log.error("Putting into pptt queue error. ", e);
-            }
+                                CommonUtil.sleep("10");
+                            }
                         }
                     }
                 }
@@ -128,17 +138,25 @@ public class PalmRecog extends Recog implements Runnable{
         if (tasktypes[1] == 3) {
             Integer finalFourpalmMatcherShards = fourpalmMatcherShards;
             new Thread(() -> {
-        while (true) {
-                    List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 5, 3, finalFourpalmMatcherShards);
+                while (true) {
+                    List<SrchTaskBean> list = null;
+                    try {
+                        list = srchTaskDAO.getSrchTaskBean(3, 5, 3, finalFourpalmMatcherShards);
+                    } catch (SQLException e) {
+                        log.error("pplt database error. ", e);
+                        CommonUtil.sleep("10");
+                        continue;
+                    }
                     if (list == null || list.size() == 0) {
                         CommonUtil.sleep(interval);
                     } else {
                         for (SrchTaskBean srchTaskBean: list) {
                             try {
                                 ppltArrayQueue.put(srchTaskBean);
-                                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+                                //srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
                             } catch (InterruptedException e) {
-                                log.error("Putting into pplt queue error. ",e);
+                                log.error("Putting into pplt queue error. ", e);
+                                CommonUtil.sleep("10");
                             }
                         }
                     }
@@ -157,22 +175,24 @@ public class PalmRecog extends Recog implements Runnable{
                 srchTaskBean = ppttArrayQueue.take();
             } catch (InterruptedException e) {
                 log.error("take srchtaskbean from pptt Array queue error.", e);
+                CommonUtil.sleep("10");
                 continue;
             }
-//            Blob srchdata = srchTaskBean.getSRCHDATA();
-            byte[] srchdata = srchTaskBean.getSRCHDATA();
+            Blob srchdata = srchTaskBean.getSRCHDATA();
+//            byte[] srchdata = srchTaskBean.getSRCHDATA();
             int dataType = srchTaskBean.getDATATYPE();
             if (srchdata != null) {
                 List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
                 if (srchDataRecList == null || srchDataRecList.size() <= 0) {
                     log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "can not get srchdata");
                 } else {
                     PPTT(srchDataRecList, srchTaskBean);
                 }
-                } else {
-                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
-                }
+            } else {
+                log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
+            }
         }
     }
 
@@ -183,15 +203,17 @@ public class PalmRecog extends Recog implements Runnable{
                 srchTaskBean = ppltArrayQueue.take();
             } catch (InterruptedException e) {
                 log.error("take srchtaskbean from pplt Array queue error.", e);
+                CommonUtil.sleep("10");
                 continue;
             }
-//            Blob srchdata = srchTaskBean.getSRCHDATA();
-            byte[] srchdata = srchTaskBean.getSRCHDATA();
+            Blob srchdata = srchTaskBean.getSRCHDATA();
+//            byte[] srchdata = srchTaskBean.getSRCHDATA();
             int dataType = srchTaskBean.getDATATYPE();
             if (srchdata != null) {
                 List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
                 if (srchDataRecList == null || srchDataRecList.size() <= 0) {
                     log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "can not get srchdata");
                 } else {
                     PPLT(srchDataRecList, srchTaskBean);
                 }
@@ -380,10 +402,12 @@ public class PalmRecog extends Recog implements Runnable{
             exptMsg.append("RemoteExp error: ").append(var6);
             srchTaskBean.setEXPTMSG(exptMsg.toString());
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+            CommonUtil.sleep("10");
         } catch (MatcherException var7) {
             log.error("L2P Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+            CommonUtil.sleep("10");
         } catch (Exception e) {
             if (e instanceof IllegalArgumentException) {
                 log.error("L2P illegal parameters error. ", e);
@@ -391,6 +415,7 @@ public class PalmRecog extends Recog implements Runnable{
             } else {
                 log.error("L2P exception ", e);
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString()+e.toString());
+                CommonUtil.sleep("10");
             }
         }
     }
@@ -483,10 +508,12 @@ public class PalmRecog extends Recog implements Runnable{
             exptMsg.append("RemoteExp error: ").append(var6);
             srchTaskBean.setEXPTMSG(exptMsg.toString());
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+            CommonUtil.sleep("10");
         } catch (MatcherException var7) {
             log.error("P2P Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+            CommonUtil.sleep("10");
         } catch (Exception e) {
             if (e instanceof IllegalArgumentException) {
                 log.error("P2P illegal parameters error. ", e);
@@ -494,6 +521,7 @@ public class PalmRecog extends Recog implements Runnable{
             } else {
                 log.error("P2P exception ", e);
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString()+e.toString());
+                CommonUtil.sleep("10");
             }
         }
     }

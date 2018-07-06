@@ -9,6 +9,7 @@ import org.apache.commons.dbutils.handlers.BeanListHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,20 +28,26 @@ public class DbopTaskDAO {
     }
 
 
-    public synchronized List<DbopTaskBean> get(String status, int datatype, String queryNum) {
+    public synchronized List<DbopTaskBean> get(String status, int datatype, String queryNum) throws SQLException {
         StringBuilder sb = new StringBuilder();
 
         if (ConfigUtil.getConfig("database").toLowerCase().equals("sqlserver")) {
-            sb.append("select * from (select top ").append(queryNum).append(" * from ");
-            sb.append(tablename);
-            sb.append(" where status=").append(status).append(" and datatype=").append(datatype);
-            sb.append(" order by priority desc, endtime asc) res");
+//            sb.append("select * from (select top ").append(queryNum).append(" * from ");
+//            sb.append(tablename);
+//            sb.append(" where status=").append(status).append(" and datatype=").append(datatype);
+//            sb.append(" order by priority desc, endtime asc) res");
+
+            sb.append("select * from ").append(tablename).append(" where ROWID in (");
+            sb.append("select top ").append(queryNum).append("RID from (select ROWID RID from ").append(tablename)
+                    .append(" where status=").append(status).append(" and datatype=").append(datatype);
+            sb.append(" order by priority desc, endtime asc)) for update");
+
         } else {
-            sb.append("select * from (select * from ");
-            sb.append(tablename);
-            sb.append(" where status=").append(status).append(" and datatype=").append(datatype);
-            sb.append(" order by priority desc, endtime asc)");
-            sb.append(" where rownum<=").append(queryNum);
+            sb.append("select * from ").append(tablename).append(" where ROWID in (");
+            sb.append("select RID from ( select ROWID RID from ").append(tablename)
+                    .append(" where status=").append(status).append(" and datatype=").append(datatype)
+            .append(" order by priority desc, endtime asc)");
+            sb.append(" where ROWNUM <=").append(queryNum).append(") for update");
         }
 
 //        sb.append("select * from ").append(tablename);
@@ -50,9 +57,28 @@ public class DbopTaskDAO {
 //        sb.append(" order by priority desc, begtime asc");
         List<DbopTaskBean> list = new ArrayList<>();
         try {
-            list = qr.query(sb.toString(), new BeanListHandler<DbopTaskBean>(DbopTaskBean.class));
+            Connection conn = qr.getDataSource().getConnection();
+            try {
+                conn.setAutoCommit(false);
+                try {
+                    list = qr.query(conn, sb.toString(), new BeanListHandler<DbopTaskBean>(DbopTaskBean.class));
+                    for (DbopTaskBean task : list) {
+                        String sql = "update " + tablename + " set status=4 where taskidd=?";
+                        qr.update(conn, sql, task.getTaskIdd());
+                    }
+                    conn.commit();
+                } catch (SQLException e) {
+                    conn.rollback();
+                    throw e;
+                } finally {
+                    conn.setAutoCommit(true);
+                }
+            } finally {
+                conn.close();
+            }
         } catch (SQLException e) {
             log.error("get DBOPTask error. SQLException: {}, query_sql: {}", e, sb.toString());
+            throw e;
         }
         return list;
     }

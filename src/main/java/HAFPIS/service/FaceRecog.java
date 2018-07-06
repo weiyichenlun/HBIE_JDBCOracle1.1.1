@@ -18,6 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
+import java.sql.Blob;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -91,18 +93,26 @@ public class FaceRecog extends Recog implements Runnable {
             Integer finalFaceMatcherShards = faceMatcherShards;
             new Thread(() -> {
             while (true) {
-                    List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 6, 1, finalFaceMatcherShards);
-                    if (list == null || list.size() == 0) {
+                List<SrchTaskBean> list = null;
+                try {
+                    list = srchTaskDAO.getSrchTaskBean(3, 6, 1, finalFaceMatcherShards);
+                } catch (SQLException e) {
+                    log.error("database error. ", e);
+                    CommonUtil.sleep("10");
+                    continue;
+                }
+                if (list == null || list.size() == 0) {
                         CommonUtil.sleep(interval);
                     } else {
                         for (SrchTaskBean srchTaskBean : list) {
                             try {
                                 faceArrayQueue.put(srchTaskBean);
-                                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+//                                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
                             } catch (InterruptedException e) {
                                 log.error("Putting into face queue error.", e);
+                                CommonUtil.sleep("10");
+                            }
                         }
-                    }
                     }
                 }
             }, "facett_srchtaskbean_thread").start();
@@ -119,22 +129,24 @@ public class FaceRecog extends Recog implements Runnable {
                 srchTaskBean = faceArrayQueue.take();
             } catch (InterruptedException e) {
                 log.error("take srchtaskbean from face Array queue error.", e);
+                CommonUtil.sleep("10");
                 continue;
             }
-//            Blob srchdata = srchTaskBean.getSRCHDATA();
-            byte[] srchdata = srchTaskBean.getSRCHDATA();
+            Blob srchdata = srchTaskBean.getSRCHDATA();
+//            byte[] srchdata = srchTaskBean.getSRCHDATA();
             int dataType = srchTaskBean.getDATATYPE();
             if (srchdata != null) {
                 List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
                 if (srchDataRecList == null || srchDataRecList.size() <= 0) {
                     log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "can not get srchdata");
                 } else {
                     FaceTT(srchDataRecList, srchTaskBean);
                 }
-                } else {
-                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
-                }
+            } else {
+                log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
+            }
         }
     }
 
@@ -198,7 +210,7 @@ public class FaceRecog extends Recog implements Runnable {
                     log.info("FaceTT search: No results for ProbeId={}", srchTaskBean.getPROBEID());
                     srchTaskDAO.update(srchTaskBean.getTASKIDD(), 6, "no results");
                 }
-            }else {
+            } else {
                 list = CommonUtil.mergeResult(list);
                 if (list.size() > numOfCand) {
                     list = CommonUtil.getList(list, numOfCand);
@@ -223,10 +235,12 @@ public class FaceRecog extends Recog implements Runnable {
             exptMsg.append("RemoteExp error: ").append(var6);
             srchTaskBean.setEXPTMSG(exptMsg.toString());
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+            CommonUtil.sleep("10");
         } catch (MatcherException var7) {
             log.error("FaceTT Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+            CommonUtil.sleep("10");
         } catch (Exception e) {
             if (e instanceof IllegalArgumentException) {
                 log.error("FaceTT illegal parameters error. ", e);
@@ -235,6 +249,7 @@ public class FaceRecog extends Recog implements Runnable {
                 log.error("FaceTT exception ", e);
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString()+e.toString());
             }
+            CommonUtil.sleep("10");
         }
     }
 

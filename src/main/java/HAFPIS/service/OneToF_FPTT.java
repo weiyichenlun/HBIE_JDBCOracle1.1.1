@@ -15,6 +15,8 @@ import com.hisign.bie.hsfp.HSFPTenFp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Blob;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -86,19 +88,26 @@ public class OneToF_FPTT extends Recog implements Runnable {
         }));
         while (true) {
             List<SrchTaskBean> list = new ArrayList<>();
-            list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
+            try {
+                list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
+            } catch (SQLException e) {
+                log.error("1tof fptt error. ", e);
+                CommonUtil.sleep("10");
+                continue;
+            }
             CommonUtil.checkList(list, interval);
             SrchTaskBean srchTaskBean = null;
             for (int i = 0; i < list.size(); i++) {
                 srchTaskBean = list.get(i);
-                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
-//                Blob srchdata = srchTaskBean.getSRCHDATA();
-                byte[] srchdata = srchTaskBean.getSRCHDATA();
+//                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+                Blob srchdata = srchTaskBean.getSRCHDATA();
+//                byte[] srchdata = srchTaskBean.getSRCHDATA();
                 int dataType = srchTaskBean.getDATATYPE();
                 if (srchdata != null) {
                     List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
                     if (srchDataRecList == null || srchDataRecList.size() <= 0) {
                         log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+                        srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "can not get srchdata");
                     } else {
                         FPTT(srchDataRecList, srchTaskBean);
                     }
@@ -183,6 +192,7 @@ public class OneToF_FPTT extends Recog implements Runnable {
                             temp = f.get();
                         } catch (InterruptedException | ExecutionException e) {
                             log.info("get 1ToF score map error, probeid={} ", new String(gallery.probeId), e);
+                            continue;
                         }
                         if (temp > tempScore) {
                             tempScore = temp;

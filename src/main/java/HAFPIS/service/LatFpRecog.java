@@ -20,6 +20,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
+import java.sql.Blob;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -106,17 +108,25 @@ public class LatFpRecog extends Recog implements Runnable{
             Integer finalLatfpMatcherShards = latfpMatcherShards;
             new Thread(() -> {
             while (true) {
-                    List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 1, 2, finalLatfpMatcherShards);
-                    if (list == null || list.size() == 0) {
+                List<SrchTaskBean> list = null;
+                try {
+                    list = srchTaskDAO.getSrchTaskBean(3, 1, 2, finalLatfpMatcherShards);
+                } catch (SQLException e) {
+                    log.error("fptl database error.", e);
+                    CommonUtil.sleep("10");
+                    continue;
+                }
+                if (list == null || list.size() == 0) {
                         CommonUtil.sleep(interval);
                     } else {
                         for (SrchTaskBean srchTaskBean : list) {
                             try {
                                 fptlArrayQueue.put(srchTaskBean);
-                                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+                                //srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
                             } catch (InterruptedException e) {
                                 log.error("Putting into fptl queue error. ", e);
-            }
+                                CommonUtil.sleep("10");
+                            }
                         }
                     }
                 }
@@ -129,21 +139,29 @@ public class LatFpRecog extends Recog implements Runnable{
         if (tasktypes[1] == 4) {
             Integer finalLatfpMatcherShards1 = latfpMatcherShards;
             new Thread(() -> {
-        while (true) {
-                    List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 4, 4, finalLatfpMatcherShards1);
+                while (true) {
+                    List<SrchTaskBean> list = null;
+                    try {
+                        list = srchTaskDAO.getSrchTaskBean(3, 4, 4, finalLatfpMatcherShards1);
+                    } catch (SQLException e) {
+                        log.error("fpll database error. ", e);
+                        CommonUtil.sleep("10");
+                        continue;
+                    }
                     if (list == null || list.size() == 0) {
                         CommonUtil.sleep(interval);
                     } else {
                         for (SrchTaskBean srchTaskBean : list) {
-                                try {
-                                fpllArrayQueue.put(srchTaskBean);
-                                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
-                                } catch (InterruptedException e) {
+                            try {
+                            fpllArrayQueue.put(srchTaskBean);
+                            //srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+                            } catch (InterruptedException e) {
                                 log.error("Putting into fpll queue error. ", e);
-                                }
-                                }
+                                CommonUtil.sleep("10");
+                            }
                         }
                     }
+                }
             }, "fpll_srchtaskbean_thread").start();
             for (int i = 0; i < latfpMatcherShards; i++) {
                 new Thread(this::FPLL, "FPLL_Thread_" + (i + 1)).start();
@@ -158,22 +176,24 @@ public class LatFpRecog extends Recog implements Runnable{
                 srchTaskBean = fptlArrayQueue.take();
             } catch (InterruptedException e) {
                 log.error("take srchtaskbean from fptl Array queue error.", e);
+                CommonUtil.sleep("10");
                 continue;
             }
-//            Blob srchdata = srchTaskBean.getSRCHDATA();
-            byte[] srchdata = srchTaskBean.getSRCHDATA();
+            Blob srchdata = srchTaskBean.getSRCHDATA();
+//            byte[] srchdata = srchTaskBean.getSRCHDATA();
             int dataType = srchTaskBean.getDATATYPE();
             if (srchdata != null) {
                 List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
                 if (srchDataRecList == null || srchDataRecList.size() <= 0) {
                     log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "can not get srchdata");
                 } else {
                     FPTL(srchDataRecList, srchTaskBean);
                 }
-                } else {
-                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
-                }
+            } else {
+                log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
+            }
         }
     }
 
@@ -184,15 +204,17 @@ public class LatFpRecog extends Recog implements Runnable{
                 srchTaskBean = fpllArrayQueue.take();
             } catch (InterruptedException e) {
                 log.error("take srchtaskbean from fpll Array queue error.", e);
+                CommonUtil.sleep("10");
                 continue;
             }
-//            Blob srchdata = srchTaskBean.getSRCHDATA();
-            byte[] srchdata = srchTaskBean.getSRCHDATA();
+            Blob srchdata = srchTaskBean.getSRCHDATA();
+//            byte[] srchdata = srchTaskBean.getSRCHDATA();
             int dataType = srchTaskBean.getDATATYPE();
             if (srchdata != null) {
                 List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
                 if (srchDataRecList == null || srchDataRecList.size() <= 0) {
                     log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "can not get srchdata");
                 } else {
                     FPLL(srchDataRecList, srchTaskBean);
                 }
@@ -416,11 +438,13 @@ public class LatFpRecog extends Recog implements Runnable{
             exptMsg.append("RemoteExp error: ").append(var6);
             srchTaskBean.setEXPTMSG(exptMsg.toString());
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+            CommonUtil.sleep("10");
         } catch (MatcherException var7) {
             log.error("FPTL Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
 //            log.info("try to restart Matcher...");
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+            CommonUtil.sleep("10");
         } catch (Exception e) {
             if (e instanceof IllegalArgumentException) {
                 log.error("FPTL illegal parameters error. ", e);
@@ -428,6 +452,7 @@ public class LatFpRecog extends Recog implements Runnable{
             } else {
                 log.error("FPTL exception ", e);
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString() + e.toString());
+                CommonUtil.sleep("10");
             }
         }
     }
@@ -529,12 +554,14 @@ public class LatFpRecog extends Recog implements Runnable{
             exptMsg.append("RemoteExp error: ").append(var6);
             srchTaskBean.setEXPTMSG(exptMsg.toString());
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+            CommonUtil.sleep("10");
         } catch (MatcherException var7) {
             log.error("FPLL Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
             log.info("try to restart Matcher...");
 //            startTenFpMatcher();
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+            CommonUtil.sleep("10");
         } catch (Exception e) {
             if (e instanceof IllegalArgumentException) {
                 log.error("FPLL illegal parameters error. ", e);
@@ -542,6 +569,7 @@ public class LatFpRecog extends Recog implements Runnable{
             } else {
                 log.error("FPLL exception ", e);
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString()+e.toString());
+                CommonUtil.sleep("10");
             }
         }
     }

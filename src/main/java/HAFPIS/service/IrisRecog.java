@@ -18,6 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
+import java.sql.Blob;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -92,18 +94,26 @@ public class IrisRecog extends Recog implements Runnable {
             Integer finalIrisMatcherShards = irisMatcherShards;
             new Thread(() -> {
             while (true) {
-                    List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 7, 1, finalIrisMatcherShards);
-                    if (list == null || list.size() == 0) {
+                List<SrchTaskBean> list = null;
+                try {
+                    list = srchTaskDAO.getSrchTaskBean(3, 7, 1, finalIrisMatcherShards);
+                } catch (SQLException e) {
+                    log.error("facett database error.", e);
+                    CommonUtil.sleep("10");
+                    continue;
+                }
+                if (list == null || list.size() == 0) {
                         CommonUtil.sleep(interval);
                     } else {
                         for (SrchTaskBean srchTaskBean : list) {
                             try {
                                 irisArrayQueue.put(srchTaskBean);
-                                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+                                //srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
                             } catch (InterruptedException e) {
                                 log.error("Putting into iris queue error. ", e);
+                                CommonUtil.sleep("10");
+                            }
                         }
-                    }
                     }
                 }
             }, "facett_srchtaskbean_thread").start();
@@ -120,15 +130,17 @@ public class IrisRecog extends Recog implements Runnable {
                 srchTaskBean = irisArrayQueue.take();
             } catch (InterruptedException e) {
                 log.error("take srchtaskbean from iris Array queue error.", e);
+                CommonUtil.sleep("10");
                 continue;
             }
-//            Blob srchdata = srchTaskBean.getSRCHDATA();
-            byte[] srchdata = srchTaskBean.getSRCHDATA();
+            Blob srchdata = srchTaskBean.getSRCHDATA();
+//            byte[] srchdata = srchTaskBean.getSRCHDATA();
             int dataType = srchTaskBean.getDATATYPE();
             if (srchdata != null) {
                 List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
                 if (srchDataRecList == null || srchDataRecList.size() <= 0) {
                     log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "can not get srchdata");
                 } else {
                     IrisTT(srchDataRecList, srchTaskBean);
                 }
@@ -222,10 +234,12 @@ public class IrisRecog extends Recog implements Runnable {
             exptMsg.append("RemoteExp error: ").append(var6);
             srchTaskBean.setEXPTMSG(exptMsg.toString());
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+            CommonUtil.sleep("10");
         } catch (MatcherException var7) {
             log.error("IrisTT Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+            CommonUtil.sleep("10");
         } catch (Exception e) {
             if (e instanceof IllegalArgumentException) {
                 log.error("IrisTT illegal parameters error. ", e);
@@ -233,6 +247,7 @@ public class IrisRecog extends Recog implements Runnable {
             } else {
                 log.error("IrisTT exception ", e);
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString()+e.toString());
+                CommonUtil.sleep("10");
             }
         }
     }

@@ -1,6 +1,8 @@
 package HAFPIS.domain;
 
 import java.io.Serializable;
+import java.sql.Blob;
+import java.sql.Clob;
 
 /**
  * 描述：数据库HAFPIS_SRCH_TASK表对应的Bean
@@ -48,10 +50,10 @@ public class SrchTaskBean implements Serializable, Comparable<SrchTaskBean>{
     private int PMRECTY010;
     private int PMRECTW010;
     private int PMRECTH010;
-//    private Clob DEMOFILTER;
-    private byte[] DEMOFILTER;
-//    private Blob SRCHDATA;
-    private byte[] SRCHDATA;
+    private Clob DEMOFILTER;
+//    private byte[] DEMOFILTER;
+    private Blob SRCHDATA;
+//    private byte[] SRCHDATA;
     private String BEGTIME;
     private String ENDTIME;
     private String EXPTMSG;
@@ -361,38 +363,38 @@ public class SrchTaskBean implements Serializable, Comparable<SrchTaskBean>{
         this.PMRECTH010 = PMRECTH010;
     }
 
-//    public Clob getDEMOFILTER() {
-//        return DEMOFILTER;
-//    }
-//
-//    public void setDEMOFILTER(Clob DEMOFILTER) {
-//        this.DEMOFILTER = DEMOFILTER;
-//    }
-//
-//    public Blob getSRCHDATA() {
-//        return SRCHDATA;
-//    }
-//
-//    public void setSRCHDATA(Blob SRCHDATA) {
-//        this.SRCHDATA = SRCHDATA;
-//    }
-//
-
-    public byte[] getDEMOFILTER() {
+    public Clob getDEMOFILTER() {
         return DEMOFILTER;
     }
 
-    public void setDEMOFILTER(byte[] DEMOFILTER) {
+    public void setDEMOFILTER(Clob DEMOFILTER) {
         this.DEMOFILTER = DEMOFILTER;
     }
 
-    public byte[] getSRCHDATA() {
+    public Blob getSRCHDATA() {
         return SRCHDATA;
     }
 
-    public void setSRCHDATA(byte[] SRCHDATA) {
+    public void setSRCHDATA(Blob SRCHDATA) {
         this.SRCHDATA = SRCHDATA;
     }
+
+
+//    public byte[] getDEMOFILTER() {
+//        return DEMOFILTER;
+//    }
+//
+//    public void setDEMOFILTER(byte[] DEMOFILTER) {
+//        this.DEMOFILTER = DEMOFILTER;
+//    }
+//
+//    public byte[] getSRCHDATA() {
+//        return SRCHDATA;
+//    }
+//
+//    public void setSRCHDATA(byte[] SRCHDATA) {
+//        this.SRCHDATA = SRCHDATA;
+//    }
 
     public String getBEGTIME() {
         return BEGTIME;

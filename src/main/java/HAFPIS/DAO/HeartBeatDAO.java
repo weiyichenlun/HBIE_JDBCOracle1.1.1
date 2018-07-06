@@ -35,7 +35,7 @@ public class HeartBeatDAO {
     public HeartBeatBean queryLatest() {
         String sql = null;
         if (ConfigUtil.getConfig("database").toLowerCase().equals("sqlserver")) {
-            sql = "select * from (select top 1 * from " + this.tableName + " order by updatetime desc)";
+            sql = "select * from (select top 1 * from " + this.tableName + " order by updatetime desc) res";
         } else {
             sql = "select * from (select * from " + this.tableName + " order by updatetime desc) where rownum <= 1";
         }
@@ -64,7 +64,7 @@ public class HeartBeatDAO {
     public List<HeartBeatBean> querySome(int num) {
         String sql = null;
         if (ConfigUtil.getConfig("database").toLowerCase().equals("sqlserver")) {
-            sql = "select * from (select top " + num + " * from " + this.tableName + " order by updatetime desc, rankno=1)";
+            sql = "select * from (select top " + num + " * from " + this.tableName + " order by updatetime desc, rankno=1) res";
         } else {
             sql = "select * from (select * from " + this.tableName + " order by updatetime desc, rankno=1 ) where rownum <= " + num;
         }

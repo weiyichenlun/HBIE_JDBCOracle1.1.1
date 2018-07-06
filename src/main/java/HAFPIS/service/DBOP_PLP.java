@@ -13,8 +13,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -83,7 +85,13 @@ public class DBOP_PLP extends Recog implements Runnable {
         }));
         while (true) {
             List<DbopTaskBean> list = new ArrayList<>();
-            list = dbopTaskDAO.get(status, datatype, queryNum);
+            try {
+                list = dbopTaskDAO.get(status, datatype, queryNum);
+            } catch (SQLException e) {
+                log.error("database error ", e);
+                CommonUtil.sleep("10");
+                continue;
+            }
             if (null == list || list.size() == 0) {
                 int timeSleep = 1;
                 try {
@@ -107,57 +115,59 @@ public class DBOP_PLP extends Recog implements Runnable {
 //                DbopTaskBean dbopTaskBean = null;
                 List<Future<String>> listF = new ArrayList<>();
                 for (final DbopTaskBean dbopTaskBean : list) {
-                    dbopTaskBean.setStatus(4);
-                    dbopTaskDAO.update(dbopTaskBean.getTaskIdd(), 4, null);
-                    Future<String> f = executorService.submit(() -> {
-                        try {
-                            int tasktype = dbopTaskBean.getTaskType();
-                            String id = dbopTaskBean.getProbeId();
-                            switch (tasktype) {
-                                case 6:
-                                    if (HbieUtil.getInstance().hbie_PLP != null) {
-                                        HbieUtil.getInstance().hbie_PLP.updateMatcher(id, -1);
-                                    }
-                                    break;
-                                case 5:
-                                    if (HbieUtil.getInstance().hbie_PLP != null) {
-                                        HbieUtil.getInstance().hbie_PLP.updateMatcher(id, 1);
-                                    }
-                                    break;
-                                case 7:
-                                    if (HbieUtil.getInstance().hbie_PLP != null) {
-                                        HbieUtil.getInstance().hbie_PLP.updateMatcher(id, -1);
-                                        HbieUtil.getInstance().hbie_PLP.updateMatcher(id, 1);
-                                    }
-                                    break;
-                                default:
-                                    log.error("tasktype error {}.", tasktype);
-                                    break;
+//                    dbopTaskBean.setStatus(4);
+//                    dbopTaskDAO.update(dbopTaskBean.getTaskIdd(), 4, null);
+                    Future<String> f = executorService.submit(new Callable<String>() {
+                        @Override
+                        public String call() throws Exception {
+                            try {
+                                int tasktype = dbopTaskBean.getTaskType();
+                                String id = dbopTaskBean.getProbeId();
+                                switch (tasktype) {
+                                    case 6:
+                                        if (HbieUtil.getInstance().hbie_PLP != null) {
+                                            HbieUtil.getInstance().hbie_PLP.updateMatcher(id, -1);
+                                        }
+                                        break;
+                                    case 5:
+                                        if (HbieUtil.getInstance().hbie_PLP != null) {
+                                            HbieUtil.getInstance().hbie_PLP.updateMatcher(id, 1);
+                                        }
+                                        break;
+                                    case 7:
+                                        if (HbieUtil.getInstance().hbie_PLP != null) {
+                                            HbieUtil.getInstance().hbie_PLP.updateMatcher(id, -1);
+                                            HbieUtil.getInstance().hbie_PLP.updateMatcher(id, 1);
+                                        }
+                                        break;
+                                    default:
+                                        log.error("tasktype error {}.", tasktype);
+                                        break;
+                                }
+                            } catch (RemoteException | MatcherException e) {
+                                log.warn("matcher error: ", e);
+                                dbopTaskDAO.update(dbopTaskBean.getTaskIdd(), 3, "matcher error " + e);
                             }
-                        } catch (RemoteException | MatcherException e) {
-                            log.warn("matcher error: ", e);
-                            dbopTaskDAO.update(dbopTaskBean.getTaskIdd(), 3, "matcher error " + e);
+                            return dbopTaskBean.getTaskIdd();
                         }
-                    }, dbopTaskBean.getTaskIdd());
+                    });
                     listF.add(f);
                 }
                 String taskid = null;
                 for (Future<String> temp : listF) {
-                    while (true) {
-                        try {
-                            taskid = temp.get();
-                        } catch (InterruptedException | ExecutionException e) {
-                            log.error("get future result error. ", e);
-                        }
-                        if (taskid != null) {
-                            boolean is = dbopTaskDAO.update(taskid, 5, null);
-                            if (is) {
-                                log.info("DbopTask taskid-{} finish.", taskid);
-                            } else {
-                                log.info("DbopTask taskid-{} update error.", taskid);
-                                dbopTaskDAO.update(taskid, -1, "update "+taskid+" error");
-                            }
-                            break;
+                    try {
+                        taskid = temp.get();
+                    } catch (InterruptedException | ExecutionException e) {
+                        log.error("get future result error. ", e);
+                        continue;
+                    }
+                    if (taskid != null) {
+                        boolean is = dbopTaskDAO.update(taskid, 5, null);
+                        if (is) {
+                            log.info("DbopTask taskid-{} finish.", taskid);
+                        } else {
+                            log.info("DbopTask taskid-{} update error.", taskid);
+                            dbopTaskDAO.update(taskid, -1, "update "+taskid+" error");
                         }
                     }
                 }

@@ -20,6 +20,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
+import java.sql.Blob;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -106,17 +108,25 @@ public class LatPalmRecog extends Recog implements Runnable {
             Integer finalLatpalmMatcherShards = latpalmMatcherShards;
             new Thread(() -> {
             while (true) {
-                    List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 2, 2, finalLatpalmMatcherShards);
-                    if (list == null || list.size() == 0) {
+                List<SrchTaskBean> list = null;
+                try {
+                    list = srchTaskDAO.getSrchTaskBean(3, 2, 2, finalLatpalmMatcherShards);
+                } catch (SQLException e) {
+                    log.error("pptl database error. ", e);
+                    CommonUtil.sleep("10");
+                    continue;
+                }
+                if (list == null || list.size() == 0) {
                         CommonUtil.sleep(interval);
                     } else {
                         for (SrchTaskBean srchTaskBean : list) {
                             try {
                                 pptlArrayQueue.put(srchTaskBean);
-                                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+                                //srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
                             } catch (InterruptedException e) {
                                 log.error("Putting into pptl queue error.", e);
-            }
+                                CommonUtil.sleep("10");
+                            }
                         }
                     }
                 }
@@ -128,17 +138,25 @@ public class LatPalmRecog extends Recog implements Runnable {
         if (tasktypes[1] == 4) {
             Integer finalLatfpMatcherShards = latpalmMatcherShards;
             new Thread(() -> {
-        while (true) {
-                    List<SrchTaskBean> list = srchTaskDAO.getSrchTaskBean(3, 5, 4, finalLatfpMatcherShards);
+                while (true) {
+                    List<SrchTaskBean> list = null;
+                    try {
+                        list = srchTaskDAO.getSrchTaskBean(3, 5, 4, finalLatfpMatcherShards);
+                    } catch (SQLException e) {
+                        log.error("ppll database error", e);
+                        CommonUtil.sleep("10");
+                        continue;
+                    }
                     if (list == null || list.size() == 0) {
                         CommonUtil.sleep(interval);
                     } else {
                         for (SrchTaskBean srchTaskBean: list) {
                             try {
                                 ppllArrayQueue.put(srchTaskBean);
-                                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+                                //srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
                             } catch (InterruptedException e) {
                                 log.error("Putting into ppll queue error. ", e);
+                                CommonUtil.sleep("10");
                             }
                         }
                     }
@@ -157,22 +175,24 @@ public class LatPalmRecog extends Recog implements Runnable {
                 srchTaskBean = pptlArrayQueue.take();
             } catch (InterruptedException e) {
                 log.error("take srchtaskbean from pptl Array queue error.", e);
+                CommonUtil.sleep("10");
                 continue;
             }
-//            Blob srchdata = srchTaskBean.getSRCHDATA();
-            byte[] srchdata = srchTaskBean.getSRCHDATA();
+            Blob srchdata = srchTaskBean.getSRCHDATA();
+//            byte[] srchdata = srchTaskBean.getSRCHDATA();
             int dataType = srchTaskBean.getDATATYPE();
             if (srchdata != null) {
                 List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
                 if (srchDataRecList == null || srchDataRecList.size() <= 0) {
                     log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "can not get srchdata");
                 } else {
                     PPTL(srchDataRecList, srchTaskBean);
                 }
-                } else {
-                    log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
-                }
+            } else {
+                log.warn("srchdata is null for probeId={}", srchTaskBean.getPROBEID());
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "srchdata is null");
+            }
         }
     }
 
@@ -183,15 +203,17 @@ public class LatPalmRecog extends Recog implements Runnable {
                 srchTaskBean = ppllArrayQueue.take();
             } catch (InterruptedException e) {
                 log.error("take srchtaskbean from ppll Array queue error.", e);
+                CommonUtil.sleep("10");
                 continue;
             }
-//            Blob srchdata = srchTaskBean.getSRCHDATA();
-            byte[] srchdata = srchTaskBean.getSRCHDATA();
+            Blob srchdata = srchTaskBean.getSRCHDATA();
+//            byte[] srchdata = srchTaskBean.getSRCHDATA();
             int dataType = srchTaskBean.getDATATYPE();
             if (srchdata != null) {
                 List<SrchDataRec> srchDataRecList = CommonUtil.srchdata2Rec(srchdata, dataType);
                 if (srchDataRecList == null || srchDataRecList.size() <= 0) {
                     log.error("can not get srchdatarec from srchdata for probeid={}", srchTaskBean.getPROBEID());
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, "can not get srchdata");
                 } else {
                     PPLL(srchDataRecList, srchTaskBean);
                 }
@@ -293,10 +315,12 @@ public class LatPalmRecog extends Recog implements Runnable {
             exptMsg.append("RemoteExp error: ").append(var6);
             srchTaskBean.setEXPTMSG(exptMsg.toString());
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+            CommonUtil.sleep("10");
         } catch (MatcherException var7) {
             log.error("L2L Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+            CommonUtil.sleep("10");
         } catch (Exception e) {
             if (e instanceof IllegalArgumentException) {
                 log.error("L2L illegal parameters error. ", e);
@@ -304,6 +328,7 @@ public class LatPalmRecog extends Recog implements Runnable {
             } else {
                 log.error("L2L exception ", e);
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString()+e.toString());
+                CommonUtil.sleep("10");
             }
         }
     }
@@ -470,11 +495,13 @@ public class LatPalmRecog extends Recog implements Runnable {
             exptMsg.append("RemoteExp error: ").append(var6);
             srchTaskBean.setEXPTMSG(exptMsg.toString());
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+            CommonUtil.sleep("10");
         } catch (MatcherException var7) {
             log.error("P2L Matcher error: ", var7);
             exptMsg.append("RemoteExp error: ").append(var7);
 //            log.info("try to restart Matcher...");
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
+            CommonUtil.sleep("10");
         } catch (Exception e) {
             if (e instanceof IllegalArgumentException) {
                 log.error("P2L illegal parameters error. ", e);
@@ -482,6 +509,7 @@ public class LatPalmRecog extends Recog implements Runnable {
             } else {
                 log.error("P2L exception ", e);
                 srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString()+e.toString());
+                CommonUtil.sleep("10");
             }
         }
     }

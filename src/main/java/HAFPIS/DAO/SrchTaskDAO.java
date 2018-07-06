@@ -9,6 +9,7 @@ import org.apache.commons.dbutils.handlers.BeanListHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,44 +27,67 @@ public class SrchTaskDAO {
         this.tablename = tablename;
     }
 
-    public List<SrchTaskBean> getSrchTaskBean(int status, int datatype, int tasktype, int queryNum) {
-        List<SrchTaskBean> srchTaskBeans = null;
+    public List<SrchTaskBean> getSrchTaskBean(int status, int datatype, int tasktype, int queryNum) throws SQLException {
+        List<SrchTaskBean> srchTaskBeans = new ArrayList<>();
         StringBuilder sb = new StringBuilder();
+        String sql = null;
         if (ConfigUtil.getConfig("database").toLowerCase().equals("sqlserver")) {
-            sb.append("select * from (select top ").append(queryNum).append(" * from ");
-            sb.append(tablename);
-            sb.append(" where status=").append(status).append(" and datatype=").append(datatype).append(" and tasktype=").append(tasktype);
-            sb.append(" order by priority desc, endtime asc) res");
+//            sb.append("select * from (select top ").append(queryNum).append(" * from ");
+//            sb.append(tablename);
+//            sb.append(" where status=").append(status).append(" and datatype=").append(datatype).append(" and tasktype=").append(tasktype);
+//            sb.append(" order by priority desc, endtime asc) res");
+
+            String format = "select * from %s where ROWID in (select top %d RID from (select ROWID RID from %s where " +
+                    "status=%d and datatype=%d and tasktype=%d order by priority desc, endtime asc)) for update";
+            sql = String.format(format, tablename, queryNum, tablename, status, datatype, tasktype);
+
         } else {
-            sb.append("select * from (select * from ");
-            sb.append(tablename);
-            sb.append(" where status=").append(status).append(" and datatype=").append(datatype).append(" and tasktype=").append(tasktype);
-            sb.append(" order by priority desc, endtime asc)");
-            sb.append(" where rownum<=").append(queryNum);
+//            sb.append("select * from (select * from ");
+//            sb.append(tablename);
+//            sb.append(" where status=").append(status).append(" and datatype=").append(datatype).append(" and tasktype=").append(tasktype);
+//            sb.append(" order by priority desc, endtime asc)");
+//            sb.append(" where rownum<=").append(queryNum);
+            String format = "select * from %s where ROWID in (select RID from (select ROWID RID from %s where " +
+                    "status=%d and datatype=%d and tasktype=%d order by priority desc, endtime asc) where rownum <= %d) for update";
+            sql = String.format(format, tablename, tablename, status, datatype, tasktype, queryNum);
         }
 
         try {
-            srchTaskBeans = qr.query(sb.toString(), new BeanListHandler<>(SrchTaskBean.class));
+            Connection conn = qr.getDataSource().getConnection();
+            try {
+                conn.setAutoCommit(false);
+                try {
+                    srchTaskBeans = qr.query(conn, sql, new BeanListHandler<>(SrchTaskBean.class));
+                    for (SrchTaskBean bean : srchTaskBeans) {
+                        String sql1 = "update " + tablename + " set status=4 where taskidd=? and datatype=? and tasktype=?";
+                        qr.update(conn, sql1, bean.getTASKIDD(), bean.getDATATYPE(), bean.getTASKTYPE());
+                    }
+                    conn.commit();
+                } catch (SQLException e) {
+                    conn.rollback();
+                    throw e;
+                } finally {
+                    conn.setAutoCommit(true);
+                }
+            } finally {
+                conn.close();
+            }
+
             log.debug("query_sql is {}", sb.toString());
         } catch (SQLException e) {
             log.error("SQLException: {}, query_sql:{}", e, sb.toString());
+            throw e;
         }
         return srchTaskBeans;
     }
 
-    public synchronized List<SrchTaskBean> getList(String status, int[] datatypes, int[] tasktypes, String queryNum) {
+    public synchronized List<SrchTaskBean> getList(String status, int[] datatypes, int[] tasktypes, String queryNum) throws SQLException {
         List<SrchTaskBean> list = new ArrayList<>();
         StringBuilder sb = new StringBuilder();
         if (ConfigUtil.getConfig("database").toLowerCase().equals("sqlserver")) {
-            sb.append("select * from (select top ").append(queryNum).append(" * from ");
-            int statusN = 0;
-            try {
-                statusN = Integer.parseInt(status);
-            } catch (NumberFormatException e) {
-                log.error("parse status error. status must be a number. status-{}, exception-{}", status, e);
-            }
-            sb.append(" where status=").append(statusN);
-            sb.append(" and datatype in (");
+            sb.append("select * from ").append(tablename).append(" where ROWID in (select top ").append(queryNum);
+            sb.append(" RID from (select ROWID RID from ").append(tablename).append(" where status=").append(Integer.parseInt(status))
+            .append(" and datatype in (");
             for (int datatype : datatypes) {
                 if (datatype > 0) {
                     sb.append(datatype).append(",");
@@ -76,40 +100,103 @@ public class SrchTaskDAO {
                     sb.append(tasktype).append(",");
                 }
             }
-            sb.deleteCharAt(sb.length() - 1).append(") res");
-            sb.append(" order by priority desc, endtime asc");
+            sb.deleteCharAt(sb.length() - 1).append(")");
+            sb.append(" order by priority desc, endtime asc)) for update");
+
+//            sb.append("select * from (select top ").append(queryNum).append(" * from ");
+//            int statusN = 0;
+//            try {
+//                statusN = Integer.parseInt(status);
+//            } catch (NumberFormatException e) {
+//                log.error("parse status error. status must be a number. status-{}, exception-{}", status, e);
+//            }
+//            sb.append(" where status=").append(statusN);
+//            sb.append(" and datatype in (");
+//            for (int datatype : datatypes) {
+//                if (datatype > 0) {
+//                    sb.append(datatype).append(",");
+//                }
+//            }
+//            sb.deleteCharAt(sb.length() - 1).append(")");
+//            sb.append(" and tasktype in (");
+//            for (int tasktype : tasktypes) {
+//                if (tasktype != 0) {
+//                    sb.append(tasktype).append(",");
+//                }
+//            }
+//            sb.deleteCharAt(sb.length() - 1).append(") res");
+//            sb.append(" order by priority desc, endtime asc");
         } else {
-        sb.append("select * from ").append(tablename);
-        int statusN = 0;
-        try {
-            statusN = Integer.parseInt(status);
-        } catch (NumberFormatException e) {
-            log.error("parse status error. status must be a number. status-{}, exception-{}", status, e);
-        }
-        sb.append(" where status=").append(statusN);
-        sb.append(" and datatype in (");
-        for (int datatype : datatypes) {
-            if (datatype > 0) {
-                sb.append(datatype).append(",");
+            sb.append("select * from ").append(tablename).append(" where ROWID in (select RID from (select ROWID RID from ")
+                    .append(tablename).append(" where status=").append(Integer.parseInt(status))
+                    .append(" and datatype in (");
+            for (int datatype : datatypes) {
+                if (datatype > 0) {
+                    sb.append(datatype).append(",");
+                }
             }
-        }
-        sb.deleteCharAt(sb.length() - 1).append(")");
-        sb.append(" and tasktype in (");
-        for (int tasktype : tasktypes) {
-            if (tasktype != 0) {
-                sb.append(tasktype).append(",");
+            sb.deleteCharAt(sb.length() - 1).append(")");
+            sb.append(" and tasktype in (");
+            for (int tasktype : tasktypes) {
+                if (tasktype != 0) {
+                    sb.append(tasktype).append(",");
+                }
             }
-        }
-        sb.deleteCharAt(sb.length() - 1).append(")");
-        sb.append(" and rownum<=").append(Integer.parseInt(queryNum));
-        sb.append(" order by priority desc, endtime asc");
+            sb.deleteCharAt(sb.length() - 1).append(")");
+            sb.append(" order by priority desc, endtime asc) where rownum<=").append(queryNum).append(") for update");
+
+//
+//            sb.append("select * from ").append(tablename);
+//            int statusN = 0;
+//            try {
+//                statusN = Integer.parseInt(status);
+//            } catch (NumberFormatException e) {
+//                log.error("parse status error. status must be a number. status-{}, exception-{}", status, e);
+//            }
+//            sb.append(" where status=").append(statusN);
+//            sb.append(" and datatype in (");
+//            for (int datatype : datatypes) {
+//                if (datatype > 0) {
+//                    sb.append(datatype).append(",");
+//                }
+//            }
+//            sb.deleteCharAt(sb.length() - 1).append(")");
+//            sb.append(" and tasktype in (");
+//            for (int tasktype : tasktypes) {
+//                if (tasktype != 0) {
+//                    sb.append(tasktype).append(",");
+//                }
+//            }
+//            sb.deleteCharAt(sb.length() - 1).append(")");
+//            sb.append(" and rownum<=").append(Integer.parseInt(queryNum));
+//            sb.append(" order by priority desc, endtime asc");
         }
 
         try {
-            list = qr.query(sb.toString(), new BeanListHandler<>(SrchTaskBean.class));
+            Connection conn = qr.getDataSource().getConnection();
+            try {
+                conn.setAutoCommit(false);
+                try {
+                    list = qr.query(conn, sb.toString(), new BeanListHandler<>(SrchTaskBean.class));
+                    for (SrchTaskBean bean : list) {
+                        String sql1 = "update " + tablename + " set status=4 where taskidd=? and datatype=? and tasktype=?";
+                        qr.update(conn, sql1, bean.getTASKIDD(), bean.getDATATYPE(), bean.getTASKTYPE());
+                    }
+                    conn.commit();
+                } catch (SQLException e) {
+                    conn.rollback();
+                    throw e;
+                } finally {
+                    conn.setAutoCommit(true);
+                }
+            } finally {
+                conn.close();
+            }
+
             log.debug("query_sql is {}", sb.toString());
         } catch (SQLException e) {
             log.error("SQLException: {}, query_sql:{}", e, sb.toString());
+            throw e;
         }
         return list;
     }

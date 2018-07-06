@@ -14,8 +14,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -85,7 +87,13 @@ public class DBOP_TPP extends Recog implements Runnable {
         }));
         while (true) {
             List<DbopTaskBean> list = new ArrayList<>();
-            list = dbopTaskDAO.get(status, datatype, queryNum);
+            try {
+                list = dbopTaskDAO.get(status, datatype, queryNum);
+            } catch (SQLException e) {
+                log.error("database error ", e);
+                CommonUtil.sleep("10");
+                continue;
+            }
             if (null == list || list.size() == 0) {
                 int timeSleep = 1;
                 try {
@@ -104,51 +112,58 @@ public class DBOP_TPP extends Recog implements Runnable {
 //                DbopTaskBean dbopTaskBean = null;
                 List<Future<String>> listF = new ArrayList<>();
                 for (final DbopTaskBean dbopTaskBean : list) {
-                    dbopTaskBean.setStatus(4);
-                    dbopTaskDAO.update(dbopTaskBean.getTaskIdd(), 4, null);
-                    Future<String> f = executorService.submit(() -> {
-                        try {
-                            int tasktype = dbopTaskBean.getTaskType();
-                            String id = dbopTaskBean.getProbeId();
-                            switch (tasktype) {
-                                case 6:
-                                    if (HbieUtil.getInstance().hbie_FP != null) {
-                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id, -1);
-                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id + "$", -1);
-                                    }
-                                    if (HbieUtil.getInstance().hbie_PP != null) {
-                                        HbieUtil.getInstance().hbie_PP.updateMatcher(id, -1);
-                                    }
-                                    if (HbieUtil.getInstance().hbie_FACE != null) {
-                                        HbieUtil.getInstance().hbie_FACE.updateMatcher(id, -1);
-                                    }
-                                    if (HbieUtil.getInstance().hbie_IRIS != null) {
-                                        HbieUtil.getInstance().hbie_IRIS.updateMatcher(id, -1);
-                                    }
-                                    break;
-                                case 5:
-                                    pinfodao = new TPPDAO(tablename_pinfo);
-                                    String imgmask = pinfodao.getImgMask(id);
-                                    boolean oldVersion = imgmask.length() == 43;
-                                    String rfp = imgmask.substring(0, 10);
-                                    if (!"0000000000".equals(rfp) && HbieUtil.getInstance().hbie_FP != null)
-                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id, 1);
-                                    String ffp = imgmask.substring(10, 20);
-                                    if (!"0000000000".equals(ffp) && HbieUtil.getInstance().hbie_FP != null) {
-                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id + "$", 1);
-                                    }
-                                    String pm = imgmask.substring(20, 30);
-                                    if (!"0000000000".equals(pm) && HbieUtil.getInstance().hbie_PP != null) {
-                                        HbieUtil.getInstance().hbie_PP.updateMatcher(id, 1);
-                                    }
-                                    String face = oldVersion ? imgmask.substring(30, 33) : imgmask.substring(40, 50);
-                                    if (face.charAt(0) == '1' && HbieUtil.getInstance().hbie_FACE != null) {
-                                        HbieUtil.getInstance().hbie_FACE.updateMatcher(id, 1);
-                                    }
-                                    String iris = oldVersion ? imgmask.substring(33, 35) : imgmask.substring(50, 55);
-                                    if (!"00".equals(iris.substring(0, 2)) && HbieUtil.getInstance().hbie_IRIS != null) {
-                                        HbieUtil.getInstance().hbie_IRIS.updateMatcher(id, 1);
-                                    }
+//                    dbopTaskBean.setStatus(4);
+//                    dbopTaskDAO.update(dbopTaskBean.getTaskIdd(), 4, null);
+                    Future<String> f = executorService.submit(new Callable<String>() {
+                        @Override
+                        public String call() throws Exception {
+                            try {
+                                int tasktype = dbopTaskBean.getTaskType();
+                                String id = dbopTaskBean.getProbeId();
+                                switch (tasktype) {
+                                    case 6:
+                                        if (HbieUtil.getInstance().hbie_FP != null) {
+                                            HbieUtil.getInstance().hbie_FP.updateMatcher(id, -1);
+                                            HbieUtil.getInstance().hbie_FP.updateMatcher(id + "$", -1);
+                                        }
+                                        if (HbieUtil.getInstance().hbie_PP != null) {
+                                            HbieUtil.getInstance().hbie_PP.updateMatcher(id, -1);
+                                        }
+                                        if (HbieUtil.getInstance().hbie_FACE != null) {
+                                            HbieUtil.getInstance().hbie_FACE.updateMatcher(id, -1);
+                                        }
+                                        if (HbieUtil.getInstance().hbie_IRIS != null) {
+                                            HbieUtil.getInstance().hbie_IRIS.updateMatcher(id, -1);
+                                        }
+                                        break;
+                                    case 5:
+                                        pinfodao = new TPPDAO(tablename_pinfo);
+                                        String imgmask = pinfodao.getImgMask(id);
+                                        if (imgmask == null) {
+                                            log.error("get null record for id {}", id);
+                                            dbopTaskDAO.update(id, -1, "get null record in sdemo table");
+                                            break;
+                                        }
+                                        boolean oldVersion = imgmask.length() == 43;
+                                        String rfp = imgmask.substring(0, 10);
+                                        if (!"0000000000".equals(rfp) && HbieUtil.getInstance().hbie_FP != null)
+                                            HbieUtil.getInstance().hbie_FP.updateMatcher(id, 1);
+                                        String ffp = imgmask.substring(10, 20);
+                                        if (!"0000000000".equals(ffp) && HbieUtil.getInstance().hbie_FP != null) {
+                                            HbieUtil.getInstance().hbie_FP.updateMatcher(id + "$", 1);
+                                        }
+                                        String pm = imgmask.substring(20, 30);
+                                        if (!"0000000000".equals(pm) && HbieUtil.getInstance().hbie_PP != null) {
+                                            HbieUtil.getInstance().hbie_PP.updateMatcher(id, 1);
+                                        }
+                                        String face = oldVersion ? imgmask.substring(30, 33) : imgmask.substring(40, 50);
+                                        if (face.charAt(0) == '1' && HbieUtil.getInstance().hbie_FACE != null) {
+                                            HbieUtil.getInstance().hbie_FACE.updateMatcher(id, 1);
+                                        }
+                                        String iris = oldVersion ? imgmask.substring(33, 35) : imgmask.substring(50, 55);
+                                        if (!"00".equals(iris.substring(0, 2)) && HbieUtil.getInstance().hbie_IRIS != null) {
+                                            HbieUtil.getInstance().hbie_IRIS.updateMatcher(id, 1);
+                                        }
 //                                    if (imgmask == null) {
 //                                        log.error("can not get imgmask for probeid: {}", id);
 //                                        imgmask = "11111111111111111111111111111111111";
@@ -193,55 +208,56 @@ public class DBOP_TPP extends Recog implements Runnable {
 //                                            }
 //                                        }
 //                                    }
-                                    break;
-                                case 7:
-                                    if (HbieUtil.getInstance().hbie_FP != null) {
-                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id, -1);
-                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id, 1);
-                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id + "$", -1);
-                                        HbieUtil.getInstance().hbie_FP.updateMatcher(id + "$", 1);
-                                    }
-                                    if (HbieUtil.getInstance().hbie_PP != null) {
-                                        HbieUtil.getInstance().hbie_PP.updateMatcher(id, -1);
-                                        HbieUtil.getInstance().hbie_PP.updateMatcher(id, 1);
-                                    }
-                                    if (HbieUtil.getInstance().hbie_FACE != null) {
-                                        HbieUtil.getInstance().hbie_FACE.updateMatcher(id, -1);
-                                        HbieUtil.getInstance().hbie_FACE.updateMatcher(id, 1);
-                                    }
-                                    if (HbieUtil.getInstance().hbie_IRIS != null) {
-                                        HbieUtil.getInstance().hbie_IRIS.updateMatcher(id, -1);
-                                        HbieUtil.getInstance().hbie_IRIS.updateMatcher(id, 1);
-                                    }
-                                    break;
-                                default:
-                                    log.error("tasktype error {}.", tasktype);
-                                    break;
+                                        break;
+                                    case 7:
+                                        if (HbieUtil.getInstance().hbie_FP != null) {
+                                            HbieUtil.getInstance().hbie_FP.updateMatcher(id, -1);
+                                            HbieUtil.getInstance().hbie_FP.updateMatcher(id, 1);
+                                            HbieUtil.getInstance().hbie_FP.updateMatcher(id + "$", -1);
+                                            HbieUtil.getInstance().hbie_FP.updateMatcher(id + "$", 1);
+                                        }
+                                        if (HbieUtil.getInstance().hbie_PP != null) {
+                                            HbieUtil.getInstance().hbie_PP.updateMatcher(id, -1);
+                                            HbieUtil.getInstance().hbie_PP.updateMatcher(id, 1);
+                                        }
+                                        if (HbieUtil.getInstance().hbie_FACE != null) {
+                                            HbieUtil.getInstance().hbie_FACE.updateMatcher(id, -1);
+                                            HbieUtil.getInstance().hbie_FACE.updateMatcher(id, 1);
+                                        }
+                                        if (HbieUtil.getInstance().hbie_IRIS != null) {
+                                            HbieUtil.getInstance().hbie_IRIS.updateMatcher(id, -1);
+                                            HbieUtil.getInstance().hbie_IRIS.updateMatcher(id, 1);
+                                        }
+                                        break;
+                                    default:
+                                        log.error("tasktype error {}.", tasktype);
+                                        break;
+                                }
+                            } catch (RemoteException | MatcherException e) {
+                                log.warn("matcher error: ", e);
+                                dbopTaskDAO.update(dbopTaskBean.getTaskIdd(), 3, "matcher error " + e);
+                                throw e;
                             }
-                        } catch (RemoteException | MatcherException e) {
-                            log.warn("matcher error: ", e);
-                            dbopTaskDAO.update(dbopTaskBean.getTaskIdd(), 3, "matcher error " + e);
+                            return dbopTaskBean.getTaskIdd();
                         }
-                    }, dbopTaskBean.getTaskIdd());
+                    });
                     listF.add(f);
                 }
                 String taskid = null;
                 for (Future<String> temp : listF) {
-                    while (true) {
-                        try {
-                            taskid = temp.get();
-                        } catch (InterruptedException | ExecutionException e) {
-                            log.error("get future result error. ", e);
-                        }
-                        if (taskid != null) {
-                            boolean is = dbopTaskDAO.update(taskid, 5, null);
-                            if (is) {
-                                log.info("DbopTask taskid-{} finish.", taskid);
-                            } else {
-                                log.warn("DbopTask taskid-{} update table error.", taskid);
-                                dbopTaskDAO.update(taskid, -1, "update " + taskid + " error");
-                            }
-                            break;
+                    try {
+                        taskid = temp.get();
+                    } catch (InterruptedException | ExecutionException e) {
+                        log.error("get future result error. ", e);
+                        continue;
+                    }
+                    if (taskid != null) {
+                        boolean is = dbopTaskDAO.update(taskid, 5, null);
+                        if (is) {
+                            log.info("DbopTask taskid-{} finish.", taskid);
+                        } else {
+                            log.warn("DbopTask taskid-{} update table error.", taskid);
+                            dbopTaskDAO.update(taskid, -1, "update " + taskid + " error");
                         }
                     }
                 }
