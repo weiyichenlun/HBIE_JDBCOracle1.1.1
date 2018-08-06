@@ -14,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -86,7 +85,7 @@ public class DBOP_TPP extends Recog implements Runnable {
                 try {
                     dbopTaskDAO.updateStatus(3);
                     break;
-                } catch (SQLException e) {
+                } catch (Exception e) {
                     log.error("database error. ", e);
                     CommonUtil.sleep("10");
                     continue;
@@ -98,7 +97,7 @@ public class DBOP_TPP extends Recog implements Runnable {
             List<DbopTaskBean> list = new ArrayList<>();
             try {
                 list = dbopTaskDAO.get(status, datatype, queryNum);
-            } catch (SQLException e) {
+            } catch (Exception e) {
                 log.error("database error ", e);
                 CommonUtil.sleep("10");
                 continue;

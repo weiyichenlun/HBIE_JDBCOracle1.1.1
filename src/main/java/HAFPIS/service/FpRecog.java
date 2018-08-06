@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
 import java.sql.Blob;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -90,7 +89,7 @@ public class FpRecog extends Recog implements Runnable {
             try {
                 srchTaskDAO.updateStatus(datatypes, tasktypes);
                 break;
-            } catch (SQLException e) {
+            } catch (Exception e) {
                 log.error("database error. ", e);
                 CommonUtil.sleep("10");
                 continue;
@@ -103,7 +102,7 @@ public class FpRecog extends Recog implements Runnable {
                 try {
                     srchTaskDAO.updateStatus(datatypes, tasktypes);
                     break;
-                } catch (SQLException e) {
+                } catch (Exception e) {
                     log.error("database error. ", e);
                     CommonUtil.sleep("10");
                     continue;
@@ -130,7 +129,7 @@ public class FpRecog extends Recog implements Runnable {
                     List<SrchTaskBean> list = null;
                     try {
                         list = srchTaskDAO.getSrchTaskBean(3, 1, 1, finalTenfpMatcherShards);
-                    } catch (SQLException e) {
+                    } catch (Exception e) {
                         log.error("fptt database error. ", e);
                         CommonUtil.sleep("10");
                         continue;
@@ -161,7 +160,7 @@ public class FpRecog extends Recog implements Runnable {
                     List<SrchTaskBean> list = null;
                     try {
                         list = srchTaskDAO.getSrchTaskBean(3, 4, 3, finalLatfpMatcherShards);
-                    } catch (SQLException e) {
+                    } catch (Exception e) {
                         log.error("fplt database error. ", e);
                         CommonUtil.sleep("10");
                         continue;

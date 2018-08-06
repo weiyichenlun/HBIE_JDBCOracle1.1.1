@@ -67,7 +67,7 @@ public class DbopTaskDAO {
                         qr.update(conn, sql, task.getTaskIdd());
                     }
                     conn.commit();
-                } catch (SQLException e) {
+                } catch (Exception e) {
                     conn.rollback();
                     throw e;
                 } finally {
@@ -76,7 +76,7 @@ public class DbopTaskDAO {
             } finally {
                 conn.close();
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             log.error("get DBOPTask error. SQLException: {}, query_sql: {}", e, sb.toString());
             throw e;
         }
@@ -126,7 +126,7 @@ public class DbopTaskDAO {
                         qr.update(conn, sql1, bean.getTaskIdd(), bean.getDataType());
                     }
                     conn.commit();
-                } catch (SQLException e) {
+                } catch (Exception e) {
                     conn.rollback();
                     throw e;
                 } finally {
@@ -137,8 +137,8 @@ public class DbopTaskDAO {
             }
 
             log.debug("query_sql is {}", sb.toString());
-        } catch (SQLException e) {
-            log.error("SQLException: {}, query_sql:{}", e, sb.toString());
+        } catch (Exception e) {
+            log.error("Exception: {}, query_sql:{}", e, sb.toString());
             throw e;
         }
 

@@ -8,7 +8,6 @@ import org.apache.commons.dbutils.QueryRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +57,7 @@ public class HeartbeatService extends Recog implements Runnable {
                 try {
                     if (heartBeatDAO.insert(heartbeat_instance_name, 1, updatetime)) break;
                     else continue;
-                } catch (SQLException e) {
+                } catch (Exception e) {
                     log.error("database error. ", e);
                     CommonUtil.sleep("10");
                 }

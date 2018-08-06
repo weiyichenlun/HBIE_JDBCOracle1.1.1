@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
 import java.sql.Blob;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -89,7 +88,7 @@ public class PalmRecog extends Recog implements Runnable{
             try {
                 srchTaskDAO.updateStatus(datatypes, tasktypes);
                 break;
-            } catch (SQLException e) {
+            } catch (Exception e) {
                 log.error("database error. ", e);
                 CommonUtil.sleep("10");
                 continue;
@@ -102,7 +101,7 @@ public class PalmRecog extends Recog implements Runnable{
                 try {
                     srchTaskDAO.updateStatus(datatypes, tasktypes);
                     break;
-                } catch (SQLException e) {
+                } catch (Exception e) {
                     log.error("database error. ", e);
                     CommonUtil.sleep("10");
                     continue;
@@ -129,7 +128,7 @@ public class PalmRecog extends Recog implements Runnable{
                 List<SrchTaskBean> list = null;
                 try {
                     list = srchTaskDAO.getSrchTaskBean(3, 2, 1, finalFourpalmMatcherShards);
-                } catch (SQLException e) {
+                } catch (Exception e) {
                     log.error("pptt database error. ", e);
                     CommonUtil.sleep("10");
                     continue;
@@ -160,7 +159,7 @@ public class PalmRecog extends Recog implements Runnable{
                     List<SrchTaskBean> list = null;
                     try {
                         list = srchTaskDAO.getSrchTaskBean(3, 5, 3, finalFourpalmMatcherShards);
-                    } catch (SQLException e) {
+                    } catch (Exception e) {
                         log.error("pplt database error. ", e);
                         CommonUtil.sleep("10");
                         continue;

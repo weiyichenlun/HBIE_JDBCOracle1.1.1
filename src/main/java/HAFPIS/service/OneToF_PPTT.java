@@ -16,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Blob;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -87,7 +86,7 @@ public class OneToF_PPTT extends Recog implements Runnable{
                 try {
                     srchTaskDAO.updateStatus(datatypes, tasktypes);
                     break;
-                } catch (SQLException e) {
+                } catch (Exception e) {
                     log.error("database error. ", e);
                     CommonUtil.sleep("10");
                     continue;
@@ -99,7 +98,7 @@ public class OneToF_PPTT extends Recog implements Runnable{
             List<SrchTaskBean> list = new ArrayList<>();
             try {
                 list = srchTaskDAO.getList(status, datatypes, tasktypes, queryNum);
-            } catch (SQLException e) {
+            } catch (Exception e) {
                 log.error("1tof pptt database error");
                 CommonUtil.sleep("10");
                 continue;

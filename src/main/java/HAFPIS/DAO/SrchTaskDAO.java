@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +26,7 @@ public class SrchTaskDAO {
         this.tablename = tablename;
     }
 
-    public List<SrchTaskBean> getSrchTaskBean(int status, int datatype, int tasktype, int queryNum) throws SQLException {
+    public List<SrchTaskBean> getSrchTaskBean(int status, int datatype, int tasktype, int queryNum) throws Exception {
         List<SrchTaskBean> srchTaskBeans = new ArrayList<>();
         StringBuilder sb = new StringBuilder();
         String sql = null;
@@ -63,7 +62,7 @@ public class SrchTaskDAO {
                         qr.update(conn, sql1, bean.getTASKIDD(), bean.getDATATYPE(), bean.getTASKTYPE());
                     }
                     conn.commit();
-                } catch (SQLException e) {
+                } catch (Exception e) {
                     conn.rollback();
                     throw e;
                 } finally {
@@ -73,15 +72,15 @@ public class SrchTaskDAO {
                 conn.close();
             }
 
-            log.debug("query_sql is {}", sb.toString());
-        } catch (SQLException e) {
-            log.error("SQLException: {}, query_sql:{}", e, sb.toString());
+            log.debug("query_sql is {}", sql);
+        } catch (Exception e) {
+            log.error("Exception: {}, query_sql:{}", e, sql);
             throw e;
         }
         return srchTaskBeans;
     }
 
-    public synchronized List<SrchTaskBean> getList(String status, int[] datatypes, int[] tasktypes, String queryNum) throws SQLException {
+    public synchronized List<SrchTaskBean> getList(String status, int[] datatypes, int[] tasktypes, String queryNum) throws Exception {
         List<SrchTaskBean> list = new ArrayList<>();
         StringBuilder sb = new StringBuilder();
         if (ConfigUtil.getConfig("database").toLowerCase().equals("sqlserver")) {
@@ -183,7 +182,7 @@ public class SrchTaskDAO {
                         qr.update(conn, sql1, bean.getTASKIDD(), bean.getDATATYPE(), bean.getTASKTYPE());
                     }
                     conn.commit();
-                } catch (SQLException e) {
+                } catch (Exception e) {
                     conn.rollback();
                     throw e;
                 } finally {
@@ -194,8 +193,8 @@ public class SrchTaskDAO {
             }
 
             log.debug("query_sql is {}", sb.toString());
-        } catch (SQLException e) {
-            log.error("SQLException: {}, query_sql:{}", e, sb.toString());
+        } catch (Exception e) {
+            log.error("Exception: {}, query_sql:{}", e, sb.toString());
             throw e;
         }
         return list;
@@ -235,7 +234,7 @@ public class SrchTaskDAO {
         try{
             list = qr.query(sb.toString(), new BeanListHandler<>(SrchTaskBean.class));
             log.debug("query sql is {}", sb.toString());
-        } catch (SQLException e) {
+        } catch (Exception e) {
             log.error("query_sql:{}, SQLException: ", sb.toString(), e);
         }
         return list;
@@ -262,12 +261,12 @@ public class SrchTaskDAO {
         param.add(taskidd);
         try {
             qr.update(sb.toString(), param.toArray());
-        } catch (SQLException e) {
+        } catch (Exception e) {
             log.error("UPDATE DB error: ", e);
         }
     }
 
-    public synchronized void updateStatus(int[] datatypes, int[] tasktypes) throws SQLException {
+    public synchronized void updateStatus(int[] datatypes, int[] tasktypes) throws Exception {
         List<SrchTaskBean> srchTaskBeans = new ArrayList<>();
         StringBuilder sb = new StringBuilder();
         sb.append("select * from ").append(tablename).append(" where ROWID in (select RID from (select ROWID RID from ");
@@ -298,7 +297,7 @@ public class SrchTaskDAO {
                         qr.update(conn, sql1, bean.getTASKIDD(), bean.getDATATYPE(), bean.getTASKTYPE());
                     }
                     conn.commit();
-                } catch (SQLException e) {
+                } catch (Exception e) {
                     conn.rollback();
                     throw e;
                 } finally {
@@ -309,8 +308,8 @@ public class SrchTaskDAO {
             }
 
             log.debug("query_sql is {}", sb.toString());
-        } catch (SQLException e) {
-            log.error("SQLException: {}, query_sql:{}", e, sb.toString());
+        } catch (Exception e) {
+            log.error("Exception: {}, query_sql:{}", e, sb.toString());
             throw e;
         }
 

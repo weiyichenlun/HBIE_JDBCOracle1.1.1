@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
 import java.sql.Blob;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -89,7 +88,7 @@ public class LatFpRecog extends Recog implements Runnable{
             try {
                 srchTaskDAO.updateStatus(datatypes, tasktypes);
                 break;
-            } catch (SQLException e) {
+            } catch (Exception e) {
                 log.error("database error. ", e);
                 CommonUtil.sleep("10");
                 continue;
@@ -102,7 +101,7 @@ public class LatFpRecog extends Recog implements Runnable{
                 try {
                     srchTaskDAO.updateStatus(datatypes, tasktypes);
                     break;
-                } catch (SQLException e) {
+                } catch (Exception e) {
                     log.error("database error. ", e);
                     CommonUtil.sleep("10");
                     continue;
@@ -129,7 +128,7 @@ public class LatFpRecog extends Recog implements Runnable{
                 List<SrchTaskBean> list = null;
                 try {
                     list = srchTaskDAO.getSrchTaskBean(3, 1, 2, finalLatfpMatcherShards);
-                } catch (SQLException e) {
+                } catch (Exception e) {
                     log.error("fptl database error.", e);
                     CommonUtil.sleep("10");
                     continue;
@@ -161,7 +160,7 @@ public class LatFpRecog extends Recog implements Runnable{
                     List<SrchTaskBean> list = null;
                     try {
                         list = srchTaskDAO.getSrchTaskBean(3, 4, 4, finalLatfpMatcherShards1);
-                    } catch (SQLException e) {
+                    } catch (Exception e) {
                         log.error("fpll database error. ", e);
                         CommonUtil.sleep("10");
                         continue;
