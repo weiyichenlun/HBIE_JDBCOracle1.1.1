@@ -106,13 +106,14 @@ public class HeartBeatDAO {
         }
     }
 
-    public synchronized boolean insert(String pid, int rank, long time) {
-        String sql = "insert into " + this.tableName + " (instancename, rankno, updatetime) values (?, ?, ?)";
+    public synchronized boolean insert(String pid, int rank, long time) throws SQLException {
+        String sql = "insert into " + this.tableName + " (instancename, rankno, updatetime, updatetime1) " +
+                "values (?, ?, ?, to_char(systimestamp, 'YYYY-MM-DD HH24:MI:SS.FF'))";
         try {
             return this.qr.update(sql, pid, rank, time) > 0;
         } catch (SQLException e) {
             log.error("Insert into HeartBeat table error. instancename: {}", pid, e);
-            return false;
+            throw e;
         }
     }
 }

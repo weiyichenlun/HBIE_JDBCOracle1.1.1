@@ -267,9 +267,11 @@ public class SrchTaskDAO {
         }
     }
 
-    public synchronized void updateStatus(int[] datatypes, int[] tasktypes) {
-        StringBuilder sb = new StringBuilder("update ");
-        sb.append(tablename).append(" set status=3 where status=4 and datatype in (");
+    public synchronized void updateStatus(int[] datatypes, int[] tasktypes) throws SQLException {
+        List<SrchTaskBean> srchTaskBeans = new ArrayList<>();
+        StringBuilder sb = new StringBuilder();
+        sb.append("select * from ").append(tablename).append(" where ROWID in (select RID from (select ROWID RID from ");
+        sb.append(tablename).append(" where status=4 and datatype in (");
         for (int i=0; i<datatypes.length; i++) {
             if (datatypes[i] > 0) {
                 sb.append(datatypes[i]).append(",");
@@ -283,10 +285,53 @@ public class SrchTaskDAO {
             }
         }
         sb.deleteCharAt(sb.length() - 1).append(")");
-        try{
-            qr.update(sb.toString());
+        sb.append(")) for update");
+
+        try {
+            Connection conn = qr.getDataSource().getConnection();
+            try {
+                conn.setAutoCommit(false);
+                try {
+                    srchTaskBeans = qr.query(conn, sb.toString(), new BeanListHandler<>(SrchTaskBean.class));
+                    for (SrchTaskBean bean : srchTaskBeans) {
+                        String sql1 = "update " + tablename + " set status=3 where taskidd=? and datatype=? and tasktype=?";
+                        qr.update(conn, sql1, bean.getTASKIDD(), bean.getDATATYPE(), bean.getTASKTYPE());
+                    }
+                    conn.commit();
+                } catch (SQLException e) {
+                    conn.rollback();
+                    throw e;
+                } finally {
+                    conn.setAutoCommit(true);
+                }
+            } finally {
+                conn.close();
+            }
+
+            log.debug("query_sql is {}", sb.toString());
         } catch (SQLException e) {
-            log.error("update status error before program shutdown. ");
+            log.error("SQLException: {}, query_sql:{}", e, sb.toString());
+            throw e;
         }
+
+//        sb.append(tablename).append(" set status=3 where status=4 and datatype in (");
+//        for (int i=0; i<datatypes.length; i++) {
+//            if (datatypes[i] > 0) {
+//                sb.append(datatypes[i]).append(",");
+//            }
+//        }
+//        sb.deleteCharAt(sb.length() - 1).append(")");
+//        sb.append(" and tasktype in (");
+//        for (int tasktype : tasktypes) {
+//            if (tasktype != 0) {
+//                sb.append(tasktype).append(",");
+//            }
+//        }
+//        sb.deleteCharAt(sb.length() - 1).append(")");
+//        try{
+//            qr.update(sb.toString());
+//        } catch (SQLException e) {
+//            log.error("update status error before program shutdown. ");
+//        }
     }
 }

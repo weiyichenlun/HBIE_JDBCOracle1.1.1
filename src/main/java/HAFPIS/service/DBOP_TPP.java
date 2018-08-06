@@ -82,7 +82,16 @@ public class DBOP_TPP extends Recog implements Runnable {
             } catch (InterruptedException e) {
             }
             executorService.shutdown();
-            dbopTaskDAO.updateStatus(3);
+            while (true) {
+                try {
+                    dbopTaskDAO.updateStatus(3);
+                    break;
+                } catch (SQLException e) {
+                    log.error("database error. ", e);
+                    CommonUtil.sleep("10");
+                    continue;
+                }
+            }
             System.out.println("DBOP_TPP executorservice is shutting down");
         }));
         while (true) {

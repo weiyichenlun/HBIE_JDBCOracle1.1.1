@@ -80,7 +80,16 @@ public class DBOP_LPP extends Recog implements Runnable {
             } catch (InterruptedException e) {
             }
             executorService.shutdown();
-            dbopTaskDAO.updateStatus(4);
+            while (true) {
+                try {
+                    dbopTaskDAO.updateStatus(4);
+                    break;
+                } catch (SQLException e) {
+                    log.error("database error. ", e);
+                    CommonUtil.sleep("10");
+                    continue;
+                }
+            }
             System.out.println("DBOP_LPP executorservice is shutting down");
         }));
         while (true) {

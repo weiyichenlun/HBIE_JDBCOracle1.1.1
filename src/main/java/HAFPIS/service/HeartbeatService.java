@@ -8,6 +8,7 @@ import org.apache.commons.dbutils.QueryRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,13 +41,28 @@ public class HeartbeatService extends Recog implements Runnable {
             System.exit(-1);
         } else {
             heartBeatDAO = new HeartBeatDAO(this.heartbeat_table);
+
+            //TODO update time first
+
+
+
+
+
             //TODO check status 检测由于异常关闭造成的相关记录没有清零的情况
             checkStatus(false);
             heartBeatDAO.delete(heartbeat_instance_name);
 //            long updatetime = System.currentTimeMillis();
             long updatetime = start_time;
-            log.info("insert record id/start?/time: {}/{}/{}", heartbeat_instance_name, 1, updatetime);
-            heartBeatDAO.insert(heartbeat_instance_name, 1, updatetime);
+            log.info("insert record id/start/time: {}/{}/{}", heartbeat_instance_name, 1, updatetime);
+            while (true) {
+                try {
+                    if (heartBeatDAO.insert(heartbeat_instance_name, 1, updatetime)) break;
+                    else continue;
+                } catch (SQLException e) {
+                    log.error("database error. ", e);
+                    CommonUtil.sleep("10");
+                }
+            }
 
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 log.info("---------------");

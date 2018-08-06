@@ -84,7 +84,16 @@ public class OneToF_Iris extends Recog implements Runnable {
             } catch (InterruptedException e) {
             }
             executorService.shutdown();
-            srchTaskDAO.updateStatus(datatypes, tasktypes);
+            while (true) {
+                try {
+                    srchTaskDAO.updateStatus(datatypes, tasktypes);
+                    break;
+                } catch (SQLException e) {
+                    log.error("database error. ", e);
+                    CommonUtil.sleep("10");
+                    continue;
+                }
+            }
             System.out.println("Iris1ToF executorservice is shutting down");
         }));
         while (true) {

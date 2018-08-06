@@ -624,7 +624,7 @@ public class CommonUtil {
      * @return 返回有效的SRCHPOSMASK
      */
     public static String checkSrchPosMask(int type, String srchPosMask) {
-        if (type == CONSTANTS.FPTL || type == CONSTANTS.FPLT) {
+        if (type == CONSTANTS.FPTL || type == CONSTANTS.FPLT || type == CONSTANTS.FPTT) {
             if (srchPosMask == null || srchPosMask.length() == 0) {
                 srchPosMask = "11111111111111111111";
             } else if (srchPosMask.length() < 20) {
@@ -642,7 +642,7 @@ public class CommonUtil {
                 }
             }
             return srchPosMask;
-        } else if (type == CONSTANTS.PPLT || type == CONSTANTS.PPTL) {
+        } else if (type == CONSTANTS.PPLT || type == CONSTANTS.PPTL || type == CONSTANTS.PPTT) {
             if (srchPosMask == null || srchPosMask.length() == 0) {
                 srchPosMask = "1000110001";
             } else if (srchPosMask.length() <= 10) {
@@ -661,7 +661,7 @@ public class CommonUtil {
             }
             return srchPosMask;
         }
-        return null;
+        return srchPosMask;
     }
 
     /**

@@ -85,11 +85,29 @@ public class LatPalmRecog extends Recog implements Runnable {
         }
         log.info("Starting...Update status first...");
         srchTaskDAO = new SrchTaskDAO(tablename);
-        srchTaskDAO.updateStatus(datatypes, tasktypes);
+        while (true) {
+            try {
+                srchTaskDAO.updateStatus(datatypes, tasktypes);
+                break;
+            } catch (SQLException e) {
+                log.error("database error. ", e);
+                CommonUtil.sleep("10");
+                continue;
+            }
+        }
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("----------------");
             boundedExecutor.close();
-            srchTaskDAO.updateStatus(datatypes, tasktypes);
+            while (true) {
+                try {
+                    srchTaskDAO.updateStatus(datatypes, tasktypes);
+                    break;
+                } catch (SQLException e) {
+                    log.error("database error. ", e);
+                    CommonUtil.sleep("10");
+                    continue;
+                }
+            }
             System.out.println("LatPalm executorservice is shutting down");
         }));
 
@@ -284,7 +302,7 @@ public class LatPalmRecog extends Recog implements Runnable {
                 if (!exptMsg.toString().isEmpty()) {
                     srchTaskBean.setSTATUS(-1);
                     log.error("L2L search: No results. ProbeId={}, ExceptionMsg:{}", srchTaskBean.getPROBEID(), exptMsg);
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString());
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().length() > 128 ? exptMsg.toString().substring(0, 128) : exptMsg.toString());
                 } else {
                     srchTaskBean.setEXPTMSG("No results");
                     srchTaskBean.setSTATUS(6);
@@ -322,12 +340,13 @@ public class LatPalmRecog extends Recog implements Runnable {
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
             CommonUtil.sleep("10");
         } catch (Exception e) {
+            String temp = exptMsg.toString() + e.toString();
             if (e instanceof IllegalArgumentException) {
                 log.error("L2L illegal parameters error. ", e);
-                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString() + e.toString());
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, temp.length() > 128? temp.substring(0, 128):temp);
             } else {
                 log.error("L2L exception ", e);
-                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString()+e.toString());
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, temp.length() > 128? temp.substring(0, 128):temp);
                 CommonUtil.sleep("10");
             }
         }

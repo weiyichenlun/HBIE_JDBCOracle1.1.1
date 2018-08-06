@@ -108,13 +108,46 @@ public class DbopTaskDAO {
         }
     }
 
-    public synchronized void updateStatus(int datatype) {
-        StringBuilder sql = new StringBuilder("update ");
-        sql.append(tablename).append(" set status=3 where status=4 and datatype=?");
-        try{
-            qr.update(sql.toString(), datatype);
+    public synchronized void updateStatus(int datatype) throws SQLException {
+        List<DbopTaskBean> srchTaskBeans = new ArrayList<>();
+        StringBuilder sb = new StringBuilder();
+        sb.append("select * from ").append(tablename).append(" where ROWID in (select RID from (select ROWID RID from ");
+        sb.append(tablename).append(" where status=4 and datatype=?");
+        sb.append(")) for update");
+
+        try {
+            Connection conn = qr.getDataSource().getConnection();
+            try {
+                conn.setAutoCommit(false);
+                try {
+                    srchTaskBeans = qr.query(conn, sb.toString(), new BeanListHandler<>(DbopTaskBean.class), datatype);
+                    for (DbopTaskBean bean : srchTaskBeans) {
+                        String sql1 = "update " + tablename + " set status=3 where taskidd=? and datatype=?";
+                        qr.update(conn, sql1, bean.getTaskIdd(), bean.getDataType());
+                    }
+                    conn.commit();
+                } catch (SQLException e) {
+                    conn.rollback();
+                    throw e;
+                } finally {
+                    conn.setAutoCommit(true);
+                }
+            } finally {
+                conn.close();
+            }
+
+            log.debug("query_sql is {}", sb.toString());
         } catch (SQLException e) {
-            log.error("update status error before shutting down");
+            log.error("SQLException: {}, query_sql:{}", e, sb.toString());
+            throw e;
         }
+
+
+//        sql.append(tablename).append(" set status=3 where status=4 and datatype=?");
+//        try{
+//            qr.update(sql.toString(), datatype);
+//        } catch (SQLException e) {
+//            log.error("update status error before shutting down");
+//        }
     }
 }

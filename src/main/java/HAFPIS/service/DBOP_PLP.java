@@ -80,7 +80,16 @@ public class DBOP_PLP extends Recog implements Runnable {
             } catch (InterruptedException e) {
             }
             executorService.shutdown();
-            dbopTaskDAO.updateStatus(5);
+            while (true) {
+                try {
+                    dbopTaskDAO.updateStatus(5);
+                    break;
+                } catch (SQLException e) {
+                    log.error("database error. ", e);
+                    CommonUtil.sleep("10");
+                    continue;
+                }
+            }
             System.out.println("DBOP_PLP executorservice is shutting down");
         }));
         while (true) {

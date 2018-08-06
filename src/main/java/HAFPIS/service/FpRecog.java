@@ -86,11 +86,29 @@ public class FpRecog extends Recog implements Runnable {
         }
         log.info("Starting...Update status first...");
         srchTaskDAO = new SrchTaskDAO(tablename);
-        srchTaskDAO.updateStatus(datatypes, tasktypes);
+        while (true) {
+            try {
+                srchTaskDAO.updateStatus(datatypes, tasktypes);
+                break;
+            } catch (SQLException e) {
+                log.error("database error. ", e);
+                CommonUtil.sleep("10");
+                continue;
+            }
+        }
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             System.out.println("----------------");
             boundedExecutor.close();
-            srchTaskDAO.updateStatus(datatypes, tasktypes);
+            while (true) {
+                try {
+                    srchTaskDAO.updateStatus(datatypes, tasktypes);
+                    break;
+                } catch (SQLException e) {
+                    log.error("database error. ", e);
+                    CommonUtil.sleep("10");
+                    continue;
+                }
+            }
             System.out.println("Fp executorservice is shutting down");
         }));
 
@@ -259,7 +277,7 @@ public class FpRecog extends Recog implements Runnable {
 //        }
         log.info("srchposmask is {}", srchPosMask);
         srchPosMask = CommonUtil.checkSrchPosMask(CONSTANTS.FPLT, srchPosMask);
-        log.info("after {}", srchPosMask);
+        log.debug("after {}", srchPosMask);
         byte[][] features = new byte[2][];
         SrchDataRec srchDataRec = srchDataRecList.get(0);
         features[0] = srchDataRec.latfpmnt;
@@ -279,13 +297,7 @@ public class FpRecog extends Recog implements Runnable {
                 numOfOne = numOfOne + 1;
             }
         }
-        for (int i = 0; i < posMask_Roll.length; i++) {
-            System.out.print(posMask_Roll[i] + "\t");
-        }
-        for (int i = 0; i < posMask_Flat.length; i++) {
-            System.out.print(posMask_Flat[i] + "\t");
-        }
-        System.out.println();
+
         avgCand = srchTaskBean.getAVERAGECAND();
         srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
         try{
@@ -444,7 +456,7 @@ public class FpRecog extends Recog implements Runnable {
                 if (!exptMsg.toString().isEmpty()) {
                     srchTaskBean.setSTATUS(-1);
                     log.error("FPLT search: No results. ProbeId={}, ExceptionMsg:{}", srchTaskBean.getPROBEID(), exptMsg);
-                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString().substring(1, 128));
+                    srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1,  exptMsg.toString().length() > 128 ? exptMsg.toString().substring(0, 128) : exptMsg.toString());
                 } else {
                     srchTaskBean.setEXPTMSG("No results");
                     srchTaskBean.setSTATUS(6);
@@ -485,12 +497,13 @@ public class FpRecog extends Recog implements Runnable {
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
             CommonUtil.sleep("10");
         } catch (Exception e) {
+            String temp = exptMsg.toString() + e.toString();
             if (e instanceof IllegalArgumentException) {
                 log.error("FPLT illegal parameters error. ", e);
-                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString() + e.toString());
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, temp.length() > 128? temp.substring(0, 128):temp);
             } else {
                 log.error("FPLT exception ", e);
-                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString()+e.toString());
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, temp.length() > 128? temp.substring(0, 128):temp);
                 CommonUtil.sleep("10");
             }
         }
@@ -514,6 +527,8 @@ public class FpRecog extends Recog implements Runnable {
             log.warn("FPTT: rollmnt and flatmnt features are both null. ProbeId=", srchTaskBean.getPROBEID());
         }
         srchTaskDAO.update(srchTaskBean.getTASKIDD(), 4, null);
+        String srchPosMask = srchTaskBean.getSRCHPOSMASK();
+        srchPosMask = CommonUtil.checkSrchPosMask(CONSTANTS.FPTT, srchPosMask);
         try {
             List<FPTTRec> list = new ArrayList<>();
             int numOfCand = srchTaskBean.getNUMOFCAND();
@@ -536,7 +551,14 @@ public class FpRecog extends Recog implements Runnable {
             log.info(srchTaskBean.getSRCHDBSMASK());
 
             //文字信息过滤
-            probe.filter = CommonUtil.mergeFilter("flag=={0}", dbFilter, solveOrDup, demoFilter);
+            if (srchPosMask.substring(0, 10).equals("0000000000")){
+                probe.filter = CommonUtil.mergeFilter("flag=={1}", dbFilter, solveOrDup, demoFilter);
+            } else if (srchPosMask.substring(10, 20).equals("0000000000")) {
+                probe.filter = CommonUtil.mergeFilter("flag=={0}", dbFilter, solveOrDup, demoFilter);
+            } else {
+                probe.filter = CommonUtil.mergeFilter(dbFilter, solveOrDup, demoFilter);
+            }
+            //probe.filter = CommonUtil.mergeFilter("flag=={0}", dbFilter, solveOrDup, demoFilter);
             log.info("The total filter is :\n{}", probe.filter);
 
             SearchResults<HSFPTenFp.TenFpSearchParam.Result> results = null;
@@ -569,7 +591,14 @@ public class FpRecog extends Recog implements Runnable {
             }
             log.info("list convertion cost {}", System.currentTimeMillis()-start2);
             probe.features = srchDataRec.fpmnt;
-            probe.filter = CommonUtil.mergeFilter("flag=={1}", dbFilter, solveOrDup, demoFilter);
+            if (srchPosMask.substring(0, 10).equals("0000000000")){
+                probe.filter = CommonUtil.mergeFilter("flag=={1}", dbFilter, solveOrDup, demoFilter);
+            } else if (srchPosMask.substring(10, 20).equals("0000000000")) {
+                probe.filter = CommonUtil.mergeFilter("flag=={0}", dbFilter, solveOrDup, demoFilter);
+            } else {
+                probe.filter = CommonUtil.mergeFilter(dbFilter, solveOrDup, demoFilter);
+            }
+            //probe.filter = CommonUtil.mergeFilter("flag=={1}", dbFilter, solveOrDup, demoFilter);
             log.info("The total filter is :\n{}", probe.filter);
 
             long start11 = System.currentTimeMillis();
@@ -636,12 +665,13 @@ public class FpRecog extends Recog implements Runnable {
             srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString());
             CommonUtil.sleep("10");
         } catch (Exception e) {
+            String temp = exptMsg.toString() + e.toString();
             if (e instanceof IllegalArgumentException) {
                 log.error("FPTT illegal parameters error. ", e);
-                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, exptMsg.toString() + e.toString());
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), -1, temp.length() > 128? temp.substring(0, 128):temp);
             } else {
                 log.error("FPTT exception ", e);
-                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, exptMsg.toString()+e.toString());
+                srchTaskDAO.update(srchTaskBean.getTASKIDD(), 3, temp.length() > 128? temp.substring(0, 128):temp);
                 CommonUtil.sleep("10");
             }
         }
